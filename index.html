@@ -1,80 +1,32 @@
 <!doctype html>
-  <html lang="en">
-  <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="description" content="A tiny, offline typing adventure. Build good
-  habits, deliver notes, and collect charms at your own pace.">
-  <title>Keygrove - A tiny typing adventure</title>
-  <style>
-  :root{--paper:#f3f3e9;--card:#fffef8;--ink:#263e33;--muted:#717b6b;--line:#dfe3d5
-  ;--green:#315e47;--green-dark:#244936;--mint:#e6eddb;--gold:#ecc174;--rust:#b96b4
-  6;--error:#ad513d;--shadow:0 8px 25px #354a3210;--radius:22px}
-  *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);fo
-  nt-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe
-  UI",sans-serif;font-size:14px;line-height:1.5}button,input,select,textarea{font:i
-  nherit}button{cursor:pointer}button,a,input,select,textarea{touch-action:manipula
-  tion}button{color:inherit}button:disabled{cursor:not-allowed;opacity:.48}button:f
-  ocus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:foc
-  us-visible{outline:3px solid #b8863e;outline-offset:4px}button{border:0}a{color:v
-  ar(--green)}svg{display:inline-block;vertical-align:middle}h1,h2,h3,p{margin:0}h1
-  ,h2,h3{font-weight:600}h1,h2,.serif{font-family:Georgia,"Times New
-  Roman",serif}button{transition:background .15s,transform .15s,box-shadow .15s}but
-  ton:active:not(:disabled){transform:translateY(1px)}[hidden]{display:none!importa
-  nt}.shell{max-width:1700px;margin:auto;display:grid;grid-template-columns:226px
-  minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;min-he
-  ight:680px;border-right:1px solid var(--line);padding:31px
-  23px;display:flex;flex-direction:column;gap:25px;background:#eceee2}.brand{displa
-  y:flex;align-items:center;gap:10px}.brand-mark{width:40px;height:43px;background:
-  var(--green);color:#f1dba0;border-radius:14px 14px 16px 6px;display:grid;place-it
-  ems:center}.brand-name{font-family:Georgia,serif;font-size:26px;letter-spacing:-1
-  px}.brand-caption{font-size:9px;letter-spacing:1.8px;font-weight:700;text-transfo
-  rm:uppercase;color:var(--muted);margin-top:-4px}.profile-card{padding:16px
-  14px;background:#f6f6ed;border:1px solid
-  #dce1d0;border-radius:17px}.profile-title{display:flex;gap:9px;align-items:center
-  ;margin-bottom:11px}.avatar{width:35px;height:35px;border-radius:12px;background:
-  #e1e8d6;display:grid;place-items:center;color:var(--green)}.micro{font-si
-  ──── (361 lines hidden) ─────────────────────────────────────────────────────────
-  ')renderGrowth();});
-  $('exportButton').onclick=()=>{save();const blob=new
-  Blob([JSON.stringify(state,null,2)],{type:'application/json'});const
-  url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download
-  ='keygrove-backup-'+new
-  Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a
-  .remove();setTimeout(()=>URL.revokeObjectURL(url),1500);toast('Your little world,
-  packed into a backup.');};
-  $('importButton').onclick=()=>$('importFile').click();
-  $('importFile').addEventListener('change',async()=>{const
-  file=$('importFile').files[0];if(!file)return;try{if(file.size>2000000)throw new
-  Error('That file is too large to be a Keygrove backup.');const
-  parsed=cleanSave(JSON.parse(await file.text()));if(!window.confirm('Replace your
-  current Keygrove progress with this backup? Export your current save first to
-  keep both.'))return;state=parsed;safeSelected();checkCharms();save();practice='le
-  sson';resetRun();renderSettings();renderProfile();showView('trail');$('settingsDi
-  alog').close();toast('Welcome back. Your little world is
-  here.');}catch(e){toast(e instanceof SyntaxError?'That file is not valid JSON.
-  Choose a Keygrove backup.':e.message||'That backup could not be
-  read.');}finally{$('importFile').value='';}});
-  // Escape is handled by native dialogs. Closing a result does not auto-start a
-  note.
-  $('resultDialog').addEventListener('close',()=>{if(run?.status==='complete')$('st
-  artButton').focus({preventScroll:true});});
-  setInterval(()=>{if(run?.status==='playing'&&state.settings.wpm)renderMetrics();}
-  ,500);
-  safeSelected();checkCharms();renderProfile();renderSettings();resetRun();renderSa
-  veStatus();
-  // Read-only diagnostics make the file easy to inspect and test without any
-  service.
-  Object.defineProperty(window,'keygrove',{value:Object.freeze({snapshot:()=>JSON.p
-  arse(JSON.stringify({mode:state.mode,selected:state.selected,stats:state.stats,pr
-  ogress:state.progress,settings:state.settings,unlocked:state.unlocked,equipped:st
-  ate.equipped,keyStats:state.keyStats,run:run?{text:run.text,pos:run.pos,status:ru
-  n.status,attempts:run.attempts,hits:run.hits,practice:run.practice,focus:run.focu
-  s}:null})),validateLessons:()=>Object.entries(LESSONS).flatMap(([mode,ls])=>ls.ma
-  p(l=>({mode,id:l.id,keys:l.keys,drills:l.drills||[],sentences:l.sentences||[]})))
-  }),writable:false});
-  })();
-  </script>
-  </body>
-  </html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Keygrove - a tiny offline typing adventure.">
+<title>Keygrove - A tiny typing adventure</title>
+<style>
+:root{--paper:#f3f3e9;--card:#fffef8;--ink:#263e33;--muted:#717b6b;--line:#dfe3d5;--green:#315e47;--dark:#244936;--mint:#e6eddb;--gold:#ecc174;--error:#ad513d;--shadow:0 10px 28px #354a3212}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input{font:inherit}button{border:0;color:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}button:focus-visible,input:focus-visible{outline:3px solid #b8863e;outline-offset:3px}h1,h2,h3,p{margin:0}h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:500}.shell{min-height:100vh;display:grid;grid-template-columns:230px 1fr;max-width:1600px;margin:auto}.side{height:100vh;position:sticky;top:0;padding:28px 22px;background:#eceee2;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:22px}.brand{display:flex;gap:11px;align-items:center}.mark{width:42px;height:44px;border-radius:14px 14px 17px 7px;background:var(--green);color:#f1dba0;display:grid;place-items:center;font:bold 22px Georgia}.brand b{font:26px/1 Georgia}.brand small,.eyebrow{display:block;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}.profile{background:#f8f8f0;border:1px solid var(--line);border-radius:16px;padding:14px}.row{display:flex;justify-content:space-between;gap:12px}.profile .row{border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-size:12px}.nav{display:grid;gap:7px}.nav button{padding:11px 12px;border-radius:12px;background:transparent;text-align:left;font-weight:750}.nav button:hover{background:#e1e5d7}.nav button.active{background:var(--green);color:#fff}.side .settings{margin-top:auto;padding:10px 12px;border:1px solid #d7ddcb;background:#f7f7ef;border-radius:12px;font-weight:750}.main{padding:40px clamp(22px,4vw,64px) 60px;min-width:0}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:28px}.eyebrow{color:#a45d3f;margin-bottom:6px}.top h1{font-size:clamp(35px,5vw,56px);line-height:1;letter-spacing:-2px}.lede{max-width:650px;color:var(--muted);margin-top:10px}.pill{white-space:nowrap;background:var(--mint);color:var(--dark);padding:8px 11px;border-radius:999px;font-size:11px;font-weight:800}.view{display:none}.view.active{display:block}.section{display:flex;justify-content:space-between;align-items:end;margin:26px 0 14px}.section h2{font-size:26px}.section p{color:var(--muted);font-size:12px}.trail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.lesson{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:19px;box-shadow:var(--shadow);min-height:188px;display:flex;flex-direction:column;gap:12px}.lesson.locked{background:#efefe7}.lesson h3{font-size:22px}.lesson p{color:var(--muted);font-size:12px}.keys{display:flex;flex-wrap:wrap;gap:5px}.keys span,.key{min-width:27px;height:27px;padding:0 6px;display:grid;place-items:center;border:1px solid #d9dece;border-bottom-width:3px;border-radius:8px;background:#f0f1e8;font:700 10px ui-monospace,monospace}.lesson footer{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px}.go,.primary{background:var(--green);color:#fff;padding:9px 12px;border-radius:10px;font-weight:800}.go:hover,.primary:hover{background:var(--dark)}.done{font-size:11px;color:var(--muted)}.practice{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:var(--shadow)}.practice-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.practice-head h2{font-size:29px}.practice-head p{color:var(--muted);font-size:12px}.prompt{margin-top:18px;min-height:150px;padding:20px;border:1px solid #e4e6dc;border-radius:18px;background:#fbfbf5;font:25px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}.ch.done{color:#8b9685}.ch.current{background:#f6dfa8;border-radius:4px;box-shadow:0 2px 0 #bd8740}.ch.wrong{background:#f2c8be;color:var(--error)}.capture{position:absolute;left:-9999px;opacity:0}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.metric{background:#f7f8f0;border:1px solid var(--line);border-radius:13px;padding:11px}.metric small{display:block;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:9px;font-weight:800}.metric b{font:24px Georgia}.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}.secondary{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#eef0e6;font-weight:750}.hint{margin-left:auto;color:var(--muted);font-size:11px}.keyboard{display:grid;gap:5px;margin-top:12px}.keyrow{display:flex;gap:5px;justify-content:center}.key{min-width:24px;height:24px;border-bottom-width:1px;color:#75816e}.key.hot{background:#dce8d6;color:var(--dark);border-color:#c5d7bd}.charms{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.charm{aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:#f1f1e8;display:grid;place-items:center;text-align:center;font-size:9px;color:#999}.charm.on{background:#fff2cc;color:#78591e;border-color:#ead08d}.charm b{display:block;font-size:18px}.growth{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}.stat small{color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-size:9px;font-weight:800}.stat b{display:block;font:36px Georgia;margin:4px 0}.modal{position:fixed;inset:0;background:#263e3344;display:none;place-items:center;padding:18px;z-index:10}.modal.open{display:grid}.modalbox{width:min(500px,100%);background:var(--card);border-radius:20px;padding:22px;box-shadow:0 30px 80px #263e3350}.modalbox h2{font-size:25px}.modalbox p{color:var(--muted);margin-top:8px}.modalbox .actions{margin-top:18px}.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,15px);background:var(--dark);color:#fff;padding:9px 13px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}@media(max-width:980px){.trail{grid-template-columns:repeat(2,1fr)}.practice{grid-template-columns:1fr}.growth{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.shell{display:block}.side{height:auto;position:relative;border-right:0;border-bottom:1px solid var(--line);padding:17px}.profile{display:none}.nav{grid-template-columns:repeat(3,1fr)}.nav button{text-align:center}.side .settings{margin-top:0}.main{padding:26px 17px 45px}.top{display:block}.pill{display:inline-block;margin-top:14px}.trail,.growth{grid-template-columns:1fr}.hint{width:100%;margin-left:0}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side">
+  <div class="brand"><div class="mark">K</div><div><b>Keygrove</b><small>typing trail</small></div></div>
+  <div class="profile"><b>Apprentice</b><div class="row"><span>Best WPM</span><strong id="sideWpm">0</strong></div><div class="row"><span>Runs</span><strong id="sideRuns">0</strong></div><div class="row"><span>Charms</span><strong id="sideCharms">0/5</strong></div></div>
+  <nav class="nav"><button class="active" data-view="trail">Trail</button><button data-view="practice">Practice</button><button data-view="growth">Growth</button></nav>
+  <button class="settings" id="settingsBtn">Settings & backup</button>
+</aside>
+<main class="main">
+  <header class="top"><div><span class="eyebrow" id="eyebrow">Your path</span><h1 id="title">A quieter way to get faster.</h1><p class="lede" id="lede">Move through short lessons, keep accuracy ahead of speed, and collect small charms as the trail opens.</p></div><span class="pill" id="progressPill">Lesson 1 of 6</span></header>
+  <section class="view active" id="trailView"><div class="section"><div><h2>The trail</h2><p>Finish a lesson at 80% accuracy to open the next one.</p></div></div><div class="trail" id="trailGrid"></div></section>
+  <section class="view" id="practiceView"><div class="practice"><div class="card"><div class="practice-head"><div><span class="eyebrow">Current lesson</span><h2 id="lessonTitle">Home Row</h2><p id="lessonMeta"></p></div></div><div class="prompt" id="prompt"></div><input id="capture" class="capture" autocomplete="off" spellcheck="false" aria-label="Typing input"><div class="metrics"><div class="metric"><small>WPM</small><b id="wpm">0</b></div><div class="metric"><small>Accuracy</small><b id="acc">100%</b></div><div class="metric"><small>Progress</small><b id="pct">0%</b></div></div><div class="actions"><button class="primary" id="startBtn">Start typing</button><button class="secondary" id="newBtn">New text</button><span class="hint" id="hint">Start, then type the highlighted character.</span></div></div><aside><div class="card"><h3>Finger map</h3><div class="keyboard" id="keyboard"></div></div><div class="card" style="margin-top:14px"><h3>Charms</h3><div class="charms" id="charms"></div></div></aside></div></section>
+  <section class="view" id="growthView"><div class="section"><div><h2>Your growth</h2><p>Stored only in this browser.</p></div></div><div class="growth" id="growth"></div></section>
+</main>
+</div>
+<div class="modal" id="settingsModal"><div class="modalbox"><h2>Settings & backup</h2><p>Progress is stored locally. Export a JSON backup before clearing browser data.</p><div class="actions"><button class="primary" id="exportBtn">Export</button><button class="secondary" id="importBtn">Import</button><button class="secondary" id="resetBtn">Reset</button><button class="secondary" data-close="settingsModal">Close</button><input type="file" id="importFile" accept="application/json,.json" hidden></div></div></div>
+<div class="modal" id="resultModal"><div class="modalbox"><h2>Note delivered</h2><p id="resultText"></p><div class="metrics"><div class="metric"><small>WPM</small><b id="resultWpm">0</b></div><div class="metric"><small>Accuracy</small><b id="resultAcc">0%</b></div><div class="metric"><small>Errors</small><b id="resultErrors">0</b></div></div><div class="actions"><button class="primary" id="againBtn">Type another</button><button class="secondary" id="trailBtn">Back to trail</button></div></div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js" defer></script>
+</body>
+</html>
