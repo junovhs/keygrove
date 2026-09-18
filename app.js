@@ -89,14 +89,15 @@ function focusGrid(){
 }
 function labels(){
  const f=focus(),l=lesson();
- $('modeLabel').textContent=f?'Finger drill':'Lesson';
- $('lessonTitle').textContent=f?f.full:l.title;
- $('lessonCopy').textContent=f?'Press the highlighted keys with your '+f.full.toLowerCase()+'. Return to '+f.anchor.toUpperCase()+' each time.':l.copy;
- $('focusName').textContent=f?f.full:'All fingers';
- $('focusInstruction').textContent=f?'Use your '+f.full.toLowerCase()+' and return to '+f.anchor.toUpperCase()+'.':'Keep all fingers anchored on the home row.';
+ $('modeLabel').textContent=f?'Targeted practice':'Typing lesson';
+ $('lessonTitle').textContent=f?'Practice: '+f.full:l.title;
+ $('lessonCopy').textContent=f?'A short remedial drill for '+f.full.toLowerCase()+'. Return to '+f.anchor.toUpperCase()+' after each reach.':l.copy;
+ $('summaryLabel').textContent=f?'Trouble spot':'Lesson goal';
+ $('focusName').textContent=f?f.full:'Accuracy + rhythm';
+ $('focusInstruction').textContent=f?'Isolate this finger briefly, then return to the regular lesson path.':'Build clean, repeatable motion before chasing speed.';
  if(run.status==='playing'){$('message').innerHTML='<strong>Typing is live.</strong> Every letter key is typing only.'}
- else{$('message').innerHTML='<strong>Just type</strong> to begin. Enter also starts. Tab opens finger focus.'}
- $('unlockText').textContent=f?'Tab changes or clears finger focus.':'Pass at 80% and the next lesson becomes the next run.'
+ else{$('message').innerHTML='<strong>Just type</strong> to begin. Enter also starts. Tab opens optional trouble-spot practice.'}
+ $('unlockText').textContent=f?'Space returns to regular lessons.':'Pass at 80% and the next lesson becomes the next run.'
 }
 function svgNode(name,attrs){
  const n=document.createElementNS('http://www.w3.org/2000/svg',name);
@@ -146,9 +147,9 @@ function paintHand(side,fingerId){
  Object.keys(ref.nails).forEach(name=>{
    const n=ref.nails[name];if(!n)return;
    const hot=active&&name===kind;
-   n.style.fill=hot?'#fff8f3':'#fbf8f3';
+   n.style.fill=hot?'#ff5418':'#fbf8f3';
    n.style.stroke=hot?'#ff5418':'#d7d2ca';
-   n.style.strokeWidth=hot?'5':'2'
+   n.style.strokeWidth=hot?'3':'2'
  });
  const wrap=$(side+'HandWrap');if(wrap)wrap.classList.toggle('is-hot',active)
 }
@@ -167,16 +168,16 @@ function nextVisual(){
  const c=currentChar(),f=fingerForKey(c);
  if(c===' '){
    paintHand('left','thumb');paintHand('right','thumb');
-   $('handInstruction').innerHTML='<strong>Thumbs</strong> — press SPACEBAR.';
+   $('handInstruction').innerHTML='<strong>Spacebar</strong> — press with either thumb.';
    $('nextCue').innerHTML='<strong>PRESS SPACEBAR</strong> · it will not hurt accuracy until you do'
  }else if(f){
    paintHand('left',f.id);paintHand('right',f.id);
    document.querySelectorAll('[data-finger-label="'+f.id+'"]').forEach(x=>x.classList.add('active'));
-   $('handInstruction').innerHTML='<strong>'+escapeHtml(f.full)+'</strong> — press '+escapeHtml(c.toUpperCase())+' and return to '+escapeHtml(f.anchor.toUpperCase())+'.';
+   $('handInstruction').innerHTML='<strong>'+escapeHtml(c.toUpperCase())+'</strong> — '+escapeHtml(f.full)+'. Keep the rest of your hand relaxed.';
    $('nextCue').innerHTML='NEXT · <strong>'+escapeHtml(c.toUpperCase())+'</strong> · '+escapeHtml(f.full)
  }else{
    paintHand('left',null);paintHand('right',null);
-   $('handInstruction').innerHTML='<strong>Hands on home row</strong> — follow the highlighted key.';
+   $('handInstruction').innerHTML='<strong>Home position</strong> — use the guide only when you need a placement reminder.';
    $('nextCue').textContent=''
  }
 }
@@ -221,17 +222,17 @@ function finish(){
  save();
  const nextName=run.nextLesson!==null?LESSONS[run.nextLesson].title:null;
  $('resultTitle').textContent=m.a===100?'Perfect line.':m.a>=95?'Clean run.':m.a>=85?'Good rhythm.':'Try it slower.';
- $('resultCopy').textContent=f?f.full+' drill complete. Enter repeats it, or Tab changes focus.':m.a>=80?(nextName?'Next up: '+nextName+'. Enter or just start typing.':'Trail complete. Enter or just start typing again.'):'Accuracy stayed below 80%. Enter or just start typing to retry.';
+ $('resultCopy').textContent=f?'Targeted practice complete. Enter repeats it, Space returns to regular lessons.':m.a>=80?(nextName?'Next up: '+nextName+'. Enter or just start typing.':'Trail complete. Enter or just start typing again.'):'Accuracy stayed below 80%. Enter or just start typing to retry.';
  $('resultWpm').textContent=m.w;$('resultAcc').textContent=m.a+'%';$('resultXp').textContent='+'+gain;$('resultCombo').textContent=run.maxCombo;
  $('arena').classList.add('result-mode');top();route();keymap();nextVisual()
 }
 function openFocus(){
- if(run.status==='playing'){toast('Reset or finish the run before changing finger focus.');return}
+ if(run.status==='playing'){toast('Finish or reset before opening trouble-spot practice.');return}
  $('arena').classList.remove('result-mode');$('arena').classList.add('focus-mode');focusGrid()
 }
 function closeFocus(){$('arena').classList.remove('focus-mode');render()}
 function chooseFocus(id){
- state.focus=id;save();resetRun();const f=focus();toast(f?f.full:'All fingers')
+ state.focus=id;save();resetRun();const f=focus();toast(f?'Targeted practice: '+f.full:'Back to regular lessons')
 }
 function handleFocusKey(e){
  if(e.key==='Escape'){e.preventDefault();closeFocus();return true}
@@ -255,7 +256,7 @@ document.addEventListener('keydown',e=>{
  if($('arena').classList.contains('focus-mode')){handleFocusKey(e);return}
  if(run.status==='playing'){
    if(e.key==='Escape'){e.preventDefault();abort();return}
-   if(e.key==='Tab'){e.preventDefault();toast('Finish or reset before changing finger focus.');return}
+   if(e.key==='Tab'){e.preventDefault();toast('Finish or reset before opening trouble-spot practice.');return}
    if(e.ctrlKey||e.metaKey||e.altKey)return;
    if(e.key.length===1){e.preventDefault();typeKey(e.key)}
    return
@@ -266,8 +267,8 @@ $('prompt').onclick=()=>{if(run.status==='idle')begin()};
 $('startBtn').onclick=()=>{if(run.status==='complete')continueAfterResult();else begin()};
 $('focusBtn').onclick=()=>openFocus();
 $('resetRunBtn').onclick=()=>{if(run.status==='playing')abort();else resetRun()};
-$('guideBtn').onclick=()=>{const on=$('handsZone').classList.toggle('guide-strong');$('guideBtn').textContent=on?'Hide finger guide':'View finger guide'};
-$('lessonsNav').onclick=()=>{if(run.status==='playing'){toast('Finish or reset the current run first.');return}state.focus='all';save();resetRun();toast('Lesson mode')};
+$('guideBtn').onclick=()=>{const on=$('handsZone').classList.toggle('guide-strong');$('guideBtn').textContent=on?'Use normal guide':'Show stronger guide'};
+$('lessonsNav').onclick=()=>{if(run.status==='playing'){toast('Finish or reset the current run first.');return}state.focus='all';save();resetRun();toast('Regular lessons')};
 $('statsNav').onclick=()=>toast('Runs '+state.stats.runs+' · Best '+Math.round(state.stats.bestWpm)+' WPM');
 $('settingsTopBtn').onclick=()=>$('settingsModal').classList.add('open');
 $('settingsBtn').onclick=()=>$('settingsModal').classList.add('open');
