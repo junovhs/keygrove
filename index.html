@@ -1,80 +1,109 @@
 <!doctype html>
-  <html lang="en">
-  <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="description" content="A tiny, offline typing adventure. Build good
-  habits, deliver notes, and collect charms at your own pace.">
-  <title>Keygrove - A tiny typing adventure</title>
-  <style>
-  :root{--paper:#f3f3e9;--card:#fffef8;--ink:#263e33;--muted:#717b6b;--line:#dfe3d5
-  ;--green:#315e47;--green-dark:#244936;--mint:#e6eddb;--gold:#ecc174;--rust:#b96b4
-  6;--error:#ad513d;--shadow:0 8px 25px #354a3210;--radius:22px}
-  *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);fo
-  nt-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe
-  UI",sans-serif;font-size:14px;line-height:1.5}button,input,select,textarea{font:i
-  nherit}button{cursor:pointer}button,a,input,select,textarea{touch-action:manipula
-  tion}button{color:inherit}button:disabled{cursor:not-allowed;opacity:.48}button:f
-  ocus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:foc
-  us-visible{outline:3px solid #b8863e;outline-offset:4px}button{border:0}a{color:v
-  ar(--green)}svg{display:inline-block;vertical-align:middle}h1,h2,h3,p{margin:0}h1
-  ,h2,h3{font-weight:600}h1,h2,.serif{font-family:Georgia,"Times New
-  Roman",serif}button{transition:background .15s,transform .15s,box-shadow .15s}but
-  ton:active:not(:disabled){transform:translateY(1px)}[hidden]{display:none!importa
-  nt}.shell{max-width:1700px;margin:auto;display:grid;grid-template-columns:226px
-  minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;min-he
-  ight:680px;border-right:1px solid var(--line);padding:31px
-  23px;display:flex;flex-direction:column;gap:25px;background:#eceee2}.brand{displa
-  y:flex;align-items:center;gap:10px}.brand-mark{width:40px;height:43px;background:
-  var(--green);color:#f1dba0;border-radius:14px 14px 16px 6px;display:grid;place-it
-  ems:center}.brand-name{font-family:Georgia,serif;font-size:26px;letter-spacing:-1
-  px}.brand-caption{font-size:9px;letter-spacing:1.8px;font-weight:700;text-transfo
-  rm:uppercase;color:var(--muted);margin-top:-4px}.profile-card{padding:16px
-  14px;background:#f6f6ed;border:1px solid
-  #dce1d0;border-radius:17px}.profile-title{display:flex;gap:9px;align-items:center
-  ;margin-bottom:11px}.avatar{width:35px;height:35px;border-radius:12px;background:
-  #e1e8d6;display:grid;place-items:center;color:var(--green)}.micro{font-si
-  ──── (361 lines hidden) ─────────────────────────────────────────────────────────
-  ')renderGrowth();});
-  $('exportButton').onclick=()=>{save();const blob=new
-  Blob([JSON.stringify(state,null,2)],{type:'application/json'});const
-  url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download
-  ='keygrove-backup-'+new
-  Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a
-  .remove();setTimeout(()=>URL.revokeObjectURL(url),1500);toast('Your little world,
-  packed into a backup.');};
-  $('importButton').onclick=()=>$('importFile').click();
-  $('importFile').addEventListener('change',async()=>{const
-  file=$('importFile').files[0];if(!file)return;try{if(file.size>2000000)throw new
-  Error('That file is too large to be a Keygrove backup.');const
-  parsed=cleanSave(JSON.parse(await file.text()));if(!window.confirm('Replace your
-  current Keygrove progress with this backup? Export your current save first to
-  keep both.'))return;state=parsed;safeSelected();checkCharms();save();practice='le
-  sson';resetRun();renderSettings();renderProfile();showView('trail');$('settingsDi
-  alog').close();toast('Welcome back. Your little world is
-  here.');}catch(e){toast(e instanceof SyntaxError?'That file is not valid JSON.
-  Choose a Keygrove backup.':e.message||'That backup could not be
-  read.');}finally{$('importFile').value='';}});
-  // Escape is handled by native dialogs. Closing a result does not auto-start a
-  note.
-  $('resultDialog').addEventListener('close',()=>{if(run?.status==='complete')$('st
-  artButton').focus({preventScroll:true});});
-  setInterval(()=>{if(run?.status==='playing'&&state.settings.wpm)renderMetrics();}
-  ,500);
-  safeSelected();checkCharms();renderProfile();renderSettings();resetRun();renderSa
-  veStatus();
-  // Read-only diagnostics make the file easy to inspect and test without any
-  service.
-  Object.defineProperty(window,'keygrove',{value:Object.freeze({snapshot:()=>JSON.p
-  arse(JSON.stringify({mode:state.mode,selected:state.selected,stats:state.stats,pr
-  ogress:state.progress,settings:state.settings,unlocked:state.unlocked,equipped:st
-  ate.equipped,keyStats:state.keyStats,run:run?{text:run.text,pos:run.pos,status:ru
-  n.status,attempts:run.attempts,hits:run.hits,practice:run.practice,focus:run.focu
-  s}:null})),validateLessons:()=>Object.entries(LESSONS).flatMap(([mode,ls])=>ls.ma
-  p(l=>({mode,id:l.id,keys:l.keys,drills:l.drills||[],sentences:l.sentences||[]})))
-  }),writable:false});
-  })();
-  </script>
-  </body>
-  </html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Keygrove — a calm keyboard-first typing game.">
+<title>Keygrove</title>
+<style>
+:root{--bg:#f1f0ea;--card:#eae9e2;--panel:#f2f1ed;--ink:#0f0f0d;--text:#191917;--soft:#4a4a45;--muted:#83837c;--line:#d8d7d0;--edge:#b4b3ab;--orange:#ff5418;--green:#14874c;--red:#c94122;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}html,body{min-height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}button,input{font:inherit;color:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:3px}.mono,.eyebrow,.hud,.lesson-no,.metric small,.shortcut,.focus-key,.keycap,.next-cue{font-family:var(--mono);text-transform:uppercase;letter-spacing:.09em}.wrap{width:min(960px,calc(100% - 30px));margin:auto;min-height:100vh;display:flex;flex-direction:column}.topbar{min-height:76px;display:flex;align-items:center;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.03em}.mark{width:31px;height:24px;position:relative}.mark:before{content:"";position:absolute;inset:1px 7px 1px 0;border:4px solid var(--orange);border-radius:50%}.mark:after{content:"";position:absolute;right:0;top:0;width:4px;height:24px;background:var(--orange)}.hud{margin-left:auto;display:flex;gap:16px;color:var(--muted);font-size:8px}.hud b{color:var(--ink);font-size:10px}.game{flex:1;display:grid;place-items:center;padding:34px 0 28px}.stack{width:min(800px,100%)}.route{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:12px}.route i{height:5px;background:#cfcec7}.route i.done{background:var(--ink)}.route i.current{background:var(--orange)}.arena{background:var(--card);border-radius:4px;overflow:hidden}.arena-head{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 20px;border-bottom:1px solid var(--line)}.eyebrow{font-size:8px;color:var(--orange);font-weight:700}.lesson-no{font-size:8px;color:var(--muted)}.body{padding:28px 28px 22px}.titleline{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.titleline h1{margin:0;font-size:clamp(32px,6.5vw,58px);line-height:.92;letter-spacing:-.055em;text-transform:uppercase}.sub{max-width:580px;margin:10px 0 0;color:var(--soft)}.focus-chip{flex:0 0 auto;padding:7px 9px;border:1px solid var(--edge);border-radius:3px;background:var(--panel);font:600 8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.focus-chip strong{color:var(--orange)}.prompt{margin-top:24px;padding:24px;background:var(--ink);color:#efeee8;border-radius:3px;min-height:138px;display:flex;align-items:center;justify-content:center;text-align:center;flex-wrap:wrap;align-content:center;font:600 clamp(22px,3.8vw,34px)/1.6 var(--mono);letter-spacing:.01em;word-break:normal}.ch{display:inline-block;color:#686863}.ch.done{color:#efeee8}.ch.current{color:var(--ink);background:var(--orange)}.ch.wrong{background:#ffb49f}.ch.space{min-width:3.8em;margin:0 .14em;padding:.12em .35em;border:1px solid #5f5f59;border-bottom:3px solid #77776f;border-radius:2px;color:#aaa;font-size:.38em;line-height:1.7;vertical-align:middle}.ch.space.done{background:#363632;color:#deddd6}.ch.space.current{border-color:var(--orange);background:var(--orange);color:var(--ink);animation:spacePulse .75s ease-in-out infinite alternate}.ch.space.wrong{background:#ffb49f;border-color:#ffb49f}.next-cue{min-height:27px;margin-top:10px;text-align:center;font-size:9px;color:var(--muted)}.next-cue strong{color:var(--orange)}@keyframes spacePulse{to{box-shadow:0 0 0 4px rgb(255 84 24/.18)}}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);margin-top:1px}.metric{background:var(--panel);padding:12px 14px}.metric small{display:block;color:var(--muted);font-size:7px}.metric b{display:block;margin-top:3px;font:700 19px var(--mono)}.message{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px 20px;background:var(--panel);border-top:1px solid var(--line);color:var(--soft);font-size:11px}.message strong{color:var(--ink)}.hands-panel{margin-top:12px;padding:12px 14px 10px;background:var(--panel);border:1px solid var(--line);border-radius:4px}.hands-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:7px}.hands-head span{color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.09em}.hands-head strong{color:var(--orange)}.hands{width:100%;height:auto;display:block}.hand-palm{fill:#d8d7d0;stroke:#aeadA6;stroke-width:1.5}.hand-finger,.hand-thumb{fill:#e5e4de;stroke:#9f9e97;stroke-width:1.5;transition:.12s}.hand-finger.active,.hand-thumb.active{fill:var(--orange);stroke:var(--orange)}.hand-anchor{fill:#686863;font:700 10px var(--mono);text-anchor:middle}.hand-label{fill:#83837c;font:600 8px var(--mono);text-anchor:middle}.hand-label.active{fill:var(--ink)}.keymap{margin-top:10px;display:grid;gap:4px}.keyrow{display:flex;justify-content:center;gap:4px}.keycap{min-width:31px;height:29px;padding:0 6px;display:grid;place-items:center;border:1px solid var(--edge);border-bottom-width:2px;background:var(--panel);font-size:8px;color:var(--muted)}.keycap.home{border-color:var(--ink);color:var(--ink)}.keycap.hot{background:var(--orange);border-color:var(--orange);color:var(--ink)}.keycap.spacebar{width:min(260px,44vw);margin-top:2px}.focus-panel{display:none;padding:28px}.arena.focus-mode .body,.arena.focus-mode .message{display:none}.arena.focus-mode .focus-panel{display:block}.focus-panel h2{margin:0;font-size:clamp(34px,6vw,58px);line-height:.9;letter-spacing:-.05em;text-transform:uppercase}.focus-panel p{margin:10px 0 22px;color:var(--soft)}.focus-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}.focus-key{min-height:68px;border:1px solid var(--edge);border-radius:3px;background:var(--panel);font-size:8px}.focus-key b{display:block;font-size:18px;color:var(--ink);letter-spacing:0}.focus-key.active{background:var(--orange);border-color:var(--orange)}.focus-help{margin-top:14px;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.result{display:none;padding:28px}.arena.result-mode .body,.arena.result-mode .message{display:none}.arena.result-mode .result{display:block}.result h2{margin:0;font-size:clamp(36px,7vw,68px);line-height:.9;letter-spacing:-.055em;text-transform:uppercase}.result p{margin:10px 0 20px;color:var(--soft)}.score{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}.score div{background:var(--panel);padding:16px}.score small{display:block;color:var(--muted);font:7px var(--mono);text-transform:uppercase;letter-spacing:.1em}.score b{display:block;margin-top:4px;font:700 25px var(--mono)}.result-foot{margin-top:18px;padding-top:13px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.result-foot strong{color:var(--orange)}.help{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:13px}.shortcut{font-size:7px;color:var(--muted)}.shortcut b{display:inline-grid;place-items:center;min-width:27px;height:23px;margin-right:5px;border:1px solid var(--edge);border-bottom-width:2px;background:var(--panel);color:var(--ink);font-size:8px}.utility{margin-top:20px;text-align:center}.utility button{border:0;background:transparent;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.08em;text-decoration:underline;text-underline-offset:4px}.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);background:var(--ink);color:#fff;padding:9px 12px;border-radius:3px;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:translate(-50%,0)}.modal{position:fixed;inset:0;background:#0f0f0d66;display:none;place-items:center;padding:18px;z-index:5}.modal.open{display:grid}.modalbox{width:min(470px,100%);background:var(--bg);border:1px solid var(--edge);border-radius:4px;padding:24px}.modalbox h2{margin:0;font-size:27px;text-transform:uppercase;letter-spacing:-.04em}.modalbox p{color:var(--soft)}.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.modal-actions button{min-height:38px;padding:0 11px;border:1px solid var(--edge);background:var(--panel);border-radius:3px;font:600 8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.modal-actions .danger{background:var(--ink);color:#fff}.modal-actions .primary{background:var(--orange);border-color:var(--orange)}
+@media(max-width:700px){.wrap{width:min(100% - 18px,960px)}.topbar{min-height:62px}.hud span:nth-child(2){display:none}.game{padding:18px 0}.body{padding:22px 14px 16px}.titleline{display:block}.focus-chip{display:inline-block;margin-top:11px}.prompt{min-height:118px;padding:15px}.metrics,.score{grid-template-columns:repeat(2,1fr)}.message{align-items:flex-start;flex-direction:column}.focus-grid{grid-template-columns:repeat(4,1fr)}.keycap{min-width:25px;height:26px;padding:0 3px}.result{padding:24px 16px}.result-foot{flex-direction:column}.hands-panel{padding:8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <div class="brand"><span class="mark"></span><span>Keygrove</span></div>
+  <div class="hud"><span>XP <b id="xp">0</b></span><span>STREAK <b id="streak">0</b></span><span>BEST <b id="bestWpm">0</b> WPM</span></div>
+</header>
+<main class="game">
+  <div class="stack">
+    <div class="route" id="route"></div>
+    <section class="arena" id="arena">
+      <div class="arena-head"><span class="eyebrow" id="modeLabel">Trail run</span><span class="lesson-no" id="lessonNo">01 / 06</span></div>
+      <div class="body">
+        <div class="titleline">
+          <div><h1 id="lessonTitle">Home Row</h1><p class="sub" id="lessonCopy"></p></div>
+          <span class="focus-chip">Focus <strong id="focusName">All fingers</strong></span>
+        </div>
+        <div class="prompt" id="prompt"></div>
+        <div class="next-cue" id="nextCue"></div>
+        <div class="metrics">
+          <div class="metric"><small>WPM</small><b id="wpm">0</b></div>
+          <div class="metric"><small>Accuracy</small><b id="acc">100%</b></div>
+          <div class="metric"><small>Progress</small><b id="pct">0%</b></div>
+          <div class="metric"><small>Combo</small><b id="combo">0</b></div>
+        </div>
+      </div>
+      <div class="focus-panel" id="focusPanel">
+        <span class="eyebrow">Finger focus</span>
+        <h2>Choose one finger.</h2>
+        <p>This is the only place where home-row letters act as controls.</p>
+        <div class="focus-grid" id="focusGrid"></div>
+        <div class="focus-help">A S D F · J K L ; selects · Space = all fingers · Esc = cancel</div>
+      </div>
+      <div class="result" id="result">
+        <span class="eyebrow">Run complete</span>
+        <h2 id="resultTitle">Clean run.</h2>
+        <p id="resultCopy"></p>
+        <div class="score">
+          <div><small>WPM</small><b id="resultWpm">0</b></div>
+          <div><small>Accuracy</small><b id="resultAcc">0%</b></div>
+          <div><small>XP</small><b id="resultXp">+0</b></div>
+          <div><small>Combo</small><b id="resultCombo">0</b></div>
+        </div>
+        <div class="result-foot"><span><strong>Enter</strong> continue</span><span><strong>Tab</strong> finger focus</span><span>or just start typing</span></div>
+      </div>
+      <div class="message"><span id="message"><strong>Type anything</strong> to begin. Enter also starts.</span><span id="unlockText">80% accuracy unlocks the next run.</span></div>
+    </section>
+
+    <div class="hands-panel">
+      <div class="hands-head"><span>Which finger moves next</span><span id="fingerCue">Hands on home row</span></div>
+      <svg class="hands" viewBox="0 0 760 190" role="img" aria-label="Stylized hands resting on home-row keys">
+        <g id="leftHand">
+          <rect class="hand-palm" x="120" y="88" rx="26" width="190" height="84"/>
+          <rect class="hand-finger" data-finger="lp" x="112" y="42" rx="14" width="28" height="78"/>
+          <rect class="hand-finger" data-finger="lr" x="151" y="24" rx="14" width="30" height="94"/>
+          <rect class="hand-finger" data-finger="lm" x="193" y="14" rx="14" width="31" height="104"/>
+          <rect class="hand-finger" data-finger="li" x="237" y="22" rx="14" width="32" height="100"/>
+          <ellipse class="hand-thumb" data-finger="thumb" cx="297" cy="128" rx="34" ry="18" transform="rotate(-23 297 128)"/>
+          <text class="hand-anchor" x="126" y="38">A</text><text class="hand-anchor" x="166" y="20">S</text><text class="hand-anchor" x="208" y="11">D</text><text class="hand-anchor" x="253" y="18">F</text>
+          <text class="hand-label" data-label="lp" x="126" y="185">PINKY</text><text class="hand-label" data-label="lr" x="166" y="185">RING</text><text class="hand-label" data-label="lm" x="208" y="185">MIDDLE</text><text class="hand-label" data-label="li" x="254" y="185">INDEX</text>
+        </g>
+        <g id="rightHand">
+          <rect class="hand-palm" x="450" y="88" rx="26" width="190" height="84"/>
+          <ellipse class="hand-thumb" data-finger="thumb" cx="463" cy="128" rx="34" ry="18" transform="rotate(23 463 128)"/>
+          <rect class="hand-finger" data-finger="ri" x="491" y="22" rx="14" width="32" height="100"/>
+          <rect class="hand-finger" data-finger="rm" x="536" y="14" rx="14" width="31" height="104"/>
+          <rect class="hand-finger" data-finger="rr" x="579" y="24" rx="14" width="30" height="94"/>
+          <rect class="hand-finger" data-finger="rp" x="620" y="42" rx="14" width="28" height="78"/>
+          <text class="hand-anchor" x="507" y="18">J</text><text class="hand-anchor" x="551" y="11">K</text><text class="hand-anchor" x="594" y="20">L</text><text class="hand-anchor" x="634" y="38">;</text>
+          <text class="hand-label" data-label="ri" x="506" y="185">INDEX</text><text class="hand-label" data-label="rm" x="551" y="185">MIDDLE</text><text class="hand-label" data-label="rr" x="594" y="185">RING</text><text class="hand-label" data-label="rp" x="634" y="185">PINKY</text>
+        </g>
+      </svg>
+      <div class="keymap" id="keymap"></div>
+    </div>
+
+    <div class="help">
+      <span class="shortcut"><b>Type</b> start naturally</span>
+      <span class="shortcut"><b>Enter</b> start / continue</span>
+      <span class="shortcut"><b>Tab</b> finger focus</span>
+      <span class="shortcut"><b>Esc</b> stop</span>
+    </div>
+    <div class="utility"><button id="settingsBtn">Backup / reset</button></div>
+  </div>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="settingsModal">
+  <div class="modalbox">
+    <span class="eyebrow">Utility</span>
+    <h2>Local progress</h2>
+    <p>Keygrove stores progress in this browser. Export a backup before clearing browser data.</p>
+    <div class="modal-actions"><button class="primary" id="exportBtn">Export</button><button id="importBtn">Import</button><button class="danger" id="resetBtn">Reset</button><button id="closeSettings">Close</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+  </div>
+</div>
+<script src="app.js" defer></script>
+</body>
+</html>
