@@ -3,46 +3,345 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Keygrove — a calm keyboard-first typing game.">
+<meta name="description" content="Keygrove — a keyboard-first typing trainer with finger guidance.">
 <title>Keygrove</title>
 <style>
-:root{--bg:#f1f0ea;--card:#eae9e2;--panel:#f2f1ed;--ink:#0f0f0d;--text:#191917;--soft:#4a4a45;--muted:#83837c;--line:#d8d7d0;--edge:#b4b3ab;--orange:#ff5418;--green:#14874c;--red:#c94122;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-*{box-sizing:border-box}html,body{min-height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}button,input{font:inherit;color:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:3px}.mono,.eyebrow,.hud,.lesson-no,.metric small,.shortcut,.focus-key,.keycap,.next-cue{font-family:var(--mono);text-transform:uppercase;letter-spacing:.09em}.wrap{width:min(960px,calc(100% - 30px));margin:auto;min-height:100vh;display:flex;flex-direction:column}.topbar{min-height:76px;display:flex;align-items:center;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.03em}.mark{width:31px;height:24px;position:relative}.mark:before{content:"";position:absolute;inset:1px 7px 1px 0;border:4px solid var(--orange);border-radius:50%}.mark:after{content:"";position:absolute;right:0;top:0;width:4px;height:24px;background:var(--orange)}.hud{margin-left:auto;display:flex;gap:16px;color:var(--muted);font-size:8px}.hud b{color:var(--ink);font-size:10px}.game{flex:1;display:grid;place-items:center;padding:34px 0 28px}.stack{width:min(800px,100%)}.route{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:12px}.route i{height:5px;background:#cfcec7}.route i.done{background:var(--ink)}.route i.current{background:var(--orange)}.arena{background:var(--card);border-radius:4px;overflow:hidden}.arena-head{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:15px 20px;border-bottom:1px solid var(--line)}.eyebrow{font-size:8px;color:var(--orange);font-weight:700}.lesson-no{font-size:8px;color:var(--muted)}.body{padding:28px 28px 22px}.titleline{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.titleline h1{margin:0;font-size:clamp(32px,6.5vw,58px);line-height:.92;letter-spacing:-.055em;text-transform:uppercase}.sub{max-width:580px;margin:10px 0 0;color:var(--soft)}.focus-chip{flex:0 0 auto;padding:7px 9px;border:1px solid var(--edge);border-radius:3px;background:var(--panel);font:600 8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.focus-chip strong{color:var(--orange)}.prompt{margin-top:24px;padding:24px;background:var(--ink);color:#efeee8;border-radius:3px;min-height:138px;display:flex;align-items:center;justify-content:center;text-align:center;flex-wrap:wrap;align-content:center;font:600 clamp(22px,3.8vw,34px)/1.6 var(--mono);letter-spacing:.01em;word-break:normal}.ch{display:inline-block;color:#686863}.ch.done{color:#efeee8}.ch.current{color:var(--ink);background:var(--orange)}.ch.wrong{background:#ffb49f}.ch.space{min-width:3.8em;margin:0 .14em;padding:.12em .35em;border:1px solid #5f5f59;border-bottom:3px solid #77776f;border-radius:2px;color:#aaa;font-size:.38em;line-height:1.7;vertical-align:middle}.ch.space.done{background:#363632;color:#deddd6}.ch.space.current{border-color:var(--orange);background:var(--orange);color:var(--ink);animation:spacePulse .75s ease-in-out infinite alternate}.ch.space.wrong{background:#ffb49f;border-color:#ffb49f}.next-cue{min-height:27px;margin-top:10px;text-align:center;font-size:9px;color:var(--muted)}.next-cue strong{color:var(--orange)}@keyframes spacePulse{to{box-shadow:0 0 0 4px rgb(255 84 24/.18)}}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);margin-top:1px}.metric{background:var(--panel);padding:12px 14px}.metric small{display:block;color:var(--muted);font-size:7px}.metric b{display:block;margin-top:3px;font:700 19px var(--mono)}.message{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px 20px;background:var(--panel);border-top:1px solid var(--line);color:var(--soft);font-size:11px}.message strong{color:var(--ink)}.hands-panel{margin-top:12px;padding:12px 14px 10px;background:var(--panel);border:1px solid var(--line);border-radius:4px}.hands-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:7px}.hands-head span{color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.09em}.hands-head strong{color:var(--orange)}.hands{width:100%;height:auto;display:block}.hand-palm{fill:#d8d7d0;stroke:#aeadA6;stroke-width:1.5}.hand-finger,.hand-thumb{fill:#e5e4de;stroke:#9f9e97;stroke-width:1.5;transition:.12s}.hand-finger.active,.hand-thumb.active{fill:var(--orange);stroke:var(--orange)}.hand-anchor{fill:#686863;font:700 10px var(--mono);text-anchor:middle}.hand-label{fill:#83837c;font:600 8px var(--mono);text-anchor:middle}.hand-label.active{fill:var(--ink)}.keymap{margin-top:10px;display:grid;gap:4px}.keyrow{display:flex;justify-content:center;gap:4px}.keycap{min-width:31px;height:29px;padding:0 6px;display:grid;place-items:center;border:1px solid var(--edge);border-bottom-width:2px;background:var(--panel);font-size:8px;color:var(--muted)}.keycap.home{border-color:var(--ink);color:var(--ink)}.keycap.hot{background:var(--orange);border-color:var(--orange);color:var(--ink)}.keycap.spacebar{width:min(260px,44vw);margin-top:2px}.focus-panel{display:none;padding:28px}.arena.focus-mode .body,.arena.focus-mode .message{display:none}.arena.focus-mode .focus-panel{display:block}.focus-panel h2{margin:0;font-size:clamp(34px,6vw,58px);line-height:.9;letter-spacing:-.05em;text-transform:uppercase}.focus-panel p{margin:10px 0 22px;color:var(--soft)}.focus-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}.focus-key{min-height:68px;border:1px solid var(--edge);border-radius:3px;background:var(--panel);font-size:8px}.focus-key b{display:block;font-size:18px;color:var(--ink);letter-spacing:0}.focus-key.active{background:var(--orange);border-color:var(--orange)}.focus-help{margin-top:14px;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.result{display:none;padding:28px}.arena.result-mode .body,.arena.result-mode .message{display:none}.arena.result-mode .result{display:block}.result h2{margin:0;font-size:clamp(36px,7vw,68px);line-height:.9;letter-spacing:-.055em;text-transform:uppercase}.result p{margin:10px 0 20px;color:var(--soft)}.score{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}.score div{background:var(--panel);padding:16px}.score small{display:block;color:var(--muted);font:7px var(--mono);text-transform:uppercase;letter-spacing:.1em}.score b{display:block;margin-top:4px;font:700 25px var(--mono)}.result-foot{margin-top:18px;padding-top:13px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.result-foot strong{color:var(--orange)}.help{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:13px}.shortcut{font-size:7px;color:var(--muted)}.shortcut b{display:inline-grid;place-items:center;min-width:27px;height:23px;margin-right:5px;border:1px solid var(--edge);border-bottom-width:2px;background:var(--panel);color:var(--ink);font-size:8px}.utility{margin-top:20px;text-align:center}.utility button{border:0;background:transparent;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.08em;text-decoration:underline;text-underline-offset:4px}.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,10px);background:var(--ink);color:#fff;padding:9px 12px;border-radius:3px;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:translate(-50%,0)}.modal{position:fixed;inset:0;background:#0f0f0d66;display:none;place-items:center;padding:18px;z-index:5}.modal.open{display:grid}.modalbox{width:min(470px,100%);background:var(--bg);border:1px solid var(--edge);border-radius:4px;padding:24px}.modalbox h2{margin:0;font-size:27px;text-transform:uppercase;letter-spacing:-.04em}.modalbox p{color:var(--soft)}.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.modal-actions button{min-height:38px;padding:0 11px;border:1px solid var(--edge);background:var(--panel);border-radius:3px;font:600 8px var(--mono);text-transform:uppercase;letter-spacing:.08em}.modal-actions .danger{background:var(--ink);color:#fff}.modal-actions .primary{background:var(--orange);border-color:var(--orange)}
-@media(max-width:700px){.wrap{width:min(100% - 18px,960px)}.topbar{min-height:62px}.hud span:nth-child(2){display:none}.game{padding:18px 0}.body{padding:22px 14px 16px}.titleline{display:block}.focus-chip{display:inline-block;margin-top:11px}.prompt{min-height:118px;padding:15px}.metrics,.score{grid-template-columns:repeat(2,1fr)}.message{align-items:flex-start;flex-direction:column}.focus-grid{grid-template-columns:repeat(4,1fr)}.keycap{min-width:25px;height:26px;padding:0 3px}.result{padding:24px 16px}.result-foot{flex-direction:column}.hands-panel{padding:8px}}
+:root{
+  --bg:#f7f5f1;
+  --paper:#fbfaf7;
+  --ink:#11110f;
+  --text:#2c2b28;
+  --soft:#6d6a65;
+  --muted:#9d9992;
+  --line:#dedbd4;
+  --line-strong:#c9c5bd;
+  --panel:#1a1b19;
+  --panel-2:#232421;
+  --orange:#ff5418;
+  --orange-soft:#ff8b61;
+  --skin:#e7e6e7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+html,body{min-height:100%}
+body{margin:0;background:radial-gradient(circle at 50% -12%,#fff 0,#f8f6f2 34%,var(--bg) 70%);color:var(--text);font:15px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+button{border:0;background:transparent}
+kbd{font:inherit}
+.mono,.eyebrow,.lesson-no,.metric small,.prompt-head,.next-cue,.shortcut,.focus-key,.keycap,.hand-copy-label,.nav button,.tagline,.control-btn,.primary-control,.guide-btn,.profile-chip,.utility button{font-family:var(--mono);text-transform:uppercase;letter-spacing:.11em}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+.app-shell{width:min(1480px,calc(100% - 96px));margin:0 auto;min-height:100vh}
+.topbar{height:72px;display:flex;align-items:center;border-bottom:1px solid rgba(201,197,189,.72)}
+.brand-block{display:flex;align-items:center;gap:28px}
+.brand{font-size:25px;font-weight:900;letter-spacing:-.055em;color:var(--ink)}
+.tagline{font-size:10px;color:var(--muted);letter-spacing:.22em}
+.nav{margin-left:auto;display:flex;align-items:center;gap:32px}
+.nav button{padding:8px 0;color:#4e4b46;font-size:9px}
+.nav button:hover{color:var(--orange)}
+.nav-divider{width:1px;height:36px;background:var(--line)}
+.profile-chip{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:5px;background:rgba(255,255,255,.45);font-size:11px;color:var(--ink)}
+
+.workspace{padding:20px 0 26px}
+.arena{width:100%}
+.normal-view{display:block}
+.focus-panel,.result{display:none}
+.arena.focus-mode .normal-view,.arena.result-mode .normal-view{display:none}
+.arena.focus-mode .focus-panel{display:block}
+.arena.result-mode .result{display:block}
+
+.lesson-track{height:50px;display:grid;grid-template-columns:140px minmax(260px,1fr) 126px;align-items:center;gap:24px}
+.eyebrow{font-size:10px;color:var(--orange);font-weight:700}
+.lesson-no{font-size:9px;color:#55514d;text-align:right;white-space:nowrap}
+.route{display:flex;align-items:center}
+.route i{position:relative;flex:1;height:1px;background:#cfccc5}
+.route i:before{content:"";position:absolute;left:0;top:50%;width:11px;height:11px;border-radius:50%;background:#cfccc5;transform:translate(-1px,-50%);box-shadow:0 0 0 5px var(--bg)}
+.route i:last-child{max-width:14px;background:transparent}
+.route i.done,.route i.current{background:#bbb7b0}
+.route i.done:before{background:#8f8b84}
+.route i.current:before{background:var(--orange)}
+
+.lesson-intro{min-height:116px;display:flex;align-items:center;justify-content:space-between;gap:60px;padding:5px 16px 11px}
+.lesson-copy{min-width:0}
+.lesson-copy h1{margin:0;color:var(--ink);font-size:clamp(52px,5vw,78px);font-weight:850;line-height:.9;letter-spacing:-.065em}
+.lesson-copy p{margin:14px 0 0;color:#4f4c47;font-size:16px}
+.focus-summary{width:min(360px,34vw);display:grid;grid-template-columns:auto 36px 1fr;align-items:center;gap:14px}
+.focus-label{font:9px/1.55 var(--mono);text-transform:uppercase;letter-spacing:.11em;color:var(--muted)}
+.focus-label strong{color:var(--orange);font-weight:700}
+.focus-glyph{height:40px;display:grid;place-items:center;border-left:1px solid var(--line);color:var(--orange);font-size:24px}
+.focus-summary p{margin:0;color:#79756f;font-size:12px;line-height:1.45}
+
+.typing-panel{margin-top:4px;min-height:256px;padding:17px 22px 21px;border-radius:5px;background:linear-gradient(135deg,#1a1b19,#171816);color:#f0eee8;box-shadow:0 12px 38px rgba(26,27,25,.06)}
+.prompt-head{display:flex;justify-content:space-between;gap:24px;margin-bottom:8px;font-size:9px;color:#d1cec6}
+.prompt{min-height:176px;display:flex;align-content:center;justify-content:center;align-items:center;flex-wrap:wrap;column-gap:15px;row-gap:8px;padding:6px 20px;font:500 clamp(22px,2.25vw,34px)/1.2 var(--mono)}
+.ch{min-width:.72em;display:inline-grid;place-items:center;color:#e8e6df;border-radius:4px;transition:transform .08s ease,background .08s ease,color .08s ease}
+.ch.done{color:#8e8d86}
+.ch.current{min-width:1.25em;min-height:1.45em;background:var(--orange);color:#fff;box-shadow:0 0 0 1px #ff7b4a inset,0 5px 14px rgba(255,84,24,.22);transform:translateY(-1px)}
+.ch.wrong{background:#ffb49f;color:#201814}
+.ch.space{min-width:90px;height:33px;padding:0 15px;border:1px solid #5c5e59;background:#2b2c29;color:#c5c3bc;font-size:10px;line-height:1;letter-spacing:.03em}
+.ch.space.done{background:#222320;color:#74766f}
+.ch.space.current{background:var(--orange);border-color:var(--orange);color:#fff}
+.ch.space.wrong{background:#ffb49f;border-color:#ffb49f;color:#201814}
+.next-cue{min-height:18px;margin-top:3px;text-align:center;font-size:8px;color:#8f918b}
+.next-cue strong{color:var(--orange-soft)}
+@keyframes spacePulse{to{box-shadow:0 0 0 5px rgba(255,84,24,.14)}}
+
+.metrics{height:88px;display:grid;grid-template-columns:.85fr 1fr 1.35fr .85fr;border-bottom:1px solid var(--line)}
+.metric{position:relative;display:flex;flex-direction:column;justify-content:center;padding:0 34px}
+.metric+ .metric:before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:1px;background:var(--line-strong)}
+.metric small{font-size:8px;color:var(--muted)}
+.metric b{margin-top:3px;color:var(--ink);font:650 27px/1 var(--mono);letter-spacing:-.035em}
+.progress-row{display:flex;align-items:flex-end;gap:28px}
+.progress-meter{flex:1;height:9px;margin-bottom:1px;overflow:hidden;border-radius:3px;background:#e4e1db}
+.progress-meter span{display:block;width:0;height:100%;background:var(--orange);transition:width .16s ease}
+
+.hands-zone{padding:18px 0 2px;border-bottom:1px solid var(--line)}
+.hands-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:0 16px 4px}
+.hand-copy-label{font-size:10px;color:#31302d}
+.hand-copy-main{margin-top:5px;color:#6f6b66;font-size:14px}
+.hand-copy-main strong{color:var(--ink);font-weight:500}
+.guide-btn{display:flex;align-items:center;gap:10px;padding:5px 0;color:#716d67;font-size:8px}
+.guide-btn:before{content:"▱";font-size:19px;line-height:1;color:var(--ink)}
+.guide-btn:hover{color:var(--orange)}
+.hands-stage{position:relative;min-height:320px;display:grid;grid-template-columns:125px 1fr 125px;align-items:end;padding:0 72px}
+.side-label{padding-bottom:96px;font:9px/1.5 var(--mono);text-transform:uppercase;letter-spacing:.11em;color:#44413d}
+.side-label span{display:block;margin-top:3px;color:#918c85;text-transform:none;letter-spacing:.04em;font-size:10px}
+.side-label.right{text-align:left}
+.hand-pair{display:flex;justify-content:center;align-items:flex-end;gap:22px;min-width:0}
+.hand-wrap{position:relative;width:min(31vw,385px);aspect-ratio:1.333/1;overflow:visible}
+.svg-mount{position:absolute;inset:24px 0 0;display:grid;place-items:end center}
+.vector-hand{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 14px 13px rgba(84,70,58,.08));transition:filter .18s ease}
+.hand-right .vector-hand{transform:scaleX(-1);transform-origin:50% 50%}
+.hand-wrap.is-hot .vector-hand{filter:drop-shadow(0 16px 14px rgba(255,84,24,.11))}
+.home-letters{position:absolute;inset:0 3% auto;height:48px;z-index:2}
+.hand-letter{position:absolute;top:0;display:grid;place-items:center;min-width:24px;height:24px;border-radius:12px;color:#45423e;font:600 11px var(--mono);transition:.12s ease}
+.hand-letter:nth-child(1){left:14%}
+.hand-letter:nth-child(2){left:37%}
+.hand-letter:nth-child(3){left:58%}
+.hand-letter:nth-child(4){left:80%}
+.hand-letter.active{background:var(--orange);color:#fff;box-shadow:0 5px 13px rgba(255,84,24,.18)}
+.hands-zone.guide-strong .hand-letter{box-shadow:0 0 0 1px var(--line-strong)}
+.hands-zone.guide-strong .hand-letter.active{box-shadow:0 0 0 1px var(--orange),0 5px 13px rgba(255,84,24,.18)}
+
+.keymap{width:min(660px,74vw);margin:-38px auto 0;position:relative;z-index:4;display:grid;gap:5px}
+.keyrow{display:flex;justify-content:center;gap:5px}
+.keycap{min-width:51px;height:37px;padding:0 7px;display:grid;place-items:center;border:1px solid #cac6bf;border-bottom-width:2px;border-radius:4px;background:rgba(251,250,247,.95);font-size:10px;color:#1c1b19;box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
+.keycap.home{border-color:#bdb8b0}
+.keycap.hot{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 4px 11px rgba(255,84,24,.18)}
+.keycap.spacebar{width:min(345px,42vw);margin-top:2px}
+
+.controls{min-height:88px;display:grid;grid-template-columns:330px 1fr 250px;align-items:center;gap:24px}
+.primary-control{height:50px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 22px;border-radius:5px;background:var(--orange);color:#fff;font-size:10px;font-weight:700}
+.primary-control:hover{background:#ef4912}
+.primary-control .play{font-size:15px;letter-spacing:0}
+.primary-control kbd{margin-left:auto;color:#ffd8c9;font-size:8px}
+.control-group{display:flex;justify-content:center;gap:44px}
+.control-btn{display:flex;align-items:center;gap:10px;padding:9px 4px;color:#66625d;font-size:8px}
+.control-btn .icon{color:#181816;font-size:18px;letter-spacing:0}
+.control-btn kbd{color:#aaa59e;font-size:8px}
+.control-btn:hover{color:var(--orange)}
+.shortcut{justify-self:end;display:flex;align-items:center;gap:12px;color:#7d7871;font-size:8px}
+.shortcut b{display:grid;place-items:center;width:24px;height:24px;border-radius:4px;background:#ece9e3;color:#4e4b46;font-size:10px}
+.message{display:none}
+
+.focus-panel,.result{min-height:calc(100vh - 110px);padding:70px 7vw 50px}
+.focus-panel .eyebrow,.result .eyebrow{display:block;margin-bottom:12px}
+.focus-panel h2,.result h2{margin:0;color:var(--ink);font-size:clamp(48px,7vw,92px);line-height:.88;letter-spacing:-.065em;text-transform:uppercase}
+.focus-panel p,.result p{max-width:690px;margin:18px 0 30px;color:var(--soft);font-size:16px}
+.focus-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:980px}
+.focus-key{min-height:96px;padding:14px;border:1px solid var(--line-strong);border-radius:5px;background:rgba(255,255,255,.45);font-size:9px;color:#6d6963;text-align:left}
+.focus-key b{display:block;margin-bottom:7px;color:var(--ink);font-size:26px;letter-spacing:0}
+.focus-key.active{background:var(--orange);border-color:var(--orange);color:#fff}
+.focus-key.active b{color:#fff}
+.focus-help{margin-top:18px;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.score{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;max-width:900px;background:var(--line);border:1px solid var(--line)}
+.score div{background:var(--paper);padding:22px}
+.score small{display:block;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.score b{display:block;margin-top:6px;color:var(--ink);font:700 30px var(--mono)}
+.result-foot{max-width:900px;margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font:8px var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.result-foot strong{color:var(--orange)}
+
+.toast{position:fixed;left:50%;bottom:20px;z-index:10;transform:translate(-50%,10px);padding:10px 14px;border-radius:4px;background:var(--ink);color:#fff;font:10px var(--mono);opacity:0;pointer-events:none;transition:.18s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;z-index:20;display:none;place-items:center;padding:18px;background:rgba(17,17,15,.44);backdrop-filter:blur(5px)}
+.modal.open{display:grid}
+.modalbox{width:min(500px,100%);padding:28px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg)}
+.modalbox h2{margin:5px 0 0;color:var(--ink);font-size:31px;letter-spacing:-.04em;text-transform:uppercase}
+.modalbox p{color:var(--soft)}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.modal-actions button{min-height:40px;padding:0 13px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper);font:600 8px var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.modal-actions .danger{background:var(--ink);color:#fff}
+.modal-actions .primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.utility{display:none}
+
+@media(max-width:1050px){
+  .app-shell{width:min(100% - 42px,1480px)}
+  .tagline{display:none}
+  .lesson-intro{gap:30px;padding-inline:4px}
+  .focus-summary{width:330px}
+  .hands-stage{grid-template-columns:90px 1fr 90px;padding:0 10px}
+  .side-label{font-size:8px}
+  .hand-wrap{width:min(35vw,360px)}
+  .controls{grid-template-columns:280px 1fr 180px}
+  .control-group{gap:18px}
+  .keycap{min-width:43px}
+}
+@media(max-width:780px){
+  .app-shell{width:min(100% - 22px,1480px)}
+  .topbar{height:62px}
+  .nav{gap:18px}.nav button:nth-child(-n+2){display:none}
+  .profile-chip{width:34px;height:34px}
+  .lesson-track{grid-template-columns:88px 1fr 88px;gap:10px}
+  .lesson-intro{display:block;padding:10px 2px 18px}
+  .lesson-copy h1{font-size:50px}
+  .lesson-copy p{font-size:14px}
+  .focus-summary{width:100%;margin-top:18px;grid-template-columns:auto 34px 1fr}
+  .typing-panel{padding:14px 12px 16px}
+  .prompt-head span:last-child{display:none}
+  .prompt{min-height:150px;padding:4px 3px;column-gap:8px}
+  .ch.space{min-width:72px}
+  .metrics{height:auto;grid-template-columns:repeat(2,1fr)}
+  .metric{min-height:72px;padding:0 18px;border-bottom:1px solid var(--line)}
+  .metric+ .metric:before{display:none}
+  .hands-toolbar{padding-inline:4px}
+  .hands-stage{min-height:250px;display:block;padding:0}
+  .side-label{display:none}
+  .hand-pair{gap:2px}
+  .hand-wrap{width:50%}
+  .home-letters{inset-inline:0}
+  .keymap{width:100%;margin:-22px auto 0}
+  .keycap{min-width:8.6vw;height:32px;padding:0 3px;font-size:8px}
+  .keycap.spacebar{width:48vw}
+  .controls{grid-template-columns:1fr;gap:10px;padding:18px 0}
+  .primary-control{width:100%}
+  .control-group{justify-content:space-between}
+  .shortcut{display:none}
+  .focus-panel,.result{padding:40px 6px}
+  .focus-grid{grid-template-columns:repeat(2,1fr)}
+  .score{grid-template-columns:repeat(2,1fr)}
+  .result-foot{flex-direction:column}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-<header class="topbar">
-  <div class="brand"><span class="mark"></span><span>Keygrove</span></div>
-  <div class="hud"><span>XP <b id="xp">0</b></span><span>STREAK <b id="streak">0</b></span><span>BEST <b id="bestWpm">0</b> WPM</span></div>
-</header>
-<main class="game">
-  <div class="stack">
-    <div class="route" id="route"></div>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="brand">Keygrove</div>
+      <div class="tagline">GROW A FASTER RHYTHM.</div>
+    </div>
+    <nav class="nav" aria-label="Primary">
+      <button id="lessonsNav" type="button">Lessons</button>
+      <button id="statsNav" type="button">Stats</button>
+      <button id="settingsTopBtn" type="button">Settings</button>
+      <span class="nav-divider" aria-hidden="true"></span>
+      <span class="profile-chip" aria-label="Keygrove profile">KG</span>
+    </nav>
+    <div class="runtime-values sr-only" aria-hidden="true">XP <b id="xp">0</b> Streak <b id="streak">0</b> Best <b id="bestWpm">0</b></div>
+  </header>
+
+  <main class="workspace">
     <section class="arena" id="arena">
-      <div class="arena-head"><span class="eyebrow" id="modeLabel">Trail run</span><span class="lesson-no" id="lessonNo">01 / 06</span></div>
-      <div class="body">
-        <div class="titleline">
-          <div><h1 id="lessonTitle">Home Row</h1><p class="sub" id="lessonCopy"></p></div>
-          <span class="focus-chip">Focus <strong id="focusName">All fingers</strong></span>
+      <div class="normal-view">
+        <div class="lesson-track">
+          <span class="eyebrow" id="modeLabel">Finger drill</span>
+          <div class="route" id="route" aria-label="Lesson progress"></div>
+          <span class="lesson-no" id="lessonNo">Lesson 1 of 6</span>
         </div>
-        <div class="prompt" id="prompt"></div>
-        <div class="next-cue" id="nextCue"></div>
-        <div class="metrics">
+
+        <section class="lesson-intro">
+          <div class="lesson-copy">
+            <h1 id="lessonTitle">Home Row</h1>
+            <p id="lessonCopy"></p>
+          </div>
+          <aside class="focus-summary">
+            <div class="focus-label">Focus:<br><strong id="focusName">All fingers</strong></div>
+            <div class="focus-glyph" aria-hidden="true">☝</div>
+            <p id="focusInstruction">Keep all fingers anchored on the home row.</p>
+          </aside>
+        </section>
+
+        <section class="typing-panel" aria-label="Typing drill">
+          <div class="prompt-head"><span>Type the highlighted character</span><span>Every letter key is typing only.</span></div>
+          <div class="prompt" id="prompt"></div>
+          <div class="next-cue" id="nextCue"></div>
+        </section>
+
+        <section class="metrics" aria-label="Typing metrics">
           <div class="metric"><small>WPM</small><b id="wpm">0</b></div>
           <div class="metric"><small>Accuracy</small><b id="acc">100%</b></div>
-          <div class="metric"><small>Progress</small><b id="pct">0%</b></div>
-          <div class="metric"><small>Combo</small><b id="combo">0</b></div>
-        </div>
+          <div class="metric">
+            <small>Progress</small>
+            <div class="progress-row"><b id="pct">0%</b><div class="progress-meter" aria-hidden="true"><span id="progressFill"></span></div></div>
+          </div>
+          <div class="metric"><small>Streak</small><b id="combo">0</b></div>
+        </section>
+
+        <section class="hands-zone" id="handsZone" aria-label="Finger guide">
+          <div class="hands-toolbar">
+            <div>
+              <div class="hand-copy-label">Use this finger now</div>
+              <div class="hand-copy-main" id="handInstruction"><strong>Home position</strong> — follow the highlighted finger.</div>
+            </div>
+            <button class="guide-btn" id="guideBtn" type="button">View finger guide</button>
+          </div>
+
+          <div class="hands-stage">
+            <div class="side-label">Left hand<span>Home position</span></div>
+
+            <div class="hand-pair">
+              <div class="hand-wrap hand-left" id="leftHandWrap">
+                <div class="home-letters" aria-hidden="true">
+                  <span class="hand-letter" data-finger-label="lp">A</span>
+                  <span class="hand-letter" data-finger-label="lr">S</span>
+                  <span class="hand-letter" data-finger-label="lm">D</span>
+                  <span class="hand-letter" data-finger-label="li">F</span>
+                </div>
+                <div class="svg-mount" id="leftHandMount" aria-label="Left hand vector"></div>
+              </div>
+
+              <div class="hand-wrap hand-right" id="rightHandWrap">
+                <div class="home-letters" aria-hidden="true">
+                  <span class="hand-letter" data-finger-label="ri">J</span>
+                  <span class="hand-letter" data-finger-label="rm">K</span>
+                  <span class="hand-letter" data-finger-label="rr">L</span>
+                  <span class="hand-letter" data-finger-label="rp">;</span>
+                </div>
+                <div class="svg-mount" id="rightHandMount" aria-label="Right hand vector"></div>
+              </div>
+            </div>
+
+            <div class="side-label right">Right hand<span>Home position</span></div>
+          </div>
+
+          <div class="keymap" id="keymap"></div>
+        </section>
+
+        <section class="controls" aria-label="Controls">
+          <button class="primary-control" id="startBtn" type="button"><span class="play">▶</span><span>Start / continue</span><kbd>Enter</kbd></button>
+          <div class="control-group">
+            <button class="control-btn" id="focusBtn" type="button"><span class="icon">Ⅱ</span><span>Finger focus</span><kbd>Tab</kbd></button>
+            <button class="control-btn" id="resetRunBtn" type="button"><span class="icon">↻</span><span>Reset</span><kbd>Esc</kbd></button>
+          </div>
+          <div class="shortcut"><span>Keyboard shortcuts</span><b>?</b></div>
+        </section>
+
+        <div class="message"><span id="message"></span><span id="unlockText"></span></div>
+        <div class="utility"><button id="settingsBtn" type="button">Backup / reset</button></div>
       </div>
+
       <div class="focus-panel" id="focusPanel">
         <span class="eyebrow">Finger focus</span>
         <h2>Choose one finger.</h2>
-        <p>This is the only place where home-row letters act as controls.</p>
+        <p>Choose a home-row finger and Keygrove will build a drill around that finger's reach pattern.</p>
         <div class="focus-grid" id="focusGrid"></div>
         <div class="focus-help">A S D F · J K L ; selects · Space = all fingers · Esc = cancel</div>
       </div>
+
       <div class="result" id="result">
         <span class="eyebrow">Run complete</span>
         <h2 id="resultTitle">Clean run.</h2>
@@ -55,53 +354,23 @@
         </div>
         <div class="result-foot"><span><strong>Enter</strong> continue</span><span><strong>Tab</strong> finger focus</span><span>or just start typing</span></div>
       </div>
-      <div class="message"><span id="message"><strong>Type anything</strong> to begin. Enter also starts.</span><span id="unlockText">80% accuracy unlocks the next run.</span></div>
     </section>
-
-    <div class="hands-panel">
-      <div class="hands-head"><span>Which finger moves next</span><span id="fingerCue">Hands on home row</span></div>
-      <svg class="hands" viewBox="0 0 760 190" role="img" aria-label="Stylized hands resting on home-row keys">
-        <g id="leftHand">
-          <rect class="hand-palm" x="120" y="88" rx="26" width="190" height="84"/>
-          <rect class="hand-finger" data-finger="lp" x="112" y="42" rx="14" width="28" height="78"/>
-          <rect class="hand-finger" data-finger="lr" x="151" y="24" rx="14" width="30" height="94"/>
-          <rect class="hand-finger" data-finger="lm" x="193" y="14" rx="14" width="31" height="104"/>
-          <rect class="hand-finger" data-finger="li" x="237" y="22" rx="14" width="32" height="100"/>
-          <ellipse class="hand-thumb" data-finger="thumb" cx="297" cy="128" rx="34" ry="18" transform="rotate(-23 297 128)"/>
-          <text class="hand-anchor" x="126" y="38">A</text><text class="hand-anchor" x="166" y="20">S</text><text class="hand-anchor" x="208" y="11">D</text><text class="hand-anchor" x="253" y="18">F</text>
-          <text class="hand-label" data-label="lp" x="126" y="185">PINKY</text><text class="hand-label" data-label="lr" x="166" y="185">RING</text><text class="hand-label" data-label="lm" x="208" y="185">MIDDLE</text><text class="hand-label" data-label="li" x="254" y="185">INDEX</text>
-        </g>
-        <g id="rightHand">
-          <rect class="hand-palm" x="450" y="88" rx="26" width="190" height="84"/>
-          <ellipse class="hand-thumb" data-finger="thumb" cx="463" cy="128" rx="34" ry="18" transform="rotate(23 463 128)"/>
-          <rect class="hand-finger" data-finger="ri" x="491" y="22" rx="14" width="32" height="100"/>
-          <rect class="hand-finger" data-finger="rm" x="536" y="14" rx="14" width="31" height="104"/>
-          <rect class="hand-finger" data-finger="rr" x="579" y="24" rx="14" width="30" height="94"/>
-          <rect class="hand-finger" data-finger="rp" x="620" y="42" rx="14" width="28" height="78"/>
-          <text class="hand-anchor" x="507" y="18">J</text><text class="hand-anchor" x="551" y="11">K</text><text class="hand-anchor" x="594" y="20">L</text><text class="hand-anchor" x="634" y="38">;</text>
-          <text class="hand-label" data-label="ri" x="506" y="185">INDEX</text><text class="hand-label" data-label="rm" x="551" y="185">MIDDLE</text><text class="hand-label" data-label="rr" x="594" y="185">RING</text><text class="hand-label" data-label="rp" x="634" y="185">PINKY</text>
-        </g>
-      </svg>
-      <div class="keymap" id="keymap"></div>
-    </div>
-
-    <div class="help">
-      <span class="shortcut"><b>Type</b> start naturally</span>
-      <span class="shortcut"><b>Enter</b> start / continue</span>
-      <span class="shortcut"><b>Tab</b> finger focus</span>
-      <span class="shortcut"><b>Esc</b> stop</span>
-    </div>
-    <div class="utility"><button id="settingsBtn">Backup / reset</button></div>
-  </div>
-</main>
+  </main>
 </div>
+
 <div class="toast" id="toast"></div>
 <div class="modal" id="settingsModal">
   <div class="modalbox">
     <span class="eyebrow">Utility</span>
     <h2>Local progress</h2>
     <p>Keygrove stores progress in this browser. Export a backup before clearing browser data.</p>
-    <div class="modal-actions"><button class="primary" id="exportBtn">Export</button><button id="importBtn">Import</button><button class="danger" id="resetBtn">Reset</button><button id="closeSettings">Close</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+    <div class="modal-actions">
+      <button class="primary" id="exportBtn" type="button">Export</button>
+      <button id="importBtn" type="button">Import</button>
+      <button class="danger" id="resetBtn" type="button">Reset</button>
+      <button id="closeSettings" type="button">Close</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
   </div>
 </div>
 <script src="app.js" defer></script>
