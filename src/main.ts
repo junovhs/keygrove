@@ -7,6 +7,7 @@ import { effectiveGate, rankFor } from './engine/scoring';
 import { generate } from './engine/textgen';
 import { fresh, load, sanitize, save as persist, type SaveV5 } from './state/save';
 import { $, escapeHtml, toast } from './ui/dom';
+import { renderMap } from './ui/map';
 import { loadHands, paintHand } from './ui/hands';
 
 /** What the current run is for: the trail itself, a finger drill, or a warm-up of rusty keys. */
@@ -69,7 +70,7 @@ function labels(): void {
   $('summaryLabel').textContent = f ? 'Trouble spot' : 'Pass gate';
   $('focusName').textContent = f ? f.full : `${gate.passAcc}% accuracy`;
   $('focusInstruction').textContent = f ? 'Isolate this finger briefly, then go back to the trail.' : `Any speed passes. ★★ at ${gate.star2Wpm} WPM / 97%, ★★★ at ${gate.star3Wpm} WPM / 100%.${t.checkpoint ? ' This checkpoint needs ★★ to open the next grove.' : ''}${state.settings.slowMode ? ' Slow mode is on.' : ''}`;
-  $('message').innerHTML = run.status === 'playing' ? '<strong>Typing is live.</strong> Every letter key is typing only.' : '<strong>Just type</strong> to begin. Enter also starts. Tab opens trouble-spot practice. M shows your stats.';
+  $('message').innerHTML = run.status === 'playing' ? '<strong>Typing is live.</strong> Every letter key is typing only.' : '<strong>Just type</strong> to begin. Enter also starts. Tab opens trouble-spot practice. M opens the grove map.';
   $('unlockText').textContent = f || mode.kind === 'warmup' ? 'Space returns to your trail.' : `Grove ${g.n} of 6 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
 }
 function prompt(): void {
@@ -189,6 +190,18 @@ function finish(): void {
   arena().classList.add('result-mode'); header(); keymap(); nextVisual();
 }
 
+// ---- grove map ---------------------------------------------------------------------
+let mapKeys: ((e: KeyboardEvent) => void) | null = null;
+function openMap(): void {
+  if (run.status === 'playing') { toast('Finish or reset the current run first.'); return; }
+  arena().classList.remove('result-mode', 'focus-mode'); arena().classList.add('map-mode');
+  mapKeys = renderMap($('groveMap'), state, {
+    onSelect: (t) => { state.trail = t.id; mode = { kind: 'trail' }; save(); closeMap(); resetRun(); toast(`Grove ${groveOf(t).n} · ${t.name}`); },
+    onClose: closeMap,
+  });
+}
+function closeMap(): void { arena().classList.remove('map-mode'); mapKeys = null; render(); }
+
 // ---- focus / remedial ----------------------------------------------------------
 function openFocus(): void {
   if (run.status === 'playing') { toast('Finish or reset before opening trouble-spot practice.'); return; }
@@ -241,7 +254,7 @@ function handleIdleOrResult(e: KeyboardEvent): void {
   if (e.key === ' ' && mode.kind !== 'trail') { e.preventDefault(); mode = { kind: 'trail' }; resetRun(); toast('Back to the trail'); return; }
   if (done && e.key.toLowerCase() === 's' && offer?.kind === 'slow') { e.preventDefault(); acceptOffer(); return; }
   if (!done && run.status === 'idle' && e.key.toLowerCase() === 'w' && pendingWarmup) { e.preventDefault(); mode = { kind: 'warmup', keys: pendingWarmup }; pendingWarmup = null; resetRun(); return; }
-  if (!done && run.status === 'idle' && e.key.toLowerCase() === 'm') { e.preventDefault(); statsToast(); return; }
+  if (!done && run.status === 'idle' && e.key.toLowerCase() === 'm') { e.preventDefault(); openMap(); return; }
   if (e.key.length === 1) {
     e.preventDefault();
     if (done) continueAfterResult(e.key);
@@ -250,6 +263,7 @@ function handleIdleOrResult(e: KeyboardEvent): void {
 }
 document.addEventListener('keydown', (e) => {
   if (settingsModal().classList.contains('open')) { if (e.key === 'Escape') { settingsModal().classList.remove('open'); e.preventDefault(); } return; }
+  if (arena().classList.contains('map-mode')) { mapKeys?.(e); return; }
   if (arena().classList.contains('focus-mode')) { handleFocusKey(e); return; }
   if (run.status === 'playing') {
     if (e.key === 'Escape') { e.preventDefault(); abort(); return; }
@@ -265,7 +279,7 @@ $('startBtn').onclick = () => { if (run.status === 'complete') continueAfterResu
 $('focusBtn').onclick = () => openFocus();
 $('resetRunBtn').onclick = () => { if (run.status === 'playing') abort(); else resetRun(); };
 $('guideBtn').onclick = () => { state.settings.guideStrong = $('handsZone').classList.toggle('guide-strong'); save(); $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide'; };
-$('lessonsNav').onclick = () => { if (run.status === 'playing') { toast('Finish or reset the current run first.'); return; } mode = { kind: 'trail' }; resetRun(); toast(`Grove ${groveOf(trail()).n} · ${trail().name}`); };
+$('lessonsNav').onclick = () => { if (arena().classList.contains('map-mode')) closeMap(); else openMap(); };
 $('statsNav').onclick = statsToast;
 $('settingsTopBtn').onclick = () => settingsModal().classList.add('open');
 $('settingsBtn').onclick = () => settingsModal().classList.add('open');
@@ -304,5 +318,6 @@ Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
     snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, offer: offer && { kind: offer.kind } })),
     import: (raw: unknown) => applyImport(raw),
+    openMap,
   }),
 });

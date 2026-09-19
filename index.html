@@ -49,7 +49,9 @@ kbd{font:inherit}
 .workspace{padding:10px 0 14px}
 .arena{width:100%}
 .normal-view{display:block}
-.focus-panel,.result{display:none}
+.focus-panel,.result,.map-panel{display:none}
+.arena.map-mode .normal-view{display:none}
+.arena.map-mode .map-panel{display:block}
 .arena.focus-mode .normal-view,.arena.result-mode .normal-view{display:none}
 .arena.focus-mode .focus-panel{display:block}
 .arena.result-mode .result{display:block}
@@ -166,6 +168,35 @@ kbd{font:inherit}
 .score b{display:block;margin-top:6px;color:var(--ink);font:700 30px var(--mono)}
 .result-foot{max-width:900px;margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font:11px var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .result-foot strong{color:var(--orange)}
+.map-panel{padding:24px 0 40px}
+.map-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.map-head h2{margin:4px 0 0;font-size:clamp(28px,3vw,40px);font-weight:850;letter-spacing:-.05em;line-height:.95}
+.map-help{color:var(--muted);font:11px var(--mono);text-transform:uppercase;letter-spacing:.1em;text-align:right}
+.grove-map{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;padding-top:18px}
+.grove{display:flex;flex-direction:column;gap:4px;min-width:0}
+.grove-head{padding:6px 8px 10px;border-bottom:2px solid var(--line-strong);display:grid;gap:2px}
+.grove-optional .grove-head{border-bottom-style:dashed}
+.grove-no{font:11px var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.grove-head h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.03em;color:var(--ink)}
+.grove-gate,.grove-sum{font:11px var(--mono);letter-spacing:.04em;color:var(--soft)}
+.grove-locked .grove-head h3{color:#b3afa8}
+.map-trail{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;padding:8px;border-radius:5px;text-align:left;border:1px solid transparent;position:relative;width:100%}
+.map-trail:hover:not([disabled]){background:var(--paper);border-color:var(--line)}
+.map-trail:focus-visible{outline:none;border-color:var(--orange);box-shadow:0 0 0 1px var(--orange) inset}
+.map-n{font:11px var(--mono);color:var(--muted);text-align:right}
+.map-name{display:block;font-weight:600;color:var(--ink);font-size:13.5px;line-height:1.2}
+.map-keys{display:block;font:11px var(--mono);color:var(--soft);margin-top:2px;letter-spacing:.06em}
+.map-stars{display:block;font-size:11px;letter-spacing:.05em;color:var(--orange);margin-top:2px}
+.map-stars .e{color:var(--line-strong)}
+.map-trail.current .map-name{color:var(--orange)}
+.map-trail.locked{cursor:default}
+.map-trail.locked .map-name,.map-trail.locked .map-keys,.map-trail.locked .map-n{color:#b3afa8}
+.map-trail.cp{border-top:1px dashed var(--line-strong);border-radius:0 0 5px 5px;margin-top:4px;padding-top:12px}
+.map-trail.cp .map-name:before{content:"Checkpoint";display:block;font:700 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:4px}
+.map-trail.locked.cp .map-name:before{color:#b3afa8}
+.map-pips{display:flex;gap:3px;position:absolute;right:8px;top:9px}
+.map-pips i{width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
+.map-pips i.on{background:var(--orange)}.map-pips i.done{background:#8f8b84}
 .result-stars{font-size:34px;letter-spacing:.12em;color:var(--orange);line-height:1;margin:6px 0 10px}
 .result-stars .e{color:var(--line-strong)}
 .result-offer{max-width:900px;margin:14px 0 0;padding:12px 14px;border:1px solid var(--orange);border-radius:4px;background:#fff4ee;color:var(--ink);font-size:14px}
@@ -240,7 +271,7 @@ kbd{font:inherit}
       
     </div>
     <nav class="nav" aria-label="Primary">
-      <button id="lessonsNav" type="button">Lessons</button>
+      <button id="lessonsNav" type="button">Map</button>
       <button id="statsNav" type="button">Stats</button>
       <button id="settingsTopBtn" type="button">Settings</button>
       <span class="nav-divider" aria-hidden="true"></span>
@@ -345,6 +376,11 @@ kbd{font:inherit}
         <p>Pick the finger that is slowing you down. Keygrove will isolate its unlocked keys for a short remedial drill, then you return to your trail. Fingers Keygrove thinks are struggling are marked.</p>
         <div class="focus-grid" id="focusGrid"></div>
         <div class="focus-help">A S D F · J K L ; selects · Space = back to the trail · Esc = cancel</div>
+      </div>
+
+      <div class="map-panel" id="mapPanel">
+        <div class="map-head"><div><span class="eyebrow">Grove map</span><h2>Seven groves. One path.</h2></div><span class="map-help">↑ ↓ ← → move · Enter select · Esc close</span></div>
+        <div class="grove-map" id="groveMap"></div>
       </div>
 
       <div class="result" id="result">
