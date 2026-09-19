@@ -239,6 +239,42 @@ kbd{font:inherit}
 .utility button{font-size:10px;color:var(--muted)}
 .utility button:hover{color:var(--orange)}
 
+/* ---- account ----
+   One panel in the settings modal's clothes: an eyebrow, a title, a short
+   form. The marketing question is its own unchecked box with the whole
+   sentence beside it. */
+.account-open{display:inline-flex;align-items:center;gap:8px}
+.account-open[hidden]{display:none}
+.account-dot{width:8px;height:8px;border:1px solid var(--line-strong);border-radius:50%;background:transparent}
+.account-open.is-signed-in .account-dot{border-color:var(--orange);background:var(--orange)}
+.account{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(17,17,15,.44);backdrop-filter:blur(5px);opacity:0;transition:opacity .18s ease}
+.account[hidden]{display:none}
+.account.open{opacity:1}
+.account-panel{width:min(420px,100%);padding:28px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);transform:translateY(-8px);transition:transform .22s ease}
+.account.open .account-panel{transform:none}
+.account-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.account-head h2{margin:5px 0 0;color:var(--ink);font-size:31px;letter-spacing:-.04em;text-transform:uppercase}
+.account-close{min-height:28px;padding:0 8px;color:var(--muted);font:600 9px var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.account-close:hover{color:var(--orange)}
+.account-form{display:grid;gap:12px;margin-top:14px}
+.account-form[hidden]{display:none}
+.account-lead{margin:0 0 4px;color:var(--soft);font-size:13.5px;line-height:1.5}
+.account-email{margin:0;overflow:hidden;text-overflow:ellipsis;color:var(--ink);font-family:var(--mono);font-size:13px}
+.account-field{display:grid;gap:5px;color:var(--soft);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.11em}
+.account-field input{min-height:40px;padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper);color:var(--ink);font:15px var(--sans);text-transform:none;letter-spacing:0}
+.account-consent{display:flex;align-items:flex-start;gap:10px;margin-top:2px;cursor:pointer;color:var(--text);font-size:13px;line-height:1.45}
+.account-consent input{appearance:none;flex:0 0 auto;width:16px;height:16px;margin:2px 0 0;border:1px solid var(--line-strong);border-radius:3px;background:var(--paper);cursor:pointer}
+.account-consent input:checked{border-color:var(--orange);background:var(--orange) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/12px no-repeat}
+.account-consent input:disabled{opacity:.5;cursor:progress}
+.account-submit{width:100%;min-height:40px;margin-top:4px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper);font:600 9px var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.account-submit.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.account-links{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 14px}
+.account-link{min-height:0;padding:0;color:var(--soft);font-size:12.5px}
+.account-link:hover:not(:disabled){color:var(--orange);text-decoration:underline}
+.account-notice{margin:12px 0 0;padding:9px 12px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--text);font-size:12.5px;line-height:1.45}
+.account-notice[hidden]{display:none}
+.account-notice.is-error{border-color:var(--orange);color:var(--orange)}
+
 @media(max-width:1050px){
   .app-shell{width:min(100% - 42px,1480px)}
   .tagline{display:none}
@@ -301,7 +337,12 @@ kbd{font:inherit}
       <button id="statsNav" type="button">Stats</button>
       <button id="settingsTopBtn" type="button">Settings</button>
       <span class="nav-divider" aria-hidden="true"></span>
-      
+      <!-- Optional. Typing never needs it; it exists to keep you known across
+           the Strange Systems apps. Hidden until the build has an account service. -->
+      <button id="accountOpen" class="account-open" type="button" aria-haspopup="dialog" aria-expanded="false" hidden>
+        <span class="account-dot" aria-hidden="true"></span>
+        <span id="accountOpenLabel">Sign in</span>
+      </button>
     </nav>
     <div class="runtime-values sr-only" aria-hidden="true">XP <b id="xp">0</b> Streak <b id="streak">0</b> Best <b id="bestWpm">0</b></div>
     </div>
@@ -426,6 +467,63 @@ kbd{font:inherit}
       <button id="closeSettings" type="button">Close</button>
       <input type="file" id="importFile" accept=".json,application/json" hidden>
     </div>
+  </div>
+</div>
+<!-- The account. Four small forms and a home card share one panel; the
+     controller in ui/account.ts shows one at a time. The marketing box is its
+     own unchecked question: an account is not a subscription. -->
+<div id="account" class="account" hidden role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+  <div class="account-panel">
+    <div class="account-head">
+      <div><span class="eyebrow">Strange Systems</span><h2 id="accountTitle">Sign in</h2></div>
+      <button id="accountClose" class="account-close" type="button" aria-label="Close">esc</button>
+    </div>
+    <p id="accountNotice" class="account-notice" role="status" hidden></p>
+
+    <form id="accountSignIn" class="account-form" data-account-form="sign-in">
+      <p class="account-lead">One account for every Strange Systems app.</p>
+      <label class="account-field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
+      <label class="account-field"><span>Password</span><input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="account-submit primary" type="submit">Sign in</button>
+      <div class="account-links">
+        <button type="button" class="account-link" data-account-mode="forgot">Forgot password?</button>
+        <button type="button" class="account-link" data-account-mode="sign-up">Create a free account</button>
+      </div>
+    </form>
+
+    <form id="accountSignUp" class="account-form" data-account-form="sign-up" hidden>
+      <p class="account-lead">Free. The same login works in CropASAP and the other Strange Systems apps. Typing works without one.</p>
+      <label class="account-field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
+      <label class="account-field"><span>Password</span><input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="account-consent"><input id="signUpConsent" name="consent" type="checkbox"> <span>Get updates on new Strange Systems apps & occasional offers.</span></label>
+      <button class="account-submit primary" type="submit">Create account</button>
+      <div class="account-links">
+        <button type="button" class="account-link" data-account-mode="sign-in">Already have one? Sign in</button>
+      </div>
+    </form>
+
+    <form id="accountForgot" class="account-form" data-account-form="forgot" hidden>
+      <p class="account-lead">We will email you a link to set a new password.</p>
+      <label class="account-field"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
+      <button class="account-submit primary" type="submit">Send reset link</button>
+      <div class="account-links">
+        <button type="button" class="account-link" data-account-mode="sign-in">Back to sign in</button>
+      </div>
+    </form>
+
+    <form id="accountNewPassword" class="account-form" data-account-form="new-password" hidden>
+      <p class="account-lead">Choose a new password for this account.</p>
+      <label class="account-field"><span>New password</span><input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="account-field"><span>Again</span><input name="confirm" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button class="account-submit primary" type="submit">Save password</button>
+    </form>
+
+    <section id="accountHome" class="account-form" hidden>
+      <p id="accountEmail" class="account-email"></p>
+      <p id="accountNote" class="account-lead">Your progress stays in this browser for now; the same login works in every Strange Systems app.</p>
+      <label class="account-consent"><input id="homeConsent" name="consent" type="checkbox"> <span>Get updates on new Strange Systems apps & occasional offers.</span></label>
+      <button id="accountSignOut" class="account-submit" type="button">Sign out</button>
+    </section>
   </div>
 </div>
 <script type="module" src="/src/main.ts"></script>

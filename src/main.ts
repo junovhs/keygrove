@@ -9,6 +9,7 @@ import { rankFor } from './engine/scoring';
 import { generate, generateDrill } from './engine/textgen';
 import { fresh, load, sanitize, save as persist, type SaveV6 } from './state/save';
 import { $, escapeHtml, toast } from './ui/dom';
+import { createAccount } from './ui/account';
 import { renderMap } from './ui/map';
 import { loadHands, onFingerHover, paintHand } from './ui/hands';
 import { CanvasPrompt } from './render/prompt';
@@ -375,6 +376,11 @@ function syncSettingsUi(): void {
 }
 setInterval(() => { if (run.status === 'playing') metrics(); }, 450);
 
+// The account is optional: a guest page never loads its service. While its
+// panel is open it swallows every keydown in the capture phase, so the run
+// and the shortcuts above never see a password being typed.
+const account = createAccount({ announce: toast });
+
 syncSettingsUi(); resetRun(); sessionCheck(); save(); void loadHands(nextVisual);
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
@@ -384,5 +390,6 @@ Object.defineProperty(window, 'keygrove', {
     selftest: textflowSelfTest,
     prompt: () => canvasPrompt,
     method: () => activeMethod().id,
+    account: () => account.session()?.user.email ?? null,
   }),
 });
