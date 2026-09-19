@@ -1,5 +1,6 @@
 import { MAIN_TRAILS, TRAILS, trailById } from '../curriculum';
 import { KeyModel, type Confusions, type KeyStats } from '../engine/keymodel';
+import { DEFAULT_METHOD_ID, METHODS } from '../curriculum/method';
 
 export const KEY = 'keygrove.v6';
 const PREV_V5 = 'keygrove.v5';
@@ -8,7 +9,7 @@ const PREV = ['keygrove.v4', 'keygrove.v3', 'keygrove.v2'];
 /** Per-trail record. `cleared` is mastery-gated (see progress.ts); `recent` holds the last runs' accuracy. */
 export interface TrailProgress { runs: number; cleared: boolean; stars: 0 | 1 | 2 | 3; bestWpm: number; bestAcc: number; fails: number; recent: number[] }
 export interface Stats { runs: number; chars: number; attempts: number; bestWpm: number; bestAcc: number; xp: number; days: number; lastDay: string; bestCombo: number }
-export interface Settings { slowMode: boolean; guideStrong: boolean; reviewOn: boolean; codeGrove: boolean }
+export interface Settings { slowMode: boolean; guideStrong: boolean; reviewOn: boolean; codeGrove: boolean; method: string }
 export interface SaveV6 {
   v: 6;
   trail: string;
@@ -25,7 +26,7 @@ export const freshProgress = (): TrailProgress => ({ runs: 0, cleared: false, st
 export const fresh = (): SaveV6 => ({
   v: 6, trail: MAIN_TRAILS[0]!.id, trails: {}, keys: {}, confusions: {},
   stats: { runs: 0, chars: 0, attempts: 0, bestWpm: 0, bestAcc: 0, xp: 0, days: 0, lastDay: '', bestCombo: 0 },
-  settings: { slowMode: false, guideStrong: false, reviewOn: true, codeGrove: false },
+  settings: { slowMode: false, guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID },
 });
 
 const num = (v: unknown, max = Infinity): number => Math.min(max, Math.max(0, Number(v) || 0));
@@ -54,6 +55,7 @@ export function sanitize(x: unknown): SaveV6 {
   s.stats.lastDay = typeof q.lastDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(q.lastDay) ? q.lastDay : '';
   const st = (o.settings && typeof o.settings === 'object' ? o.settings : {}) as Record<string, unknown>;
   for (const k of ['slowMode', 'guideStrong', 'reviewOn', 'codeGrove'] as const) if (typeof st[k] === 'boolean') s.settings[k] = st[k];
+  if (typeof st.method === 'string' && METHODS.some((m) => m.id === st.method)) s.settings.method = st.method;
   return s;
 }
 

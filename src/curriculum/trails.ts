@@ -11,11 +11,11 @@ function grove(g: GroveId, specs: Spec[]): Omit<Trail, 'n'>[] {
 const SPECS: Omit<Trail, 'n'>[] = [
   ...grove('roots', [
     { name: 'Anchors', newKeys: 'fj', space: true, kind: 'rhythm', length: 36, blurb: 'Index fingers only, plus the spacebar with either thumb. Pure rhythm — no words exist yet.' },
-    { name: 'Inner Pair', newKeys: 'dk', kind: 'rhythm', length: 36, blurb: 'Middle fingers. Anchor, reach, return.' },
+    { name: 'Inner Pair', newKeys: 'dk', kind: 'rhythm', length: 36, blurb: 'Middle fingers. Small reach, easy rhythm.' },
     { name: 'Ring Pair', newKeys: 'sl', kind: 'rhythm', length: 36, blurb: 'Ring fingers. Weakest reach on the row; take it slow.' },
     { name: 'Outer Pair', newKeys: 'a;', kind: 'rhythm', length: 36, blurb: 'Pinkies. The semicolon is a real key — treat it like one.' },
     { name: 'Home Words', newKeys: '', kind: 'words', length: 40, blurb: 'First real words. Everything on the home row.' },
-    { name: 'Index Reach', newKeys: 'gh', kind: 'words', length: 42, blurb: 'Index fingers stretch inward and come back to F and J.' },
+    { name: 'Index Reach', newKeys: 'gh', kind: 'words', length: 42, blurb: 'Index fingers reach inward. F and J stay your landmarks.' },
     { name: 'Roots Checkpoint', newKeys: '', checkpoint: true, kind: 'words', length: 60, blurb: 'A longer mixed run. ★★ here opens the Canopy.' },
   ]),
   ...grove('canopy', [

@@ -1,5 +1,6 @@
 import { allowedChars, gateFor, groveOf, trailsInGrove, type Trail } from './curriculum';
 import { FINGERS, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
+import { METHODS, activeMethod, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { decide, readout, sessionReview, type Decision } from './engine/coach';
 import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
@@ -17,6 +18,7 @@ import { selfTest as textflowSelfTest } from './render/textflow';
 type Mode = { kind: 'trail' } | { kind: 'remedial'; finger: Finger } | { kind: 'coach'; decision: Decision };
 
 let state: SaveV6 = load();
+setMethod(state.settings.method);
 let keys = KeyModel.fromJSON(state.keys, state.confusions);
 let mode: Mode = { kind: 'trail' };
 let run = new Run('');
@@ -72,7 +74,7 @@ function labels(): void {
   const stageCopy = { drill: 'Drill — the new keys only, in rhythm.', mix: 'Mix — new keys blended into what you know.', words: t.checkpoint ? 'Checkpoint run — everything so far.' : 'Words — real words from everything unlocked.' } as const;
   if (f) {
     $('lessonTitle').textContent = 'Practice: ' + f.full;
-    $('lessonCopy').textContent = 'A short drill on the ' + f.full.toLowerCase() + ' keys you have unlocked. Return to ' + f.anchor.toUpperCase() + ' after each reach.';
+    $('lessonCopy').textContent = 'A short drill on the ' + f.full.toLowerCase() + ' keys you have unlocked. Use ' + f.anchor.toUpperCase() + ' to stay oriented; let the hand move a little.';
   } else if (mode.kind === 'coach') {
     $('lessonTitle').textContent = mode.decision.title;
     $('lessonCopy').textContent = mode.decision.reason + (mode.decision.required ? ' Required before the next trail run.' : '');
@@ -129,7 +131,7 @@ function nextVisual(): void {
     paintHand('left', f.id); paintHand('right', f.id);
     document.querySelectorAll('[data-finger-label="' + f.id + '"]').forEach((x) => x.classList.add('active'));
     const shiftNote = shifted && 'hand' in f ? ` · hold ${f.hand === 'left' ? 'right' : 'left'} shift` : '';
-    const anchor = 'anchor' in f && f.anchor !== c.toLowerCase() ? ` · from ${f.anchor.toUpperCase()}` : '';
+    const anchor = 'anchor' in f && f.anchor !== c.toLowerCase() ? ` · landmark ${f.anchor.toUpperCase()}` : '';
     $('handInstruction').innerHTML = '<strong>' + escapeHtml(f.full) + '</strong>' + escapeHtml(anchor + shiftNote);
   } else {
     paintHand('left', null); paintHand('right', null);
@@ -347,6 +349,11 @@ $('settingsBtn').onclick = () => settingsModal().classList.add('open');
 $('closeSettings').onclick = () => settingsModal().classList.remove('open');
 settingsModal().onclick = (e) => { if (e.target === settingsModal()) settingsModal().classList.remove('open'); };
 $('slowBtn').onclick = () => { setSlow(!state.settings.slowMode); if (run.status !== 'playing') render(); };
+$('methodBtn').onclick = () => {
+  const i = METHODS.findIndex((m) => m.id === state.settings.method);
+  const next = METHODS[(i + 1) % METHODS.length]!;
+  state.settings.method = next.id; setMethod(next.id); save(); syncSettingsUi(); if (run.status !== 'playing') render(); toast(next.name + ' · ' + next.blurb);
+};
 $('codeBtn').onclick = () => { state.settings.codeGrove = !state.settings.codeGrove; save(); $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off'); toast(state.settings.codeGrove ? 'Code grove will appear after the Bark checkpoint.' : 'Code grove hidden.'); };
 $('exportBtn').onclick = () => {
   save();
@@ -363,14 +370,16 @@ $<HTMLInputElement>('importFile').onchange = async (e) => {
   input.value = '';
 };
 function applyImport(raw: unknown): void {
-  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); mode = { kind: 'trail' }; gate = null; save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
+  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
 }
-$('resetBtn').onclick = () => { if (confirm('Reset all Keygrove progress?')) { state = fresh(); keys = new KeyModel(); mode = { kind: 'trail' }; gate = null; save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
+$('resetBtn').onclick = () => { if (confirm('Reset all Keygrove progress?')) { state = fresh(); keys = new KeyModel(); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
 function syncSettingsUi(): void {
   $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
   $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
   $('slowBtn').textContent = 'Slow mode: ' + (state.settings.slowMode ? 'on' : 'off');
   $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off');
+  $('methodBtn').textContent = 'Method: ' + activeMethod().name;
+  setMethod(state.settings.method);
 }
 setInterval(() => { if (run.status === 'playing') metrics(); }, 450);
 
@@ -382,5 +391,6 @@ Object.defineProperty(window, 'keygrove', {
     openMap,
     selftest: textflowSelfTest,
     prompt: () => canvasPrompt,
+    method: () => activeMethod().id,
   }),
 });

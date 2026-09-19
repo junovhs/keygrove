@@ -5,17 +5,13 @@ import SENTENCES from '../data/sentences.json';
 import QUOTES from '../data/quotes.json';
 import CODE from '../data/code.json';
 import { rng, pickOne, shuffle, type Rng } from './rng';
+import { homeOf, mirrorOf } from '../curriculum/method';
 
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
 export interface GenOptions { heat?: Heat; seed?: number }
 
-/** Home-row anchor for every key: which finger rests where. */
-const ANCHOR: Record<string, string> = {
-  q: 'a', a: 'a', z: 'a', '1': 'a', w: 's', s: 's', x: 's', '2': 's', e: 'd', d: 'd', c: 'd', '3': 'd',
-  r: 'f', f: 'f', v: 'f', t: 'f', g: 'f', b: 'f', '4': 'f', '5': 'f', y: 'j', h: 'j', n: 'j', u: 'j', j: 'j', m: 'j', '6': 'j', '7': 'j',
-  i: 'k', k: 'k', ',': 'k', '8': 'k', o: 'l', l: 'l', '.': 'l', '9': 'l', p: ';', ';': ';', '/': ';', '0': ';',
-};
+const anchorOf = (k: string) => homeOf(k);
 const BIGRAMS = 'th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ne ea ra ce li ch ll be ma si om ur'.split(' ');
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -56,15 +52,12 @@ function fill(len: number, next: () => string): string {
   return s;
 }
 
-/** Opposite-hand home key, used to give home-row keys a partner to alternate with. */
-const MIRROR: Record<string, string> = { a: ';', s: 'l', d: 'k', f: 'j', j: 'f', k: 'd', l: 's', ';': 'a' };
-
 function rhythmPatterns(keys: string): string[] {
   const ks = [...keys].filter((k) => k !== ' ');
   const pats: string[] = [];
   for (const k of ks) {
-    const a = ANCHOR[k] ?? k;
-    const p = a === k ? (MIRROR[k] ?? (ks.find((x) => x !== k) ?? k)) : a;
+    const a = anchorOf(k);
+    const p = a === k ? mirrorOf(k) : a;
     pats.push(k + k, p + k + p, k + p + k, k + k + p, p + k + k);
   }
   if (ks.length > 1) { const [x, y] = ks as [string, string]; pats.push(x + y, y + x, x + y + x, y + x + y, x + x + y + y, x + y + y + x); }
@@ -82,7 +75,7 @@ export function generateDrill(kind: 'confusion' | 'reach' | 'review', keys: stri
     return fill(34, () => pickOne(pats, r));
   }
   if (kind === 'reach' && ks.length) {
-    const k = ks[0]!; const a = ANCHOR[k] ?? k; const p = a === k ? (MIRROR[k] ?? k) : a;
+    const k = ks[0]!; const a = anchorOf(k); const p = a === k ? mirrorOf(k) : a;
     const pats = [p + k + p, k + p + k, k + k + p, p + k + k, k + p + p + k];
     return fill(30, () => pickOne(pats, r));
   }
@@ -132,7 +125,7 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     }
     case 'caps': {
       const cap = (w: string) => w[0]!.toUpperCase() + w.slice(1);
-      if (stage === 'drill') return fill(short, () => { const k = pickOne([...LETTERS], r); const a = ANCHOR[k]!; const p = a === k ? MIRROR[k]! : a; return k.toUpperCase() + p + ' ' + p.toUpperCase() + k; });
+      if (stage === 'drill') return fill(short, () => { const k = pickOne([...LETTERS], r); const a = anchorOf(k); const p = a === k ? mirrorOf(k) : a; return k.toUpperCase() + p + ' ' + p.toUpperCase() + k; });
       if (stage === 'mix') return fill(short, () => cap(word(3)));
       return fill(len, () => (r() < 0.5 ? cap(word(3)) : word(3)));
     }
@@ -147,7 +140,7 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
       const digits = [...allowed].filter((c) => /[0-9]/.test(c));
       const d = () => pickOne(digits, r);
       const nn = (n: number) => Array.from({ length: n }, d).join('');
-      if (stage === 'drill') return fill(short, () => { const k = d(); const a = ANCHOR[k]!; return a + k + a + ' ' + k + k; });
+      if (stage === 'drill') return fill(short, () => { const k = d(); const a = anchorOf(k); return a + k + a + ' ' + k + k; });
       if (stage === 'mix') return fill(short, () => (r() < 0.5 ? nn(2 + Math.floor(r() * 3)) : word(3)));
       const tmpl = [() => `${nn(2)}/${nn(2)}`, () => `${d()}:${nn(2)}`, () => `${nn(2)}.${nn(2)}`, () => nn(3), () => word(3), () => word(4)];
       const usable = tmpl.filter((f) => fits(f(), allowed));
