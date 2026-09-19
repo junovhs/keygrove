@@ -71,6 +71,29 @@ function rhythmPatterns(keys: string): string[] {
   return pats;
 }
 
+/** Coach drills: alternate a confused pair, rebuild one reach, or review rusty keys through real words. */
+export function generateDrill(kind: 'confusion' | 'reach' | 'review', keys: string[], trail: Trail, opts: GenOptions = {}): string {
+  const r = rng(opts.seed);
+  const allowed = allowedChars(trail);
+  const ks = keys.filter((k) => allowed.has(k) && k !== ' ');
+  if (kind === 'confusion' && ks.length >= 2) {
+    const [a, b] = ks as [string, string];
+    const pats = [a + b, b + a, a + a + b, b + b + a, a + b + a, b + a + b, a + b + b + a, b + a + a + b];
+    return fill(34, () => pickOne(pats, r));
+  }
+  if (kind === 'reach' && ks.length) {
+    const k = ks[0]!; const a = ANCHOR[k] ?? k; const p = a === k ? (MIRROR[k] ?? k) : a;
+    const pats = [p + k + p, k + p + k, k + k + p, p + k + k, k + p + p + k];
+    return fill(30, () => pickOne(pats, r));
+  }
+  // review: real words heavy on the rusty keys, falling back to patterns
+  const heat: Record<string, number> = {}; for (const k of ks) heat[k] = 4;
+  const bank = wordBank(trail).filter((w) => w.length >= 3 && [...w].some((c) => ks.includes(c)));
+  if (bank.length >= 6) { const pick = sampler(bank, heat); return fill(trail.length, () => pick(r)); }
+  const pats = rhythmPatterns(ks.join(''));
+  return pats.length ? fill(30, () => pickOne(pats, r)) : generate(trail, 'mix', opts);
+}
+
 /** Generate the text for a trail stage. Output only ever contains allowedChars(trail). */
 export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
   const r = rng(opts.seed === undefined ? undefined : opts.seed + ['drill', 'mix', 'words'].indexOf(stage) * 1000003);

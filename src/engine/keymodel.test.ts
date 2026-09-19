@@ -1,55 +1,77 @@
 import { describe, expect, it } from 'vitest';
-import { KeyModel, HOT } from './keymodel';
+import { KeyModel, MASTERED, VOLUME } from './keymodel';
 
-const warm = (m: KeyModel, keys: string, n = 10, now = 1_000_000) => { for (const k of keys) for (let i = 0; i < n; i++) m.record(k, true, 300, now); };
+const T0 = 1_700_000_000_000;
+/** Simulate presses: `acc` fraction correct, latency drawn from base ± jitter, optional spike every n presses. */
+function sim(m: KeyModel, key: string, n: number, acc: number, base = 300, jitter = 40, spikeEvery = 0, now = T0) {
+  for (let i = 0; i < n; i++) {
+    const correct = ((i * 13) % 100) / 100 >= 1 - acc; // deterministic, spread out
+    const lat = base + ((i * 37) % (2 * jitter + 1)) - jitter + (spikeEvery && i % spikeEvery === spikeEvery - 1 ? base * 2 : 0);
+    m.record(key, correct, lat, now + i * 1000, correct ? undefined : 'x');
+  }
+}
+const warm = (m: KeyModel, keys: string) => { for (const k of keys) sim(m, k, 30, 1); };
 
-describe('KeyModel', () => {
-  it('misses make a key hot, hits keep it cold', () => {
-    const m = new KeyModel();
-    warm(m, 'asdfjl');
-    for (let i = 0; i < 10; i++) m.record('k', false, 300);
-    expect(m.heat('k')).toBeGreaterThan(HOT);
-    expect(m.heat('a')).toBeLessThan(0.1);
-    expect(m.heat('zz')).toBe(0);
+describe('KeyModel mastery', () => {
+  it('reaches mastery only with volume, accuracy and rhythm; ~10 presses/run means ≥ 5 runs', () => {
+    const m = new KeyModel(); warm(m, 'asdjkl');
+    const runs: number[] = [];
+    for (let run = 1; run <= 10; run++) { sim(m, 'f', 10, 1, 300, 30, 0, T0 + run * 60_000); runs.push(m.mastery('f', T0 + run * 60_000)); }
+    const firstMastered = runs.findIndex((v) => v >= MASTERED) + 1;
+    expect(firstMastered).toBeGreaterThanOrEqual(5);
+    expect(firstMastered).toBeLessThanOrEqual(8);
+    expect(m.stat('f')!.hits).toBeGreaterThanOrEqual(VOLUME);
   });
-  it('slowness alone can warm a key', () => {
-    const m = new KeyModel();
-    warm(m, 'asdfjkl');
-    for (let i = 0; i < 10; i++) m.record(';', true, 900);
-    expect(m.heat(';')).toBeGreaterThan(0.3);
-    expect(m.heat(';')).toBeLessThan(HOT + 0.4);
+  it('80% accuracy never masters, whatever the volume', () => {
+    const m = new KeyModel(); warm(m, 'asdjkl');
+    let peak = 0;
+    for (let i = 0; i < 20; i++) { sim(m, 'k', 10, 0.8, 300, 40, 0, T0 + i * 10_000); peak = Math.max(peak, m.mastery('k', T0 + i * 10_000 + 10_000)); }
+    expect(peak).toBeLessThan(MASTERED);
+    expect(m.accuracy('k')).toBeLessThan(0.93);
   });
-  it('hottest orders by heat, respects threshold and sample minimum', () => {
-    const m = new KeyModel();
-    warm(m, 'asdfjkl;');
-    for (let i = 0; i < 6; i++) m.record('k', false, 300);
-    for (let i = 0; i < 3; i++) m.record('d', false, 300);
-    m.record('q', false, 300);
-    expect(m.hottest('asdfjkl;q')?.key).toBe('k');
-    expect(m.hottest('asdfjl;q')).toBeNull();
-    expect(m.hottest('asdfjl;q', 0.1)?.key).toBe('d');
+  it('speed is not a factor: slow but steady masters like fast and steady', () => {
+    const slow = new KeyModel(); warm(slow, 'asdjkl'); sim(slow, 'f', 80, 1, 900, 40);
+    const fast = new KeyModel(); warm(fast, 'asdjkl'); sim(fast, 'f', 80, 1, 250, 15);
+    const now = T0 + 100_000;
+    expect(slow.mastery('f', now)).toBeGreaterThanOrEqual(MASTERED);
+    expect(Math.abs(slow.mastery('f', now) - fast.mastery('f', now))).toBeLessThan(0.1);
   });
-  it('stale picks keys unseen for > 2 days, ignoring never-seen keys', () => {
+  it('burst-then-pause rhythm (searching) holds mastery down and shows up in searching()', () => {
+    const m = new KeyModel(); warm(m, 'asdjkl');
+    sim(m, 'f', 80, 1, 300, 30, 2); // a search pause every 2nd press
+    expect(m.rhythm('f')).toBeLessThan(0.6);
+    expect(m.mastery('f', T0 + 100_000)).toBeLessThan(MASTERED);
+    expect(m.searching('asdfjkl')[0]?.key).toBe('f');
+    const steady = new KeyModel(); warm(steady, 'asdjkl'); sim(steady, 'f', 80, 1, 300, 30);
+    expect(steady.searching('asdfjkl')).toEqual([]);
+  });
+  it('confusions accumulate per wanted→typed and decay per run', () => {
     const m = new KeyModel();
+    for (let i = 0; i < 4; i++) m.record('k', false, 300, T0, 'd');
+    m.record('k', false, 300, T0, 'j');
+    expect(m.confusions(4)).toEqual([{ wanted: 'k', typed: 'd', count: 4 }]);
+    for (let i = 0; i < 12; i++) m.endRun();
+    expect(m.confusions(4)).toEqual([]);
+  });
+  it('mastery decays past the review date and the key becomes due; a correct review doubles the interval', () => {
+    const m = new KeyModel(); warm(m, 'asdjkl'); sim(m, 'f', 80, 1);
     const day = 86_400_000;
-    m.record('a', true, 300, 0);
-    m.record('s', true, 300, 3 * day);
-    expect(m.stale('asdx', 3 * day + 1000)).toEqual(['a']);
-    expect(m.stale('asdx', 1 * day)).toEqual([]);
+    const before = m.mastery('f', T0 + 80_000);
+    expect(m.dueKeys('asdfjkl', T0 + 80_000)).toEqual([]);
+    const later = T0 + 5 * day;
+    expect(m.dueKeys('asdfjkl', later)).toContain('f');
+    expect(m.mastery('f', later)).toBeLessThan(before);
+    const interval0 = m.stat('f')!.interval;
+    m.record('f', true, 300, later);
+    expect(m.stat('f')!.interval).toBe(interval0 * 2);
+    expect(m.stat('f')!.reviews).toBe(1);
   });
-  it('round-trips through JSON and sanitises garbage', () => {
-    const m = new KeyModel();
-    warm(m, 'fj');
-    m.record('f', false, 250);
-    const back = KeyModel.fromJSON(JSON.parse(JSON.stringify(m.toJSON())));
+  it('round-trips JSON incl. confusions and sanitises garbage', () => {
+    const m = new KeyModel(); sim(m, 'f', 20, 0.9); m.record('k', false, 300, T0, 'd');
+    const back = KeyModel.fromJSON(JSON.parse(JSON.stringify(m.toJSON().keys)), m.toJSON().confusions);
     expect(back.toJSON()).toEqual(m.toJSON());
-    expect(KeyModel.fromJSON({ f: { err: 'x', lat: -5, seen: 2.7 }, long: { err: 1 }, n: null }).toJSON()).toEqual({ f: { err: 0, lat: 0, seen: 2, last: 0 } });
-  });
-  it('heatMap feeds textgen shape', () => {
-    const m = new KeyModel();
-    for (let i = 0; i < 5; i++) m.record('k', false, 300);
-    const h = m.heatMap();
-    expect(Object.keys(h)).toEqual(['k']);
-    expect(h['k']).toBeGreaterThan(0);
+    const g = KeyModel.fromJSON({ f: { err: 'x', lat: -5, seen: 2.7 }, long: { err: 1 } }, { 'k>d': 3, bad: 1 }).toJSON();
+    expect(Object.keys(g.keys)).toEqual(['f']);
+    expect(g.confusions).toEqual({ 'k>d': 3 });
   });
 });

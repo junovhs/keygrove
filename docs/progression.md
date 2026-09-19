@@ -5,11 +5,11 @@ Vocabulary: **Grove** = world · **Trail** = level · **Run** = one attempt at a
 
 ## Principles
 
-1. **Accuracy gates, speed decorates.** You never advance on WPM alone. Every unlock is an accuracy gate; WPM only earns stars.
+1. **Accuracy and rhythm gate, speed decorates.** You never advance on WPM. Advancement is per-key *mastery* (accuracy + steady rhythm + enough volume); WPM only earns stars.
 2. **Introduce keys by finger, in pairs, symmetric.** Each new trail adds one left-hand key and its right-hand mirror (F+J, D+K, …), so both hands learn the same reach at once.
 3. **Cumulative key set.** A trail's text may only use keys unlocked at or before it. This is a hard invariant, enforced by tests.
-4. **Three stages per trail.** Every trail is played as `drill → mix → words`: (1) pure new-key rhythm patterns, (2) new keys blended with the previous set, (3) real words/sentences from the cumulative set. Advancing a stage needs the trail's pass gate; all three passed = trail cleared.
-5. **Adaptive underneath, linear on top.** The path is fixed and legible (a map you can see), but *which words you get* is weighted toward your weak keys, and remedial micro-drills are injected when a key runs hot.
+4. **Stages come from evidence, not a counter.** Each run's text kind is picked from the current mastery of the trail's focus keys: `drill` (< 35%) → `mix` (< 70%) → `words`. A trail is **cleared** only when: ≥ 4 runs, the last two runs passed the accuracy gate, and every focus key is ≥ 80% mastery. Focus keys = the trail's new keys (+ Space on trail 1), or the 5 weakest unlocked keys on trails that add none. With ~10 presses of a new key per run this is ≥ 5 runs for a clean typist and open-ended for a sloppy one.
+5. **A coach, not a heat map.** The path is fixed and legible, but the coach watches patterns after every run and redirects: *weak key* (mastery < 50% with errors after 3+ runs) → required finger drill; *confusion pair* (typed X for Y 4+ times recently) → required alternation drill; *searching* (≥ 30% of a key's presses come after a pause ≥ 1.8× its own baseline) → reach drill offer; *rushing* (errors climb as latency drops within a run) → note + slow-mode nudge; *fatigue* (three declining runs) → note; *rusty* (a key past its review date) → review run at session start, required when 3+ keys are due or any has slipped below 50%. Required drills block the next trail run; offers are Tab. Word choice is weighted toward weak, rusty and confused keys.
 6. **Failure is cheap.** Fail a stage 3× in a row → Keygrove offers "slow mode" (WPM star target drops, hand guide strengthens). Never lock a player out.
 
 ## Gates & stars
@@ -101,12 +101,27 @@ Same key set; texts get richer, targets climb. Each trail is a WPM ladder (40/50
 ### Grove 7 — Code (optional side path)
 Unlocks after Grove 4. `{ } [ ] < > ; = ( ) => .` — snippets in JS/TS/Python. Never required for the main path.
 
-## Adaptive layer
+## Mastery model (per key)
 
-- **Per-key model**: for every key keep an EMA of error rate (α = 0.2) and of inter-key latency. `heat = 0.7·errEMA + 0.3·(latency / personal median latency − 1)⁺`.
-- **Weighted text generation**: word bank (≈10 k common English words) filtered to the cumulative key set; sampling weight for a word = 1 + Σ heat of its letters. Stages 1–2 (drill/mix) use pattern generators, stage 3 uses the bank.
-- **Remedial drills**: after a run, if any unlocked key has heat > 0.35, the next run is offered as a 20-char micro-drill for that key's finger (this generalises today's "targeted finger practice"). Declinable; never blocks progression.
-- **Review**: on session start, keys not seen in > 2 days get a warm-up run before the current trail. Skippable.
+- **Stats** (EMAs, α = 0.15): error rate; latency and latency² (variance); `base` — this key's own non-spike latency; spike rate — presses slower than 1.8 × `base` (a pause = searching; a consistently slow key is *not* searching); correct-press count; substitution counts wanted→typed (decay ×0.85 per run).
+- **accuracy** = clamp((1 − err − 0.88) / 0.10): 88 % → 0, 98 % → 1.
+- **rhythm** = ½·clamp(1 − cv/0.6) + ½·clamp(1 − spikes/0.3), cv = stdev/mean latency.
+- **volume** = clamp(hits / 50).
+- **mastery** = volume × (0.55·accuracy + 0.45·rhythm). Speed is deliberately absent. Mastered at ≥ 0.80.
+- **Spaced review**: each key has an interval (starts 1 day, doubles on a correct press after its due date, caps at 30 days). Past due, mastery decays (×(1 − 0.25·overdue), floor 0.4) — which is what makes the key show up as rusty and pulls it back into texts.
+- The first key of a run carries no timing evidence (there is no previous key).
+
+## Coach decisions (in priority order after a run)
+
+| Signal | Threshold | Action |
+|---|---|---|
+| weak focus key | runs ≥ 3, mastery < 0.5, err > 0.15 | **required** finger drill |
+| confusion pair | ≥ 4 recent wanted→typed | **required** alternation drill |
+| searching | spike rate ≥ 0.3, ≥ 10 presses | reach drill offer |
+| rushing | last-third errors ≥ 2× first-third and latency < 0.8× | note |
+| fatigue | 3 declining run accuracies | note |
+| rusty (session start) | key past due | review run; required if ≥ 3 due or any < 0.5 |
+| 3 fails in a row | — | slow-mode offer (speed stars ×0.7; accuracy unchanged) |
 
 ## Economy
 
@@ -114,19 +129,20 @@ Unlocks after Grove 4. `{ } [ ] < > ; = ( ) => .` — snippets in JS/TS/Python. 
 - **Ranks** by total XP: Seed 0 · Sprout 500 · Sapling 2 000 · Young Tree 6 000 · Tree 15 000 · Grove 35 000 · Old Growth 80 000.
 - **Streak** = consecutive calendar days with ≥ 1 run (today's "≥90 % runs in a row" counter becomes *combo streak*, shown on the result card only).
 
-## State (v5)
+## State (v6)
 
 ```ts
-interface SaveV5 {
-  v: 5;
+interface SaveV6 {
+  v: 6;
   trail: TrailId;                               // current
-  trails: Record<TrailId, { stage: 0|1|2|3; stars: 0|1|2|3; bestWpm: number; bestAcc: number; fails: number }>;
-  keys: Record<string, { err: number; lat: number; seen: number; last: number }>; // adaptive model
+  trails: Record<TrailId, { runs: number; cleared: boolean; stars: 0|1|2|3; bestWpm: number; bestAcc: number; fails: number; recent: number[] }>;
+  keys: Record<string, KeyStat>;                // see Mastery model
+  confusions: Record<'k>d', number>;
   stats: { runs; chars; attempts; bestWpm; bestAcc; xp; days: number; lastDay: string; bestCombo };
   settings: { slowMode: boolean; guideStrong: boolean; reviewOn: boolean; codeGrove: boolean };
 }
 ```
-Migration from `keygrove.v4`: `completed[]` → trails with `stage: 3, stars: 1`; `fingerStats` → seeded key heat; `stats` copied.
+Migration: v5 `stage: 3` → `cleared: true`; key stats gain review fields with defaults. v4 `completed[]` → cleared trails; `fingerStats` → seeded key error rates.
 
 ## Invariants (tested)
 

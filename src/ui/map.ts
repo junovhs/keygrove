@@ -1,6 +1,7 @@
 import { GROVES, TRAILS, gateFor, trailsInGrove, type Trail } from '../curriculum';
-import { STAGE_NAMES, groveOpen, isCleared, trailUnlocked } from '../engine/progress';
-import type { SaveV5 } from '../state/save';
+import { focusKeys, groveOpen, isCleared, minMastery, trailUnlocked } from '../engine/progress';
+import type { KeyModel } from '../engine/keymodel';
+import type { SaveV6 } from '../state/save';
 import { escapeHtml } from './dom';
 
 export interface MapHandlers { onSelect(trail: Trail): void; onClose(): void }
@@ -8,7 +9,8 @@ export interface MapHandlers { onSelect(trail: Trail): void; onClose(): void }
 const stars = (n: number) => { let s = ''; for (let i = 1; i <= 3; i++) s += `<span class="${i <= n ? '' : 'e'}">★</span>`; return s; };
 
 /** Render the grove map into `root`. Returns a keyboard handler for arrows/Enter/Esc. */
-export function renderMap(root: HTMLElement, state: SaveV5, h: MapHandlers): (e: KeyboardEvent) => void {
+export function renderMap(root: HTMLElement, state: SaveV6, model: KeyModel, h: MapHandlers): (e: KeyboardEvent) => void {
+  const now = Date.now();
   const visible = GROVES.filter((g) => !g.optional || state.settings.codeGrove);
   root.innerHTML = visible.map((g) => {
     const open = groveOpen(state, g.id);
@@ -26,14 +28,14 @@ export function renderMap(root: HTMLElement, state: SaveV5, h: MapHandlers): (e:
         const cur = state.trail === t.id;
         const done = isCleared(state, t.id);
         const st = p?.stars ?? 0;
-        const stage = p && !done ? p.stage : null;
+        const mastery = unlocked && p && p.runs > 0 ? Math.round(minMastery(focusKeys(t, model, now), model, now) * 100) : null;
         return `<button type="button" class="map-trail ${cur ? 'current' : ''} ${done ? 'done' : ''} ${unlocked ? '' : 'locked'} ${t.checkpoint ? 'cp' : ''}" data-trail="${t.id}" ${unlocked ? '' : 'disabled'} aria-current="${cur ? 'step' : 'false'}">
           <span class="map-n">${t.n}</span>
           <span class="map-body"><span class="map-name">${escapeHtml(t.name)}</span>
             <span class="map-keys">${t.shift ? '+ Shift' : t.newKeys ? '+ ' + escapeHtml([...t.newKeys].join(' ').toUpperCase()) : t.checkpoint ? 'mixed run' : 'no new keys'}${t.space ? ' + Space' : ''}</span>
             ${unlocked ? `<span class="map-stars">${st ? stars(st) : '<span class="e">★★★</span>'}</span>` : ''}
           </span>
-          ${stage !== null ? `<span class="map-pips" title="${STAGE_NAMES[stage]}">${[0, 1, 2].map((i) => `<i class="${i < stage ? 'done' : i === stage ? 'on' : ''}"></i>`).join('')}</span>` : ''}
+          ${mastery !== null ? `<span class="map-mastery ${done ? 'done' : ''}" title="mastery of this trail's keys · ${p?.runs ?? 0} runs">${mastery}%</span>` : ''}
         </button>`;
       }).join('')}
     </section>`;

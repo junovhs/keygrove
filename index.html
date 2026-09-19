@@ -202,6 +202,15 @@ kbd{font:inherit}
 .map-pips i.on{background:var(--orange)}.map-pips i.done{background:#8f8b84}
 .result-stars{font-size:34px;letter-spacing:.12em;color:var(--orange);line-height:1;margin:6px 0 10px}
 .result-stars .e{color:var(--line-strong)}
+.result-mastery{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0 0;font:12px var(--mono);letter-spacing:.06em;color:var(--soft)}
+.result-mastery b{color:var(--ink);font-weight:700}
+.result-mastery .ok b{color:var(--good,#2f8f5b)}
+.result-mastery .note{flex-basis:100%;color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.result-offer.required{background:var(--ink);color:#fff;border-color:var(--ink)}
+.result-offer.required strong{color:var(--orange-soft)}
+.result-offer b{font-family:var(--mono)}
+.map-mastery{position:absolute;right:8px;top:9px;font:700 10px var(--mono);letter-spacing:.06em;color:var(--orange)}
+.map-mastery.done{color:#8f8b84}
 .result-offer{max-width:900px;margin:14px 0 0;padding:12px 14px;border:1px solid var(--orange);border-radius:4px;background:#fff4ee;color:var(--ink);font-size:14px}
 .result-offer strong{color:var(--orange);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:11px;margin-right:8px}
 
@@ -352,6 +361,7 @@ kbd{font:inherit}
         <div class="result-stars" id="resultStars" aria-label="Stars"></div>
         <h2 id="resultTitle">Clean run.</h2>
         <p id="resultCopy"></p>
+        <div class="result-mastery" id="resultMastery"></div>
         <p class="result-offer" id="resultOffer" hidden></p>
         <div class="score">
           <div><small>WPM</small><b id="resultWpm">0</b></div>
