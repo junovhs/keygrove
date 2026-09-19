@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Keygrove — a keyboard-first typing game: 7 groves, 34 trails, accuracy before speed.">
-<title>Keygrove</title>
+<meta name="description" content="Relaxed QWERTY — learn to type on an ordinary keyboard with a relaxed, stable method: 7 groves, 34 trails, accuracy before speed.">
+<title>Relaxed QWERTY</title>
 <style>
 :root{
   --bg:#f7f5f1;
@@ -44,7 +44,10 @@ kbd{font:inherit}
 .topbar{height:58px;border-bottom:1px solid rgba(201,197,189,.72)}
 .topbar .shell-inner{height:100%;display:flex;align-items:center}
 .brand-block{display:flex;align-items:center;gap:18px}
-.brand{font-size:26px;font-weight:900;letter-spacing:-.055em;color:var(--ink)}
+.brand{font-size:26px;font-weight:900;letter-spacing:-.055em;color:var(--ink);background:none;border:0;padding:0;font:inherit;font-size:26px;font-weight:900;cursor:pointer;display:flex;align-items:baseline;gap:12px}
+.brand:hover .brand-hint,.brand:focus-visible .brand-hint{color:var(--orange)}
+.brand-hint{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:640px){.brand-hint{display:none}}
 .tagline{font-size:10px;color:var(--muted);letter-spacing:.22em}
 .nav{margin-left:auto;display:flex;align-items:center;gap:34px}
 .nav button{padding:8px 0;color:#4e4b46;font-size:12px;font-weight:650;letter-spacing:.08em}
@@ -329,8 +332,8 @@ kbd{font:inherit}
   <header class="topbar">
     <div class="shell-inner">
     <div class="brand-block">
-      <div class="brand">Keygrove</div>
-      
+      <!-- The brand mark opens About & docs (dopedocs), the way CropASAP's does. -->
+      <button id="docsOpen" class="brand" type="button" aria-label="About Relaxed QWERTY and documentation" aria-expanded="false">Relaxed QWERTY<span class="brand-hint" aria-hidden="true">ⓘ About &amp; docs</span></button>
     </div>
     <nav class="nav" aria-label="Primary">
       <button id="lessonsNav" type="button">Map</button>
@@ -399,7 +402,7 @@ kbd{font:inherit}
       <div class="focus-panel" id="focusPanel">
         <span class="eyebrow">Optional practice</span>
         <h2>Need help with one finger?</h2>
-        <p>Pick the finger that is slowing you down. Keygrove will isolate its unlocked keys for a short remedial drill, then you return to your trail. Fingers Keygrove thinks are struggling are marked.</p>
+        <p>Pick the finger that is slowing you down. Relaxed QWERTY will isolate its unlocked keys for a short remedial drill, then you return to your trail. Fingers it thinks are struggling are marked.</p>
         <div class="focus-grid" id="focusGrid"></div>
         <div class="focus-help">A S D F · J K L ; selects · Space = back to the trail · Esc = cancel</div>
       </div>
@@ -457,7 +460,7 @@ kbd{font:inherit}
   <div class="modalbox">
     <span class="eyebrow">Utility</span>
     <h2>Local progress</h2>
-    <p>Keygrove keeps your progress in this browser. Export a backup before clearing browser data. <b>Method</b> chooses which finger owns each key — Relaxed QWERTY (Z ring, X middle, C index, B right index) or traditional touch typing.</p>
+    <p>Relaxed QWERTY keeps your progress in this browser. Export a backup before clearing browser data. <b>Method</b> chooses which finger owns each key — Relaxed QWERTY (Z ring, X middle, C index, B right index) or traditional touch typing.</p>
     <div class="modal-actions">
       <button class="primary" id="exportBtn" type="button">Export</button>
       <button id="importBtn" type="button">Import</button>

@@ -1,4 +1,4 @@
-# Keygrove — Progression & Levels
+# Relaxed QWERTY (Keygrove) — Progression & Levels
 
 Design of record for the curriculum. Ishoo ADR DEC on "progression model" points here.
 Vocabulary: **Grove** = world · **Trail** = level · **Run** = one attempt at a trail's text.

@@ -1,0 +1,18 @@
+/* Keygrove's palette on dopedocs' --dd-* namespace. Loaded by the in-app
+   panel through the bundle and by the static /docs pages by link, so the two
+   surfaces match. Values are literal: the static pages never load index.html. */
+:root {
+  --dd-bg: #f7f5f1;
+  --dd-panel: #fbfaf7;
+  --dd-panel-muted: #efece6;
+  --dd-ink: #1a1b19;
+  --dd-text: #11110f;
+  --dd-text-soft: #2c2b28;
+  --dd-muted: #6d6a65;
+  --dd-line: #dedbd4;
+  --dd-line-soft: #ebe8e2;
+  --dd-edge: #c9c5bd;
+  --dd-accent: #ff5418;
+  --dd-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --dd-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}

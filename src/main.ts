@@ -11,6 +11,9 @@ import { fresh, load, sanitize, save as persist, type SaveV6 } from './state/sav
 import { $, escapeHtml, toast } from './ui/dom';
 import { createAccount } from './ui/account';
 import { createProgressSync, type SyncStatus } from './state/progress-sync';
+import { mountPanel, type PanelHandle } from 'dopedocs/panel';
+import { docs } from './docs-content';
+import './docs.css';
 import { renderMap } from './ui/map';
 import { loadHands, onFingerHover, paintHand } from './ui/hands';
 import { CanvasPrompt } from './render/prompt';
@@ -372,7 +375,7 @@ $<HTMLInputElement>('importFile').onchange = async (e) => {
 function applyImport(raw: unknown): void {
   state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
 }
-$('resetBtn').onclick = () => { if (confirm('Reset all Keygrove progress?')) { state = fresh(); keys = new KeyModel(); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
+$('resetBtn').onclick = () => { if (confirm('Reset all your progress?')) { state = fresh(); keys = new KeyModel(); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
 function syncSettingsUi(): void {
   $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
   $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
@@ -401,6 +404,19 @@ const syncNote = (s: SyncStatus): string => {
   }
 };
 sync.onStatus((s) => account.setNote(syncNote(s)));
+
+// About & docs: dopedocs owns the panel, its scrollspy and its /docs/<id> URLs;
+// this only mounts it on first use (most sessions never open it) and points
+// the brand mark at it. While it is open the run must not hear keys.
+let docsPanel: PanelHandle | null = null;
+const docsOpen = $<HTMLButtonElement>('docsOpen');
+const ensureDocs = (): PanelHandle => docsPanel ??= mountPanel(document.body, docs, {
+  navLabel: 'On this page',
+  backLabel: 'Back to typing',
+  onToggle(open) { docsOpen.setAttribute('aria-expanded', String(open)); if (!open) docsOpen.focus(); },
+});
+docsOpen.addEventListener('click', () => ensureDocs().open());
+document.addEventListener('keydown', (e) => { if (docsPanel?.isOpen && e.key !== 'Escape') e.stopImmediatePropagation(); }, { capture: true });
 
 syncSettingsUi(); resetRun(); sessionCheck(); save(); void loadHands(nextVisual);
 Object.defineProperty(window, 'keygrove', {

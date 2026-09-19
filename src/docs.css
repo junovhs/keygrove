@@ -1,0 +1,4 @@
+/* dopedocs' own sheet, then Keygrove's palette on its tokens. The static
+   /docs pages link the same two files (see vite.config.ts). */
+@import "dopedocs/styles.css";
+@import "../public/docs-theme.css";
