@@ -18,9 +18,8 @@ chunk by Vite (a dynamic `import()` in `loadClient`) and fetched only on
 Sign in, a stored session, or an emailed link. Guest pages make no request
 after load.
 
-Keygrove progress still lives in this browser (`src/state/save.ts`); the
-account does not sync it yet. That is a follow-up, modelled on
-`cropasap_sizes` (one revisioned JSON row per user, `keygrove_` prefix).
+Keygrove progress lives in this browser (`src/state/save.ts`) and, once
+signed in, in the account too — see *Progress sync* below.
 
 ## Consent
 
@@ -57,7 +56,12 @@ unsubscribe.
    production origin and `/**` under it, the way `https://cropasap.vercel.app/`
    and `https://cropasap.vercel.app/**` are listed. Until then a confirmation
    or reset link lands on the project's site URL (AIfoodpal) instead of here.
-2. Everything else — custom SMTP, scanner-proof `{{ .TokenHash }}` links, the
+2. **Progress sync migration**: paste
+   `supabase/migrations/20260919000000_create_keygrove_progress.sql` into the
+   SQL editor (or `supabase db push` from a linked checkout). Until it is
+   applied the account card says "Sync is not set up on the server yet" and
+   progress stays on the device; nothing else changes.
+3. Everything else — custom SMTP, scanner-proof `{{ .TokenHash }}` links, the
    built-in mailer's rate limit — is shared project state and is tracked in
    `cropasap/docs/accounts.md`.
 
@@ -68,3 +72,23 @@ clicks, which confirms the account and spends the token, so their own click
 lands on `?error_code=otp_expired`. The account is fine; `ui/account.ts`
 (`linkProblem`) explains this and puts the sign-in form up, and password
 sign-in succeeds.
+
+## Progress sync
+
+The whole save (`SaveV6`: trails, key model, lifetime stats, settings) lives in
+`public.keygrove_progress`, one revisioned JSON row per account
+(`src/state/progress-sync.ts`, a port of CropASAP's `size-sync.ts`). The
+client owns the JSON; the database owns the revision; a stale write is refused
+(`PT409`) and the client pulls, merges and pushes again.
+
+How it behaves: the first sign-in on a device merges what the guest had into
+the account; after that the account's copy is adopted on sign-in, every local
+save pushes after a short quiet period, and a lost race merges. Signing out
+puts the guest's own progress back. Merging never loses progress — every trail
+keeps its best, every key keeps the richer record, lifetime stats take the
+larger value — while settings and the current trail stay with the device
+unless the account has run far more. Reset progress while signed in resets the
+account too (it is a plain push, not a merge).
+
+The account card's note line shows the state: syncing, synced with the run
+count, not set up on the server, offline, or unreachable.

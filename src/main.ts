@@ -10,6 +10,7 @@ import { generate, generateDrill } from './engine/textgen';
 import { fresh, load, sanitize, save as persist, type SaveV6 } from './state/save';
 import { $, escapeHtml, toast } from './ui/dom';
 import { createAccount } from './ui/account';
+import { createProgressSync, type SyncStatus } from './state/progress-sync';
 import { renderMap } from './ui/map';
 import { loadHands, onFingerHover, paintHand } from './ui/hands';
 import { CanvasPrompt } from './render/prompt';
@@ -36,7 +37,12 @@ const trail = (): Trail => currentTrail(state);
 const stageName = () => currentStage(state, keys);
 const focusFinger = (): Finger | null => (mode.kind === 'remedial' ? mode.finger : null);
 
-function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; persist(state); }
+function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; persist(state); sync.wrote(); }
+/** The account's copy arrived: adopt it as if it had been imported, without disturbing a run in progress. */
+function adopt(next: SaveV6): void {
+  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); gate = null; setMethod(state.settings.method); persist(state); syncSettingsUi();
+  if (run.status === 'playing') render(); else { mode = { kind: 'trail' }; resetRun(); }
+}
 
 const dueNow = () => new Set(keys.dueKeys([...allowedChars(trail())].filter((k) => k.length === 1 && k !== ' ' && k === k.toLowerCase()), Date.now()));
 function makeText(): string {
@@ -379,7 +385,22 @@ setInterval(() => { if (run.status === 'playing') metrics(); }, 450);
 // The account is optional: a guest page never loads its service. While its
 // panel is open it swallows every keydown in the capture phase, so the run
 // and the shortcuts above never see a password being typed.
-const account = createAccount({ announce: toast });
+const sync = createProgressSync({
+  read: () => { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; return state; },
+  write: adopt,
+});
+const account = createAccount({ announce: toast, onSession: (session, client) => sync.session(session, client) });
+const syncNote = (s: SyncStatus): string => {
+  switch (s.kind) {
+    case 'off': return 'Your progress stays in this browser; the same login works in every Strange Systems app.';
+    case 'syncing': return 'Syncing your progress…';
+    case 'synced': return `Progress synced · ${s.runs} run${s.runs === 1 ? '' : 's'} on this account. Sign in anywhere to continue.`;
+    case 'unavailable': return s.reason === 'not-installed' ? 'Sync is not set up on the server yet; your progress stays in this browser.'
+      : s.reason === 'offline' ? 'Offline — your progress will sync when you are back.'
+      : 'Sync is not reachable right now; your progress stays in this browser.';
+  }
+};
+sync.onStatus((s) => account.setNote(syncNote(s)));
 
 syncSettingsUi(); resetRun(); sessionCheck(); save(); void loadHands(nextVisual);
 Object.defineProperty(window, 'keygrove', {
