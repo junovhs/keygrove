@@ -57,4 +57,11 @@ describe('save v6', () => {
     expect(s.trails['ghost']).toBeUndefined();
     expect(s.settings).toMatchObject({ guideStrong: false, codeGrove: true });
   });
+
+  it('onboarding: a fresh save asks; a save without the flag (pre-question) never asks; an explicit answer is kept', () => {
+    expect(fresh().settings.onboarded).toBe(false);
+    expect(sanitize({ v: 6, settings: { guideStrong: true } }).settings.onboarded).toBe(true);
+    expect(sanitize({ v: 6, settings: { onboarded: false } }).settings.onboarded).toBe(false);
+    expect(migrateV4(V4).settings.onboarded).toBe(true);
+  });
 });

@@ -238,6 +238,12 @@ kbd{font:inherit}
 .modal-actions button{min-height:40px;padding:0 13px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper);font:600 8px var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .modal-actions .danger{background:var(--ink);color:#fff}
 .modal-actions .primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.onboard-options{display:grid;gap:8px;margin-top:16px}
+.onboard-options button{display:grid;gap:3px;padding:12px 14px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper);text-align:left;cursor:pointer}
+.onboard-options button:hover,.onboard-options button:focus-visible{border-color:var(--orange)}
+.onboard-options b{font-size:14px;color:var(--ink)}
+.onboard-options span{font-size:12.5px;color:var(--soft);line-height:1.4}
+.onboard .modalbox{width:min(560px,100%)}
 .utility{display:flex;gap:16px;justify-content:flex-end;padding:0 0 10px}
 .utility button{font-size:10px;color:var(--muted)}
 .utility button:hover{color:var(--orange)}
@@ -465,10 +471,36 @@ kbd{font:inherit}
       <button class="primary" id="exportBtn" type="button">Export</button>
       <button id="importBtn" type="button">Import</button>
       <button id="methodBtn" type="button">Method: Relaxed QWERTY</button>
+      <button id="onboardBtn" type="button">Which method?</button>
       <button id="codeBtn" type="button">Code grove: off</button>
       <button class="danger" id="resetBtn" type="button">Reset</button>
       <button id="closeSettings" type="button">Close</button>
       <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </div>
+</div>
+<!-- First visit: one question decides the method (spec §34/§60). Re-openable
+     from Settings. Nothing is remapped either way; the choice can be changed. -->
+<div class="modal onboard" id="onboardModal" role="dialog" aria-modal="true" aria-labelledby="onboardTitle">
+  <div class="modalbox">
+    <span class="eyebrow">Before you start</span>
+    <h2 id="onboardTitle">How do you type today?</h2>
+    <div id="onboardAsk">
+      <p>This picks which finger owns each key. You can change it any time in Settings.</p>
+      <div class="onboard-options">
+        <button type="button" data-onboard="beginner"><b>I'm a complete beginner</b><span>Learn Relaxed QWERTY from the first key.</span></button>
+        <button type="button" data-onboard="hunt"><b>I type, but without a technique</b><span>Relaxed QWERTY gives your fingers a stable map without forcing rigid columns.</span></button>
+        <button type="button" data-onboard="touch"><b>I already touch type</b><span>Keep what you know, or learn the relaxed variant.</span></button>
+        <button type="button" data-onboard="relearn"><b>I'm relearning after a long break</b><span>Relaxed QWERTY, with a gentle start.</span></button>
+        <button type="button" data-onboard="access"><b>I need an accessibility adaptation</b><span>Start with Relaxed QWERTY; adapted profiles are coming.</span></button>
+      </div>
+    </div>
+    <div id="onboardTouch" hidden>
+      <p>Relaxed QWERTY is our recommended typing method. It uses normal QWERTY keys and familiar touch-typing principles, but it allows your hands to move naturally instead of forcing them into rigid columns. We slightly change the lower-left finger assignments to better follow the physical angle of a standard keyboard. Nothing is remapped, so the technique works on ordinary computers everywhere.</p>
+      <div class="onboard-options">
+        <button type="button" data-onboard="keep"><b>Keep my existing technique</b><span>Traditional touch typing: Z pinky, X ring, C middle, B left index.</span></button>
+        <button type="button" data-onboard="learn"><b>Learn Relaxed QWERTY</b><span>Z ring, X middle, C index, B right index.</span></button>
+      </div>
     </div>
   </div>
 </div>

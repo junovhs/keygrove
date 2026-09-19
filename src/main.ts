@@ -1,6 +1,6 @@
 import { allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type Trail } from './curriculum';
 import { FINGERS, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
-import { METHODS, activeMethod, setMethod } from './curriculum/method';
+import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { decide, readout, sessionReview, type Decision } from './engine/coach';
 import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
@@ -329,6 +329,7 @@ function handleIdleOrResult(e: KeyboardEvent): void {
   }
 }
 document.addEventListener('keydown', (e) => {
+  if (onboardModal().classList.contains('open')) { if (e.key === 'Escape') { e.preventDefault(); finishOnboarding(state.settings.method); } return; }
   if (settingsModal().classList.contains('open')) { if (e.key === 'Escape') { settingsModal().classList.remove('open'); e.preventDefault(); } return; }
   if (arena().classList.contains('map-mode')) { mapKeys?.(e); return; }
   if (arena().classList.contains('focus-mode')) { handleFocusKey(e); return; }
@@ -357,6 +358,37 @@ $('methodBtn').onclick = () => {
   const next = METHODS[(i + 1) % METHODS.length]!;
   state.settings.method = next.id; setMethod(next.id); save(); syncSettingsUi(); if (run.status !== 'playing') render(); toast(next.name + ' · ' + next.blurb);
 };
+// ---- onboarding (spec §34/§60) ---------------------------------------------
+// One question on a fresh save picks the method. Beginner / no technique /
+// relearning / accessibility → Relaxed QWERTY. Already touch typing → a second
+// step: keep the existing technique (Traditional) or learn Relaxed, with the
+// §41 explanation. Never forces a new map on an experienced typist.
+const onboardModal = () => $('onboardModal');
+function openOnboarding(): void {
+  $('onboardAsk').hidden = false; $('onboardTouch').hidden = true;
+  settingsModal().classList.remove('open');
+  onboardModal().classList.add('open');
+  onboardModal().querySelector<HTMLButtonElement>('button')?.focus();
+}
+function finishOnboarding(methodId: string, note?: string): void {
+  state.settings.method = methodId; state.settings.onboarded = true; setMethod(methodId); save(); syncSettingsUi();
+  onboardModal().classList.remove('open');
+  if (run.status !== 'playing') resetRun(); else render();
+  toast(note ?? `${activeMethod().name} — change it any time in Settings.`);
+}
+for (const b of onboardModal().querySelectorAll<HTMLButtonElement>('[data-onboard]')) {
+  b.onclick = () => {
+    switch (b.dataset.onboard) {
+      case 'touch': $('onboardAsk').hidden = true; $('onboardTouch').hidden = false; $('onboardTouch').querySelector<HTMLButtonElement>('button')?.focus(); break;
+      case 'keep': finishOnboarding(TRADITIONAL.id, 'Traditional touch typing — your technique stays as it is.'); break;
+      case 'relearn': finishOnboarding(RELAXED_QWERTY.id, 'Relaxed QWERTY — take the first groves slowly; the map will come back.'); break;
+      case 'access': finishOnboarding(RELAXED_QWERTY.id, 'Relaxed QWERTY for now — adapted profiles are coming.'); break;
+      default: finishOnboarding(RELAXED_QWERTY.id);
+    }
+  };
+}
+$('onboardBtn').onclick = openOnboarding;
+
 $('codeBtn').onclick = () => { state.settings.codeGrove = !state.settings.codeGrove; save(); $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off'); toast(state.settings.codeGrove ? 'Code grove will appear after the Bark checkpoint.' : 'Code grove hidden.'); };
 $('exportBtn').onclick = () => {
   save();
@@ -419,6 +451,7 @@ docsOpen.addEventListener('click', () => ensureDocs().open());
 document.addEventListener('keydown', (e) => { if (docsPanel?.isOpen && e.key !== 'Escape') e.stopImmediatePropagation(); }, { capture: true });
 
 syncSettingsUi(); resetRun(); sessionCheck(); save(); void loadHands(nextVisual);
+if (!state.settings.onboarded) openOnboarding();
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
     snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, decisions, gate, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),

@@ -51,7 +51,7 @@ describe('readProgressState', () => {
     expect(readProgressState({ schemaVersion: 2, save: { trail: T1 } }).save.trail).toBe(T0);
     const s = saveWith({ trail: T1, trails: { [T0]: { ...freshProgress(), runs: 2 } } });
     expect(readProgressState(JSON.parse(JSON.stringify(toProgressState(s)))).save).toEqual(s);
-    expect(readProgressState({ schemaVersion: 1, save: { trail: 'nope', trails: { bogus: { runs: 1 } } } }).save).toEqual(fresh());
+    expect(readProgressState({ schemaVersion: 1, save: { trail: 'nope', trails: { bogus: { runs: 1 } } } }).save).toEqual({ ...fresh(), settings: { ...fresh().settings, onboarded: true } });
   });
 });
 
