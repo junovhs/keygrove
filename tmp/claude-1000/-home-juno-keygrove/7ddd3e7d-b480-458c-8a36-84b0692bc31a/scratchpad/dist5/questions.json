@@ -1,0 +1,30 @@
+{
+  "entity": "Relaxed QWERTY",
+  "generated": "2026-09-19",
+  "questions": [
+    {
+      "id": "what-it-is",
+      "question": "What is Relaxed QWERTY?",
+      "answer": "Relaxed QWERTY is a free typing trainer that teaches the Relaxed QWERTY 1.0 method on an ordinary QWERTY keyboard: accuracy first, speed as a consequence.",
+      "url": "https://keygrove-phi.vercel.app/docs/what-it-is/"
+    },
+    {
+      "id": "the-method",
+      "question": "What is the Relaxed QWERTY typing method?",
+      "answer": "Relaxed QWERTY keeps the standard QWERTY map and a stable finger-to-key relationship, but lets the hands move naturally instead of holding the rigid historical home-row posture — the bottom row in particular is reassigned (Z ring, X middle, C index, B right index).",
+      "url": "https://keygrove-phi.vercel.app/docs/the-method/"
+    },
+    {
+      "id": "your-data",
+      "question": "Where does Relaxed QWERTY store my progress?",
+      "answer": "Relaxed QWERTY stores your progress in your account; an account is free and needed to keep progress — without one, nothing is saved past the tab.",
+      "url": "https://keygrove-phi.vercel.app/docs/your-data/"
+    },
+    {
+      "id": "who-makes-this",
+      "question": "Who makes Relaxed QWERTY?",
+      "answer": "Relaxed QWERTY is made by Strange Systems, the studio behind CropASAP and No Ceremony.",
+      "url": "https://keygrove-phi.vercel.app/docs/who-makes-this/"
+    }
+  ]
+}

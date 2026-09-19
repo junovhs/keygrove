@@ -14,8 +14,8 @@ export const PRODUCT = 'Relaxed QWERTY';
 
 export const FACTS = defineFacts({
   price: { value: 'free', reviewed: '2026-09-19' },
-  storage: { value: 'this browser', reviewed: '2026-09-19' },
-  account: { value: 'optional — it keeps your progress with you across devices, nothing else', reviewed: '2026-09-19' },
+  storage: { value: 'your account', reviewed: '2026-09-19' },
+  account: { value: 'free and needed to keep progress — without one, nothing is saved past the tab', reviewed: '2026-09-19' },
   method: { value: 'Relaxed QWERTY 1.0', reviewed: '2026-09-19' },
 });
 
@@ -65,7 +65,7 @@ export const docs = defineDocs({
       answer: `${PRODUCT} stores your progress in ${FACTS.storage.value}; an account is ${FACTS.account.value}.`,
       keywords: ['privacy', 'progress', 'account'],
       blocks: [
-        { kind: 'p', text: 'Your progress lives in {fact:storage}. You can export it as a file and import it elsewhere from Settings. An account is {fact:account}. A guest page makes no request to the account service.' },
+        { kind: 'p', text: 'Your progress lives in {fact:storage}. An account is {fact:account}. As a guest you can still type, export the session as a file and import it later, but closing the tab loses it. Reset in Settings clears everything and asks twice. A guest page makes no request to the account service.' },
       ],
     },
     {

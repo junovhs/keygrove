@@ -9,10 +9,11 @@ import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, 
 import { Run } from './engine/run';
 import { rankFor } from './engine/scoring';
 import { generate, generateDrill } from './engine/textgen';
-import { fresh, load, sanitize, save as persist, type SaveV6 } from './state/save';
+import { clear as clearStored, fresh, load, sanitize, save as persist, type SaveV6 } from './state/save';
 import { $, escapeHtml, toast } from './ui/dom';
 import { createAccount } from './ui/account';
 import { createProgressSync, type SyncStatus } from './state/progress-sync';
+import { hasStoredSession, shippedConfig } from './state/supabase';
 import { mountPanel, type PanelHandle } from 'dopedocs/panel';
 import { docs } from './docs-content';
 import './docs.css';
@@ -24,8 +25,16 @@ import { selfTest as textflowSelfTest } from './render/textflow';
 /** What the current run is for: the trail itself, a finger drill, or a coach drill (confusion / reach / review). */
 type Mode = { kind: 'trail' } | { kind: 'remedial'; finger: Finger } | { kind: 'coach'; decision: Decision };
 
-let state: SaveV6 = load();
+// Progress belongs to the account. The device only ever holds the signed-in
+// account's copy; a guest's grove lives in memory and is gone with the tab,
+// and the page says so. Until the session is confirmed, a stored token counts.
+const accountService = shippedConfig();
+let signedIn = accountService !== null && hasStoredSession(accountService);
+let state: SaveV6 = signedIn ? load() : fresh();
+if (!signedIn) clearStored();
 setMethod(state.settings.method);
+/** Write the save to the device only while an account is signed in. */
+function store(): void { if (signedIn) persist(state); }
 let keys = KeyModel.fromJSON(state.keys, state.confusions);
 let trans = TransitionModel.fromJSON(state.transitions);
 let mode: Mode = { kind: 'trail' };
@@ -43,10 +52,10 @@ const trail = (): Trail => currentTrail(state);
 const stageName = () => currentStage(state, keys);
 const focusFinger = (): Finger | null => (mode.kind === 'remedial' ? mode.finger : null);
 
-function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); persist(state); sync.wrote(); }
+function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); store(); sync.wrote(); }
 /** The account's copy arrived: adopt it as if it had been imported, without disturbing a run in progress. */
 function adopt(next: SaveV6): void {
-  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); gate = null; setMethod(state.settings.method); persist(state); syncSettingsUi();
+  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); gate = null; setMethod(state.settings.method); store(); syncSettingsUi();
   if (run.status === 'playing') render(); else { mode = { kind: 'trail' }; resetRun(); }
 }
 
@@ -420,7 +429,10 @@ $<HTMLInputElement>('importFile').onchange = async (e) => {
 function applyImport(raw: unknown): void {
   state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
 }
-$('resetBtn').onclick = () => { if (confirm('Reset all your progress?')) { state = fresh(); keys = new KeyModel(); trans = new TransitionModel(); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
+$('resetBtn').onclick = () => {
+  if (!confirm('Reset all your progress? Every run, star and key you have grown will be gone' + (signedIn ? ' from your account too.' : '.'))) return;
+  if (!confirm('Are you really, really sure? There is no undo.')) return;
+  { state = fresh(); keys = new KeyModel(); trans = new TransitionModel(); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
 function syncSettingsUi(): void {
   $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
   $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
@@ -437,15 +449,26 @@ const sync = createProgressSync({
   read: () => { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); return state; },
   write: adopt,
 });
-const account = createAccount({ announce: toast, onSession: (session, client) => sync.session(session, client) });
+const guestHint = $('guestHint');
+const showGuestHint = (): void => { guestHint.hidden = signedIn; };
+const account = createAccount({
+  announce: toast,
+  onSession: (session, client) => {
+    signedIn = session !== null;
+    if (!signedIn) clearStored();
+    showGuestHint();
+    sync.session(session, client);
+    if (signedIn) store();
+  },
+});
 const syncNote = (s: SyncStatus): string => {
   switch (s.kind) {
-    case 'off': return 'Your progress stays in this browser; the same login works in every Strange Systems app.';
+    case 'off': return 'Nothing is saved until you sign in. A free account keeps your progress and works in every Strange Systems app.';
     case 'syncing': return 'Syncing your progress…';
     case 'synced': return `Progress synced · ${s.runs} run${s.runs === 1 ? '' : 's'} on this account. Sign in anywhere to continue.`;
-    case 'unavailable': return s.reason === 'not-installed' ? 'Sync is not set up on the server yet; your progress stays in this browser.'
+    case 'unavailable': return s.reason === 'not-installed' ? 'Sync is not set up on the server yet; your progress stays on this device for now.'
       : s.reason === 'offline' ? 'Offline — your progress will sync when you are back.'
-      : 'Sync is not reachable right now; your progress stays in this browser.';
+      : 'Sync is not reachable right now; your progress stays on this device until it is.';
   }
 };
 sync.onStatus((s) => account.setNote(syncNote(s)));
@@ -463,7 +486,7 @@ const ensureDocs = (): PanelHandle => docsPanel ??= mountPanel(document.body, do
 docsOpen.addEventListener('click', () => ensureDocs().open());
 document.addEventListener('keydown', (e) => { if (docsPanel?.isOpen && e.key !== 'Escape') e.stopImmediatePropagation(); }, { capture: true });
 
-syncSettingsUi(); resetRun(); sessionCheck(); save(); void loadHands(nextVisual);
+syncSettingsUi(); resetRun(); sessionCheck(); save(); showGuestHint(); void loadHands(nextVisual);
 if (!state.settings.onboarded) openOnboarding();
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
@@ -474,5 +497,6 @@ Object.defineProperty(window, 'keygrove', {
     prompt: () => canvasPrompt,
     method: () => activeMethod().id,
     account: () => account.session()?.user.email ?? null,
+    signedIn: () => signedIn,
   }),
 });

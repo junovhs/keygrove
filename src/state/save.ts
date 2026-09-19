@@ -133,3 +133,7 @@ export function load(storage: Pick<Storage, 'getItem'> = localStorage): SaveV6 {
 export function save(s: SaveV6, storage: Pick<Storage, 'setItem'> = localStorage): void {
   try { storage.setItem(KEY, JSON.stringify(s)); } catch { /* quota / private mode */ }
 }
+/** Nothing of a save stays on the device: the current key and every earlier one. */
+export function clear(storage: Pick<Storage, 'removeItem'> = localStorage): void {
+  try { for (const k of [KEY, PREV_V5, ...PREV]) storage.removeItem(k); } catch { /* unavailable storage holds nothing anyway */ }
+}

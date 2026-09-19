@@ -18,8 +18,10 @@ chunk by Vite (a dynamic `import()` in `loadClient`) and fetched only on
 Sign in, a stored session, or an emailed link. Guest pages make no request
 after load.
 
-Keygrove progress lives in this browser (`src/state/save.ts`) and, once
-signed in, in the account too — see *Progress sync* below.
+Keygrove progress lives with the account. The device (`src/state/save.ts`)
+only ever holds the signed-in account's copy; a guest's grove is in memory and
+the nav says "Not saved — sign in to keep your progress" — see *Progress sync*
+below.
 
 ## Consent
 
@@ -81,14 +83,15 @@ The whole save (`SaveV6`: trails, key model, lifetime stats, settings) lives in
 client owns the JSON; the database owns the revision; a stale write is refused
 (`PT409`) and the client pulls, merges and pushes again.
 
-How it behaves: the first sign-in on a device merges what the guest had into
-the account; after that the account's copy is adopted on sign-in, every local
-save pushes after a short quiet period, and a lost race merges. Signing out
-puts the guest's own progress back. Merging never loses progress — every trail
-keeps its best, every key keeps the richer record, lifetime stats take the
-larger value — while settings and the current trail stay with the device
-unless the account has run far more. Reset progress while signed in resets the
-account too (it is a plain push, not a merge).
+How it behaves: signing in adopts the account's copy, whatever the device held
+(a guest's runs are never merged into an account — that is how one person
+ended up with another's grove); a brand-new account starts with a fresh grove
+carrying only the device's settings. Every local save pushes after a short
+quiet period, and a push that lost a race against another device of the same
+account pulls, merges and pushes again (merging never loses progress). Signing
+out leaves a fresh grove and clears the device copy. `main.ts` writes to
+localStorage only while signed in. Reset in Settings asks twice and, while
+signed in, resets the account too (a plain push, not a merge).
 
 The account card's note line shows the state: syncing, synced with the run
 count, not set up on the server, offline, or unreachable.

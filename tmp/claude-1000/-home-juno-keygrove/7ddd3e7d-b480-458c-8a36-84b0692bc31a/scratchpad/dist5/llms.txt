@@ -1,0 +1,40 @@
+# Relaxed QWERTY
+
+> Documentation is being written. What is here is accurate; what is missing is coming.
+
+Not to be confused with: a keyboard layout, a keyboard remapper, Dvorak or Colemak.
+
+## Documentation
+
+### What this is
+
+What is Relaxed QWERTY?
+
+Relaxed QWERTY is a free typing trainer that teaches the Relaxed QWERTY 1.0 method on an ordinary QWERTY keyboard: accuracy first, speed as a consequence.
+
+https://keygrove-phi.vercel.app/docs/what-it-is/
+
+### The method
+
+What is the Relaxed QWERTY typing method?
+
+Relaxed QWERTY keeps the standard QWERTY map and a stable finger-to-key relationship, but lets the hands move naturally instead of holding the rigid historical home-row posture — the bottom row in particular is reassigned (Z ring, X middle, C index, B right index).
+
+https://keygrove-phi.vercel.app/docs/the-method/
+
+### Your data
+
+Where does Relaxed QWERTY store my progress?
+
+Relaxed QWERTY stores your progress in your account; an account is free and needed to keep progress — without one, nothing is saved past the tab.
+
+https://keygrove-phi.vercel.app/docs/your-data/
+
+### Who makes this
+
+Who makes Relaxed QWERTY?
+
+Relaxed QWERTY is made by Strange Systems, the studio behind CropASAP and No Ceremony.
+
+https://keygrove-phi.vercel.app/docs/who-makes-this/
+

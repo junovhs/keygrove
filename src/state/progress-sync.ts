@@ -1,17 +1,18 @@
 // Progress, kept with the account.
 //
-// The account exists so the grove you have grown is there on the next
-// machine. The rules follow CropASAP's size sync (cropasap/src/size-sync.ts):
+// The account is where progress lives. The rules follow CropASAP's size sync
+// (cropasap/src/size-sync.ts) with one deliberate difference: what a guest
+// did on this device is never merged into an account.
 //
 //   - Local storage stays the store the app reads. Sync copies into and out of
 //     it through the `local` port; nothing else in the app knows an account exists.
-//   - The first time an account is used on a device, what was already here is
-//     merged in, so signing in never loses a run you made as a guest.
-//   - After that, the account's copy is the truth: signing in adopts it, a
-//     local write pushes it, and a push that lost a race pulls, merges and
-//     pushes again.
-//   - Signing out puts the guest's own progress back, so the next person at
-//     this keyboard does not inherit yours.
+//   - Signing in adopts the account's copy, whatever was here before. A brand
+//     new account starts with a fresh grove; only the device's settings
+//     (method, guide, code grove, onboarding) carry over — they are not progress.
+//   - After that a local write pushes, and a push that lost a race against
+//     another device of the same account pulls, merges and pushes again.
+//   - Signing out leaves a fresh grove behind, so the next person at this
+//     keyboard does not inherit yours.
 //   - Every failure is a note on the account card, never a broken app.
 
 import type { Session } from '@supabase/supabase-js';
@@ -30,8 +31,6 @@ export type SyncStatus =
 
 const TABLE = 'keygrove_progress';
 const SAVE_RPC = 'keygrove_save_progress';
-const GUEST_KEY = 'keygrove.sync.guest';
-const SEEN_KEY = (userId: string): string => `keygrove.sync.${userId}`;
 /** Local writes within this window collapse into one push. */
 const PUSH_DELAY_MS = 800;
 
@@ -150,16 +149,6 @@ export function createProgressSync(local: LocalProgress): ProgressSync {
     local.write(save);
   };
 
-  const read = (name: string): string | null => {
-    try { return localStorage.getItem(name); } catch { return null; }
-  };
-  const store = (name: string, value: string | null): void => {
-    try {
-      if (value === null) localStorage.removeItem(name);
-      else localStorage.setItem(name, value);
-    } catch { /* private mode: sync still works for this session */ }
-  };
-
   const failed = (error: unknown): void => {
     const offline = typeof navigator !== 'undefined' && !navigator.onLine;
     setStatus({ kind: 'unavailable', reason: notInstalled(error) ? 'not-installed' : offline ? 'offline' : 'error' });
@@ -220,38 +209,38 @@ export function createProgressSync(local: LocalProgress): ProgressSync {
     pushTimer = setTimeout(() => void flush(), PUSH_DELAY_MS);
   };
 
-  /** Sign-in: bring the account's progress here, merging on first use of this device. */
+  /** A fresh grove that keeps this device's settings: they are preferences, not progress. */
+  const freshHere = (): SaveV6 => ({ ...fresh(), settings: { ...local.read().settings } });
+
+  /** Sign-in: the account's progress replaces whatever this device held. */
   const activate = async (id: string): Promise<void> => {
     userId = id;
     revision = 0;
     setStatus({ kind: 'syncing' });
-    const firstTimeHere = read(SEEN_KEY(id)) === null;
-    // What the guest had, kept aside for sign-out. Once per sign-in.
-    if (read(GUEST_KEY) === null) store(GUEST_KEY, JSON.stringify(local.read()));
     try {
       const remote = await pull();
-      if (remote) revision = remote.revision;
-      const here = local.read();
-      const merged = firstTimeHere || !remote ? mergeProgress(here, remote?.save ?? fresh()) : remote.save;
-      applyRemote(merged);
-      store(SEEN_KEY(id), '1');
-      if (!remote || !sameProgress(merged, remote.save)) await push(merged);
-      setStatus({ kind: 'synced', runs: totalRuns(merged) });
+      let save: SaveV6;
+      if (remote) {
+        revision = remote.revision;
+        save = remote.save;
+        applyRemote(save);
+      } else {
+        save = freshHere();
+        applyRemote(save);
+        await push(save);
+      }
+      setStatus({ kind: 'synced', runs: totalRuns(save) });
     } catch (error) {
       failed(error);
     }
   };
 
-  /** Sign-out: the guest's own progress comes back. */
+  /** Sign-out: nothing of the account stays on the device. */
   const deactivate = (): void => {
     userId = null;
     revision = 0;
     clearTimeout(pushTimer);
-    const guest = read(GUEST_KEY);
-    if (guest !== null) {
-      try { applyRemote(sanitize(JSON.parse(guest))); } catch { /* keep what is here */ }
-      store(GUEST_KEY, null);
-    }
+    applyRemote(freshHere());
     setStatus({ kind: 'off' });
   };
 

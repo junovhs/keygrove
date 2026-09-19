@@ -252,6 +252,8 @@ kbd{font:inherit}
    One panel in the settings modal's clothes: an eyebrow, a title, a short
    form. The marketing question is its own unchecked box with the whole
    sentence beside it. */
+.guest-hint{font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--orange)}
+.guest-hint[hidden]{display:none}
 .account-open{display:inline-flex;align-items:center;gap:8px}
 .account-open[hidden]{display:none}
 .account-dot{width:8px;height:8px;border:1px solid var(--line-strong);border-radius:50%;background:transparent}
@@ -348,6 +350,7 @@ kbd{font:inherit}
       <span class="nav-divider" aria-hidden="true"></span>
       <!-- Optional. Typing never needs it; it exists to keep you known across
            the Strange Systems apps. Hidden until the build has an account service. -->
+      <span id="guestHint" class="guest-hint" hidden>Not saved — sign in to keep your progress</span>
       <button id="accountOpen" class="account-open" type="button" aria-haspopup="dialog" aria-expanded="false" hidden>
         <span class="account-dot" aria-hidden="true"></span>
         <span id="accountOpenLabel">Sign in</span>
@@ -465,8 +468,8 @@ kbd{font:inherit}
 <div class="modal" id="settingsModal">
   <div class="modalbox">
     <span class="eyebrow">Utility</span>
-    <h2>Local progress</h2>
-    <p>Relaxed QWERTY keeps your progress in this browser. Export a backup before clearing browser data. <b>Method</b> chooses which finger owns each key — Relaxed QWERTY (Z ring, X middle, C index, B right index) or traditional touch typing.</p>
+    <h2>Your progress</h2>
+    <p>Progress is kept with your account — nothing is saved until you sign in. Export a backup any time; Reset clears everything (and asks twice). <b>Method</b> chooses which finger owns each key — Relaxed QWERTY (Z ring, X middle, C index, B right index) or traditional touch typing.</p>
     <div class="modal-actions">
       <button class="primary" id="exportBtn" type="button">Export</button>
       <button id="importBtn" type="button">Import</button>
@@ -555,7 +558,7 @@ kbd{font:inherit}
 
     <section id="accountHome" class="account-form" hidden>
       <p id="accountEmail" class="account-email"></p>
-      <p id="accountNote" class="account-lead">Your progress stays in this browser; the same login works in every Strange Systems app.</p>
+      <p id="accountNote" class="account-lead">Nothing is saved until you sign in. A free account keeps your progress and works in every Strange Systems app.</p>
       <label class="account-consent"><input id="homeConsent" name="consent" type="checkbox"> <span>Get updates on new Strange Systems apps & occasional offers.</span></label>
       <button id="accountSignOut" class="account-submit" type="button">Sign out</button>
     </section>
