@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Keygrove — a keyboard-first typing education game for accuracy, rhythm, and speed.">
+<meta name="description" content="Keygrove — a keyboard-first typing game: 7 groves, 34 trails, accuracy before speed.">
 <title>Keygrove</title>
 <style>
 :root{
@@ -54,7 +54,7 @@ kbd{font:inherit}
 .arena.focus-mode .focus-panel{display:block}
 .arena.result-mode .result{display:block}
 
-.lesson-track{height:44px;display:grid;grid-template-columns:132px minmax(260px,1fr) 118px;align-items:center;gap:20px}
+.lesson-track{height:44px;display:grid;grid-template-columns:132px minmax(260px,1fr) 190px;align-items:center;gap:20px}
 .eyebrow{font-size:11px;color:var(--orange);font-weight:700}
 .lesson-no{font-size:11px;color:#55514d;text-align:right;white-space:nowrap}
 .route{display:flex;align-items:center}
@@ -129,6 +129,8 @@ kbd{font:inherit}
 
 .keymap{width:min(540px,78vw);margin:6px auto 0;position:relative;z-index:4;display:grid;gap:5px}
 .keyrow{display:flex;justify-content:center;gap:5px}
+.keycap.locked{opacity:.32}
+.focus-key[disabled]{opacity:.35;cursor:default}
 .keycap{min-width:48px;height:34px;padding:0 6px;display:grid;place-items:center;border:1px solid #cac6bf;border-bottom-width:2px;border-radius:4px;background:rgba(251,250,247,.95);font-size:12px;color:#1c1b19;box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
 .keycap.home{border-color:#bdb8b0}
 .keycap.hot{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 4px 11px rgba(255,84,24,.18)}
@@ -164,6 +166,10 @@ kbd{font:inherit}
 .score b{display:block;margin-top:6px;color:var(--ink);font:700 30px var(--mono)}
 .result-foot{max-width:900px;margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font:11px var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .result-foot strong{color:var(--orange)}
+.result-stars{font-size:34px;letter-spacing:.12em;color:var(--orange);line-height:1;margin:6px 0 10px}
+.result-stars .e{color:var(--line-strong)}
+.result-offer{max-width:900px;margin:14px 0 0;padding:12px 14px;border:1px solid var(--orange);border-radius:4px;background:#fff4ee;color:var(--ink);font-size:14px}
+.result-offer strong{color:var(--orange);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:11px;margin-right:8px}
 
 .toast{position:fixed;left:50%;bottom:20px;z-index:10;transform:translate(-50%,10px);padding:10px 14px;border-radius:4px;background:var(--ink);color:#fff;font:10px var(--mono);opacity:0;pointer-events:none;transition:.18s}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -249,7 +255,7 @@ kbd{font:inherit}
         <div class="lesson-track">
           <span class="eyebrow" id="modeLabel">Typing lesson</span>
           <div class="route" id="route" aria-label="Lesson progress"></div>
-          <span class="lesson-no" id="lessonNo">Lesson 1 of 6</span>
+          <span class="lesson-no" id="lessonNo">Trail 1 of 34</span>
         </div>
 
         <section class="lesson-intro">
@@ -336,22 +342,24 @@ kbd{font:inherit}
       <div class="focus-panel" id="focusPanel">
         <span class="eyebrow">Optional practice</span>
         <h2>Need help with one finger?</h2>
-        <p>Pick the finger that is slowing you down. Keygrove will isolate that reach pattern for a short remedial drill, then you can return to the regular lesson path.</p>
+        <p>Pick the finger that is slowing you down. Keygrove will isolate its unlocked keys for a short remedial drill, then you return to your trail. Fingers Keygrove thinks are struggling are marked.</p>
         <div class="focus-grid" id="focusGrid"></div>
-        <div class="focus-help">A S D F · J K L ; selects · Space = return to lessons · Esc = cancel</div>
+        <div class="focus-help">A S D F · J K L ; selects · Space = back to the trail · Esc = cancel</div>
       </div>
 
       <div class="result" id="result">
         <span class="eyebrow">Run complete</span>
+        <div class="result-stars" id="resultStars" aria-label="Stars"></div>
         <h2 id="resultTitle">Clean run.</h2>
         <p id="resultCopy"></p>
+        <p class="result-offer" id="resultOffer" hidden></p>
         <div class="score">
           <div><small>WPM</small><b id="resultWpm">0</b></div>
           <div><small>Accuracy</small><b id="resultAcc">0%</b></div>
           <div><small>XP</small><b id="resultXp">+0</b></div>
           <div><small>Combo</small><b id="resultCombo">0</b></div>
         </div>
-        <div class="result-foot"><span><strong>Enter</strong> continue</span><span><strong>Tab</strong> trouble spot</span><span>or just start typing</span></div>
+        <div class="result-foot" id="resultFoot"><span><strong>Enter</strong> continue</span><span><strong>Tab</strong> trouble spot</span><span>or just start typing</span></div>
       </div>
     </section>
   </main>
@@ -366,6 +374,8 @@ kbd{font:inherit}
     <div class="modal-actions">
       <button class="primary" id="exportBtn" type="button">Export</button>
       <button id="importBtn" type="button">Import</button>
+      <button id="slowBtn" type="button">Slow mode: off</button>
+      <button id="codeBtn" type="button">Code grove: off</button>
       <button class="danger" id="resetBtn" type="button">Reset</button>
       <button id="closeSettings" type="button">Close</button>
       <input type="file" id="importFile" accept=".json,application/json" hidden>

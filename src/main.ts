@@ -1,47 +1,77 @@
-import { LESSONS, FINGERS, fingerForKey, fingerText, type Finger } from './curriculum/lessons';
-import { load, save, clean, fresh, type State } from './state/persist';
-import { $, escapeHtml, toast, pick } from './ui/dom';
+import { allowedChars, gateFor, groveOf, trailsInGrove, type Trail } from './curriculum';
+import { FINGERS, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
+import { KeyModel } from './engine/keymodel';
+import { STAGE_NAMES, applyRun, currentStage, currentTrail, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
+import { Run } from './engine/run';
+import { effectiveGate, rankFor } from './engine/scoring';
+import { generate } from './engine/textgen';
+import { fresh, load, sanitize, save as persist, type SaveV5 } from './state/save';
+import { $, escapeHtml, toast } from './ui/dom';
 import { loadHands, paintHand } from './ui/hands';
 
-interface Run {
-  text: string; pos: number; status: 'idle' | 'playing' | 'complete';
-  hits: number; attempts: number; errors: number; start: number;
-  combo: number; maxCombo: number; wrong: boolean; xp: number; nextLesson: number | null;
-}
+/** What the current run is for: the trail itself, a finger drill, or a warm-up of rusty keys. */
+type Mode = { kind: 'trail' } | { kind: 'remedial'; finger: Finger } | { kind: 'warmup'; keys: string[] };
 
-let state: State = load();
-let run: Run = newRun('');
+let state: SaveV5 = load();
+let keys = KeyModel.fromJSON(state.keys);
+let mode: Mode = { kind: 'trail' };
+let run = new Run('');
+let outcome: Outcome | null = null;
+let offer: { kind: 'remedial'; finger: Finger } | { kind: 'slow' } | null = null;
 
-const lessonIndex = () => Math.max(0, LESSONS.findIndex((l) => l.id === state.selected));
-const lesson = () => LESSONS[lessonIndex()]!;
-const focus = (): Finger | null => FINGERS.find((f) => f.id === state.focus) ?? null;
-const unlocked = (i: number) => i === 0 || state.completed.includes(LESSONS[i - 1]!.id);
+const now = () => performance.now();
 const arena = () => $('arena');
 const settingsModal = () => $('settingsModal');
+const trail = (): Trail => currentTrail(state);
+const stageName = () => currentStage(state);
+const focusFinger = (): Finger | null => (mode.kind === 'remedial' ? mode.finger : null);
 
-function safeSelected(): void {
-  if (unlocked(lessonIndex())) return;
-  let i = 0; while (i + 1 < LESSONS.length && unlocked(i + 1)) i++;
-  state.selected = LESSONS[i]!.id;
+function save(): void { state.keys = keys.toJSON(); persist(state); }
+
+function makeText(): string {
+  const allowed = allowedChars(trail());
+  if (mode.kind === 'remedial') return remedialText(mode.finger, allowed);
+  if (mode.kind === 'warmup') { const f = fingerForKey(mode.keys[0] ?? 'f'); return f && 'keys' in f ? remedialText(f, allowed, 30) : generate(trail(), 'drill'); }
+  return generate(trail(), stageName(), { heat: keys.heatMap() });
 }
-function newRun(text: string): Run {
-  return { text, pos: 0, status: 'idle', hits: 0, attempts: 0, errors: 0, start: 0, combo: 0, maxCombo: 0, wrong: false, xp: 0, nextLesson: null };
-}
-function makeText(): string { const f = focus(); return f ? fingerText(f) : pick(lesson().texts); }
 function resetRun(): void {
-  run = newRun(makeText());
+  run = new Run(makeText()); outcome = null; offer = null;
   arena().classList.remove('result-mode', 'focus-mode'); render();
 }
-function route(): void {
-  $('route').innerHTML = LESSONS.map((l, i) => '<i class="' + (i === lessonIndex() ? 'current' : state.completed.includes(l.id) ? 'done' : '') + '"></i>').join('');
-  $('lessonNo').textContent = 'Lesson ' + (lessonIndex() + 1) + ' of ' + LESSONS.length;
+
+// ---- rendering -------------------------------------------------------------
+function header(): void {
+  const t = trail(), g = groveOf(t), p = progressOf(state, t.id);
+  const inGrove = trailsInGrove(g.id);
+  $('route').innerHTML = inGrove.map((x) => '<i class="' + (x.id === t.id ? 'current' : isCleared(state, x.id) ? 'done' : '') + '"></i>').join('');
+  const stage = p.stage >= 3 ? 'cleared' : STAGE_NAMES[p.stage]!;
+  $('lessonNo').textContent = `Trail ${pathIndex(t)} of ${pathLength(t)} · ${stage}`;
+  $('modeLabel').textContent = mode.kind === 'trail' ? `Grove ${g.n} · ${g.name}` : mode.kind === 'remedial' ? 'Remedial drill' : 'Warm-up';
+  const rank = rankFor(state.stats.xp);
+  $('xp').textContent = String(Math.round(state.stats.xp)); $('streak').textContent = String(state.stats.days); $('bestWpm').textContent = String(Math.round(state.stats.bestWpm));
+  void rank;
 }
-function top(): void {
-  $('xp').textContent = String(Math.round(state.stats.xp));
-  $('streak').textContent = String(state.stats.streak);
-  $('bestWpm').textContent = String(Math.round(state.stats.bestWpm));
+function labels(): void {
+  const t = trail(), g = groveOf(t), p = progressOf(state, t.id);
+  const gate = effectiveGate(gateFor(t), state.settings.slowMode);
+  const f = focusFinger();
+  const stageCopy = { drill: 'Drill — the new keys only, in rhythm.', mix: 'Mix — new keys blended into what you know.', words: t.checkpoint ? 'Checkpoint run — everything so far.' : 'Words — real words from everything unlocked.' } as const;
+  if (f) {
+    $('lessonTitle').textContent = 'Practice: ' + f.full;
+    $('lessonCopy').textContent = 'A short drill on the ' + f.full.toLowerCase() + ' keys you have unlocked. Return to ' + f.anchor.toUpperCase() + ' after each reach.';
+  } else if (mode.kind === 'warmup') {
+    $('lessonTitle').textContent = 'Warm-up';
+    $('lessonCopy').textContent = 'A few keys have gone rusty: ' + mode.keys.map((k) => k.toUpperCase()).join(' ') + '. One short pass, then back to your trail.';
+  } else {
+    $('lessonTitle').textContent = t.name;
+    $('lessonCopy').textContent = (t.blurb ?? g.blurb) + ' ' + (p.stage >= 3 ? 'Cleared — replay for more stars.' : stageCopy[stageName()]);
+  }
+  $('summaryLabel').textContent = f ? 'Trouble spot' : 'Pass gate';
+  $('focusName').textContent = f ? f.full : `${gate.passAcc}% accuracy`;
+  $('focusInstruction').textContent = f ? 'Isolate this finger briefly, then go back to the trail.' : `Any speed passes. ★★ at ${gate.star2Wpm} WPM / 97%, ★★★ at ${gate.star3Wpm} WPM / 100%.${t.checkpoint ? ' This checkpoint needs ★★ to open the next grove.' : ''}${state.settings.slowMode ? ' Slow mode is on.' : ''}`;
+  $('message').innerHTML = run.status === 'playing' ? '<strong>Typing is live.</strong> Every letter key is typing only.' : '<strong>Just type</strong> to begin. Enter also starts. Tab opens trouble-spot practice. M shows your stats.';
+  $('unlockText').textContent = f || mode.kind === 'warmup' ? 'Space returns to your trail.' : `Grove ${g.n} of 6 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
 }
-const currentChar = () => run.text[run.pos] ?? '';
 function prompt(): void {
   const p = $('prompt'); p.innerHTML = '';
   [...run.text].forEach((c, i) => {
@@ -51,36 +81,27 @@ function prompt(): void {
     p.appendChild(s);
   });
 }
-function metrics(): { w: number; a: number; p: number } {
-  const mins = run.start ? Math.max(0.01, (performance.now() - run.start) / 60000) : 0;
-  const w = mins ? Math.round((run.hits / 5) / mins) : 0;
-  const a = run.attempts ? Math.round(run.hits / run.attempts * 100) : 100;
-  const p = Math.round(run.pos / run.text.length * 100);
-  $('wpm').textContent = String(w); $('acc').textContent = a + '%'; $('pct').textContent = p + '%'; $('combo').textContent = String(run.combo);
-  const fill = document.getElementById('progressFill'); if (fill) fill.style.width = p + '%';
-  return { w, a, p };
+function metrics(): { wpm: number; acc: number; pct: number } {
+  const m = run.metrics(now());
+  $('wpm').textContent = String(m.wpm); $('acc').textContent = m.acc + '%'; $('pct').textContent = m.pct + '%'; $('combo').textContent = String(run.combo);
+  const fill = document.getElementById('progressFill'); if (fill) fill.style.width = m.pct + '%';
+  return m;
 }
 function focusGrid(): void {
   const grid = $('focusGrid');
-  grid.innerHTML = FINGERS.map((f) => '<button class="focus-key ' + (state.focus === f.id ? 'active' : '') + '" data-focus="' + f.id + '"><b>' + escapeHtml(f.anchor.toUpperCase()) + '</b>' + escapeHtml(f.name) + '</button>').join('');
-  grid.querySelectorAll<HTMLElement>('[data-focus]').forEach((b) => (b.onclick = () => chooseFocus(b.dataset.focus!)));
-}
-function labels(): void {
-  const f = focus(), l = lesson();
-  $('modeLabel').textContent = f ? 'Targeted practice' : 'Typing lesson';
-  $('lessonTitle').textContent = f ? 'Practice: ' + f.full : l.title;
-  $('lessonCopy').textContent = f ? 'A short remedial drill for ' + f.full.toLowerCase() + '. Return to ' + f.anchor.toUpperCase() + ' after each reach.' : l.copy;
-  $('summaryLabel').textContent = f ? 'Trouble spot' : 'Lesson goal';
-  $('focusName').textContent = f ? f.full : 'Accuracy + rhythm';
-  $('focusInstruction').textContent = f ? 'Isolate this finger briefly, then return to the regular lesson path.' : 'Build clean, repeatable motion before chasing speed.';
-  $('message').innerHTML = run.status === 'playing'
-    ? '<strong>Typing is live.</strong> Every letter key is typing only.'
-    : '<strong>Just type</strong> to begin. Enter also starts. Tab opens optional trouble-spot practice.';
-  $('unlockText').textContent = f ? 'Space returns to regular lessons.' : 'Pass at 80% and the next lesson becomes the next run.';
+  const allowed = allowedChars(trail());
+  const hot = keys.hottest([...allowed].filter((k) => k.length === 1 && k !== ' '));
+  const hotFinger = hot ? fingerForKey(hot.key)?.id : null;
+  grid.innerHTML = FINGERS.map((f) => {
+    const n = [...f.keys].filter((k) => allowed.has(k)).length;
+    return '<button class="focus-key ' + (focusFinger()?.id === f.id ? 'active' : '') + '" data-focus="' + f.id + '" ' + (n ? '' : 'disabled') + '><b>' + escapeHtml(f.anchor.toUpperCase()) + '</b>' + escapeHtml(f.name) + (hotFinger === f.id ? ' · struggling' : '') + '</button>';
+  }).join('');
+  grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach((b) => (b.onclick = () => chooseFocus(b.dataset.focus!)));
 }
 function nextVisual(): void {
   document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
-  const c = currentChar(), f = fingerForKey(c);
+  const c = run.current, f = fingerForKey(c);
+  const shifted = c !== c.toLowerCase() || '!@#$%^&*()_+:"<>?{}'.includes(c) && c !== '';
   if (c === ' ') {
     paintHand('left', 'thumb'); paintHand('right', 'thumb');
     $('handInstruction').innerHTML = '<strong>Spacebar</strong> — press with either thumb.';
@@ -88,8 +109,9 @@ function nextVisual(): void {
   } else if (f) {
     paintHand('left', f.id); paintHand('right', f.id);
     document.querySelectorAll('[data-finger-label="' + f.id + '"]').forEach((x) => x.classList.add('active'));
-    $('handInstruction').innerHTML = '<strong>' + escapeHtml(c.toUpperCase()) + '</strong> — ' + escapeHtml(f.full) + '. Keep the rest of your hand relaxed.';
-    $('nextCue').innerHTML = 'NEXT · <strong>' + escapeHtml(c.toUpperCase()) + '</strong> · ' + escapeHtml(f.full);
+    const shiftNote = shifted && 'hand' in f ? ` Hold ${f.hand === 'left' ? 'right' : 'left'} Shift with the other hand.` : '';
+    $('handInstruction').innerHTML = '<strong>' + escapeHtml(c) + '</strong> — ' + escapeHtml(f.full) + '.' + shiftNote + ' Keep the rest of your hand relaxed.';
+    $('nextCue').innerHTML = 'NEXT · <strong>' + escapeHtml(c) + '</strong> · ' + escapeHtml(f.full) + (shiftNote ? ' + SHIFT' : '');
   } else {
     paintHand('left', null); paintHand('right', null);
     $('handInstruction').innerHTML = '<strong>Home position</strong> — use the guide only when you need a placement reminder.';
@@ -97,76 +119,132 @@ function nextVisual(): void {
   }
 }
 function keymap(): void {
-  const c = currentChar().toLowerCase();
+  const c = run.current.toLowerCase();
+  const allowed = allowedChars(trail());
   const homes = new Set('asdfjkl;');
-  const rows = ['qwertyuiop', 'asdfghjkl;', 'zxcvbnm,./'];
-  $('keymap').innerHTML = rows.map((r) => '<div class="keyrow">' + [...r].map((k) => '<span class="keycap ' + (homes.has(k) ? 'home ' : '') + (c === k ? 'hot' : '') + '">' + escapeHtml(k.toUpperCase()) + '</span>').join('') + '</div>').join('')
+  const rows = [...([...allowed].some((k) => /[0-9]/.test(k)) ? ['1234567890'] : []), 'qwertyuiop', 'asdfghjkl;', 'zxcvbnm,./'];
+  $('keymap').innerHTML = rows.map((r) => '<div class="keyrow">' + [...r].map((k) => '<span class="keycap ' + (homes.has(k) ? 'home ' : '') + (allowed.has(k) ? '' : 'locked ') + (c === k ? 'hot' : '') + '">' + escapeHtml(k.toUpperCase()) + '</span>').join('') + '</div>').join('')
     + '<div class="keyrow"><span class="keycap spacebar ' + (c === ' ' ? 'hot' : '') + '">SPACE</span></div>';
 }
-function render(): void { top(); route(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); }
-function begin(): void {
-  if (run.status === 'playing') return;
-  run.status = 'playing'; run.pos = run.hits = run.attempts = run.errors = run.combo = run.maxCombo = 0; run.wrong = false; run.start = performance.now(); render();
-}
+function render(): void { header(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); }
+
+// ---- run lifecycle -----------------------------------------------------------
+function begin(): void { if (run.status === 'playing') return; run.begin(now()); render(); }
 function continueAfterResult(firstKey?: string): void {
-  if (run.nextLesson !== null) { state.selected = LESSONS[run.nextLesson]!.id; save(state); }
+  if (mode.kind !== 'trail') mode = { kind: 'trail' };
   resetRun(); begin(); if (firstKey !== undefined) typeKey(firstKey);
 }
 function typeKey(k: string): void {
-  if (run.status !== 'playing' || k.length !== 1) return;
-  const want = currentChar();
-  if (want === ' ' && k !== ' ') {
-    run.wrong = true; prompt(); nextVisual(); $('nextCue').innerHTML = '<strong>SPACEBAR</strong> · no accuracy penalty yet'; return;
-  }
-  run.attempts++; const ok = k === want;
-  if (ok) {
-    run.hits++; run.pos++; run.combo++; run.maxCombo = Math.max(run.maxCombo, run.combo); run.wrong = false;
-    if (run.pos === run.text.length) return finish();
-  } else { run.errors++; run.combo = 0; run.wrong = true; }
+  const r = run.type(k, now());
+  if (r === 'ignored') return;
+  if (r === 'space-wait') { prompt(); nextVisual(); $('nextCue').innerHTML = '<strong>SPACEBAR</strong> · no accuracy penalty yet'; return; }
+  const last = run.strokes.at(-1)!;
+  if (last.key !== ' ') keys.record(last.key, last.correct, last.latencyMs, Date.now());
+  if (r === 'done') return finish();
   prompt(); metrics(); keymap(); nextVisual();
 }
 function abort(): void { if (run.status !== 'playing') return; toast('Run stopped.'); resetRun(); }
-function fingerStat(id: string) { return state.fingerStats[id] ?? (state.fingerStats[id] = { runs: 0, hits: 0, attempts: 0, bestWpm: 0, bestAcc: 0 }); }
+
+function starsHtml(n: number): string { let s = ''; for (let i = 1; i <= 3; i++) s += `<span class="${i <= n ? '' : 'e'}">★</span>`; return s; }
+
 function finish(): void {
-  run.status = 'complete';
-  const m = metrics(), gain = Math.max(5, Math.round(run.hits * (m.a / 100)) + Math.floor(run.maxCombo / 8) * 2); run.xp = gain;
-  const st = state.stats;
-  st.runs++; st.chars += run.hits; st.attempts += run.attempts; st.xp += gain; st.bestWpm = Math.max(st.bestWpm, m.w); st.bestAcc = Math.max(st.bestAcc, m.a); st.bestCombo = Math.max(st.bestCombo, run.maxCombo); st.streak = m.a >= 90 ? st.streak + 1 : 0;
-  const f = focus();
-  if (f) { const fs = fingerStat(f.id); fs.runs++; fs.hits += run.hits; fs.attempts += run.attempts; fs.bestWpm = Math.max(fs.bestWpm, m.w); fs.bestAcc = Math.max(fs.bestAcc, m.a); }
-  else if (m.a >= 80) {
-    if (!state.completed.includes(state.selected)) state.completed.push(state.selected);
-    const next = lessonIndex() + 1; if (next < LESSONS.length && unlocked(next)) run.nextLesson = next;
+  const m = metrics();
+  const t = trail();
+  let title: string, copy: string, stars = 0, xp = 0;
+  offer = null;
+  if (mode.kind === 'trail') {
+    outcome = applyRun(state, { hits: run.hits, attempts: run.attempts, maxCombo: run.maxCombo, wpm: m.wpm, acc: m.acc, now: Date.now() });
+    stars = outcome.stars; xp = outcome.xp;
+    const gate = effectiveGate(gateFor(t), state.settings.slowMode);
+    if (!outcome.passed) {
+      title = 'Not yet.'; copy = `Accuracy ${m.acc}% — this trail needs ${gate.passAcc}%. Speed never mattered here. Enter to try again.`;
+      if (outcome.slowOffer) offer = { kind: 'slow' };
+    } else {
+      title = stars === 3 ? 'Perfect line.' : stars === 2 ? 'Clean run.' : m.acc >= 95 ? 'Good rhythm.' : 'Passed.';
+      const starHint = stars === 1 ? ` ★★ needs ${gate.star2Wpm} WPM at 97%.` : stars === 2 ? ` ★★★ needs ${gate.star3Wpm} WPM at 100%.` : '';
+      if (outcome.advance === 'grove') copy = `Checkpoint cleared with ★★ — Grove ${groveOf(outcome.nextTrail!).n}, ${groveOf(outcome.nextTrail!).name}, is open. Next: ${outcome.nextTrail!.name}.`;
+      else if (outcome.needsTwoStars) copy = `Checkpoint cleared, but ★★ (${gate.star2Wpm} WPM at 97%) opens the next grove. Enter to run it again.`;
+      else if (outcome.advance === 'trail') copy = outcome.nextTrail ? `Trail cleared. Next: ${outcome.nextTrail.name}.${starHint}` : 'Trail cleared. That was the last one on the path.';
+      else if (outcome.advance === 'stage') copy = `Stage passed. Next: ${stageName()}.${starHint}`;
+      else copy = `Replayed.${starHint}`;
+    }
+    // A struggling finger gets a drill offer after any trail run; the slow-mode offer takes precedence.
+    if (!offer) {
+      const hot = keys.hottest([...allowedChars(t)].filter((k) => k.length === 1 && k !== ' '));
+      const f = hot ? fingerForKey(hot.key) : null;
+      if (f && 'keys' in f) offer = { kind: 'remedial', finger: f };
+    }
+  } else {
+    title = m.acc >= 95 ? 'Clean drill.' : 'Drill done.';
+    copy = mode.kind === 'remedial' ? 'Enter repeats it, Space goes back to your trail.' : 'Warmed up. Enter or Space goes back to your trail.';
   }
-  save(state);
-  const nextName = run.nextLesson !== null ? LESSONS[run.nextLesson]!.title : null;
-  $('resultTitle').textContent = m.a === 100 ? 'Perfect line.' : m.a >= 95 ? 'Clean run.' : m.a >= 85 ? 'Good rhythm.' : 'Try it slower.';
-  $('resultCopy').textContent = f ? 'Targeted practice complete. Enter repeats it, Space returns to regular lessons.' : m.a >= 80 ? (nextName ? 'Next up: ' + nextName + '. Enter or just start typing.' : 'Trail complete. Enter or just start typing again.') : 'Accuracy stayed below 80%. Enter or just start typing to retry.';
-  $('resultWpm').textContent = String(m.w); $('resultAcc').textContent = m.a + '%'; $('resultXp').textContent = '+' + gain; $('resultCombo').textContent = String(run.maxCombo);
-  arena().classList.add('result-mode'); top(); route(); keymap(); nextVisual();
+  save();
+  $('resultStars').innerHTML = mode.kind === 'trail' ? starsHtml(stars) : '';
+  $('resultTitle').textContent = title; $('resultCopy').textContent = copy;
+  const offerEl = $('resultOffer');
+  if (offer?.kind === 'remedial') { offerEl.hidden = false; offerEl.innerHTML = `<strong>Offer</strong> Your ${escapeHtml(offer.finger.full.toLowerCase())} is struggling. Press <b>Tab</b> for a short ${escapeHtml(offer.finger.full.toLowerCase())} drill, or Enter to carry on.`; }
+  else if (offer?.kind === 'slow') { offerEl.hidden = false; offerEl.innerHTML = '<strong>Offer</strong> Three misses in a row. Press <b>S</b> for slow mode — lower speed targets, stronger hand guide, same accuracy bar. Enter to keep going as is.'; }
+  else offerEl.hidden = true;
+  $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%'; $('resultXp').textContent = '+' + xp; $('resultCombo').textContent = String(run.maxCombo);
+  arena().classList.add('result-mode'); header(); keymap(); nextVisual();
 }
+
+// ---- focus / remedial ----------------------------------------------------------
 function openFocus(): void {
   if (run.status === 'playing') { toast('Finish or reset before opening trouble-spot practice.'); return; }
   arena().classList.remove('result-mode'); arena().classList.add('focus-mode'); focusGrid();
 }
 function closeFocus(): void { arena().classList.remove('focus-mode'); render(); }
 function chooseFocus(id: string): void {
-  state.focus = id; save(state); resetRun(); const f = focus(); toast(f ? 'Targeted practice: ' + f.full : 'Back to regular lessons');
+  const f = fingerById(id);
+  mode = f ? { kind: 'remedial', finger: f } : { kind: 'trail' };
+  resetRun(); toast(f ? 'Remedial drill: ' + f.full : 'Back to the trail');
 }
-function handleFocusKey(e: KeyboardEvent): boolean {
-  if (e.key === 'Escape') { e.preventDefault(); closeFocus(); return true; }
-  if (e.key === ' ') { e.preventDefault(); chooseFocus('all'); return true; }
-  const f = FINGERS.find((x) => x.anchor === e.key.toLowerCase()); if (f) { e.preventDefault(); chooseFocus(f.id); return true; }
+function acceptOffer(): boolean {
+  if (offer?.kind === 'remedial') { chooseFocus(offer.finger.id); return true; }
+  if (offer?.kind === 'slow') { setSlow(true); resetRun(); return true; }
   return false;
 }
+function setSlow(on: boolean): void {
+  state.settings.slowMode = on; state.settings.guideStrong = on || state.settings.guideStrong; save();
+  $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
+  $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
+  $('slowBtn').textContent = 'Slow mode: ' + (on ? 'on' : 'off');
+  toast(on ? 'Slow mode on — speed targets lowered.' : 'Slow mode off.');
+}
+function warmupCheck(): void {
+  if (!state.settings.reviewOn) return;
+  const allowed = [...allowedChars(trail())].filter((k) => k.length === 1 && k !== ' ' && k === k.toLowerCase());
+  const stale = keys.stale(allowed, Date.now());
+  if (!stale.length) return;
+  $('message').innerHTML = `<strong>Rusty keys:</strong> ${stale.slice(0, 6).map((k) => escapeHtml(k.toUpperCase())).join(' ')} — press <strong>W</strong> for a short warm-up first.`;
+  pendingWarmup = stale;
+}
+let pendingWarmup: string[] | null = null;
+function statsToast(): void {
+  const r = rankFor(state.stats.xp);
+  toast(`${r.name} · ${Math.round(state.stats.xp)} XP${r.next ? ' / ' + r.next : ''} · ${state.stats.runs} runs · best ${Math.round(state.stats.bestWpm)} WPM · ${state.stats.days}-day streak`);
+}
+
+// ---- input -----------------------------------------------------------------------
+function handleFocusKey(e: KeyboardEvent): void {
+  if (e.key === 'Escape') { e.preventDefault(); closeFocus(); return; }
+  if (e.key === ' ') { e.preventDefault(); chooseFocus('none'); return; }
+  const f = FINGERS.find((x) => x.anchor === e.key.toLowerCase()); if (f) { e.preventDefault(); chooseFocus(f.id); }
+}
 function handleIdleOrResult(e: KeyboardEvent): void {
-  if (e.key === 'Tab') { e.preventDefault(); openFocus(); return; }
-  if (e.key === 'Enter') { e.preventDefault(); if (run.status === 'complete') continueAfterResult(); else begin(); return; }
-  if (e.key === 'Escape') { e.preventDefault(); if (run.status === 'complete') resetRun(); return; }
+  const done = run.status === 'complete';
+  if (e.key === 'Tab') { e.preventDefault(); if (!(done && acceptOffer())) openFocus(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); if (done) continueAfterResult(); else begin(); return; }
+  if (e.key === 'Escape') { e.preventDefault(); if (done) resetRun(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === ' ' && mode.kind !== 'trail') { e.preventDefault(); mode = { kind: 'trail' }; resetRun(); toast('Back to the trail'); return; }
+  if (done && e.key.toLowerCase() === 's' && offer?.kind === 'slow') { e.preventDefault(); acceptOffer(); return; }
+  if (!done && run.status === 'idle' && e.key.toLowerCase() === 'w' && pendingWarmup) { e.preventDefault(); mode = { kind: 'warmup', keys: pendingWarmup }; pendingWarmup = null; resetRun(); return; }
+  if (!done && run.status === 'idle' && e.key.toLowerCase() === 'm') { e.preventDefault(); statsToast(); return; }
   if (e.key.length === 1) {
     e.preventDefault();
-    if (run.status === 'complete') continueAfterResult(e.key);
+    if (done) continueAfterResult(e.key);
     else { begin(); typeKey(e.key); }
   }
 }
@@ -186,15 +264,17 @@ $('prompt').onclick = () => { if (run.status === 'idle') begin(); };
 $('startBtn').onclick = () => { if (run.status === 'complete') continueAfterResult(); else begin(); };
 $('focusBtn').onclick = () => openFocus();
 $('resetRunBtn').onclick = () => { if (run.status === 'playing') abort(); else resetRun(); };
-$('guideBtn').onclick = () => { const on = $('handsZone').classList.toggle('guide-strong'); $('guideBtn').textContent = on ? 'Use normal guide' : 'Show stronger guide'; };
-$('lessonsNav').onclick = () => { if (run.status === 'playing') { toast('Finish or reset the current run first.'); return; } state.focus = 'all'; save(state); resetRun(); toast('Regular lessons'); };
-$('statsNav').onclick = () => toast('Runs ' + state.stats.runs + ' · Best ' + Math.round(state.stats.bestWpm) + ' WPM');
+$('guideBtn').onclick = () => { state.settings.guideStrong = $('handsZone').classList.toggle('guide-strong'); save(); $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide'; };
+$('lessonsNav').onclick = () => { if (run.status === 'playing') { toast('Finish or reset the current run first.'); return; } mode = { kind: 'trail' }; resetRun(); toast(`Grove ${groveOf(trail()).n} · ${trail().name}`); };
+$('statsNav').onclick = statsToast;
 $('settingsTopBtn').onclick = () => settingsModal().classList.add('open');
 $('settingsBtn').onclick = () => settingsModal().classList.add('open');
 $('closeSettings').onclick = () => settingsModal().classList.remove('open');
 settingsModal().onclick = (e) => { if (e.target === settingsModal()) settingsModal().classList.remove('open'); };
+$('slowBtn').onclick = () => { setSlow(!state.settings.slowMode); if (run.status !== 'playing') render(); };
+$('codeBtn').onclick = () => { state.settings.codeGrove = !state.settings.codeGrove; save(); $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off'); toast(state.settings.codeGrove ? 'Code grove will appear after the Bark checkpoint.' : 'Code grove hidden.'); };
 $('exportBtn').onclick = () => {
-  save(state);
+  save();
   const u = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })), a = document.createElement('a');
   a.href = u; a.download = 'keygrove-backup.json'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000);
 };
@@ -203,18 +283,26 @@ $<HTMLInputElement>('importFile').onchange = async (e) => {
   const input = e.target as HTMLInputElement;
   try {
     const f = input.files?.[0]; if (!f) return;
-    state = clean(JSON.parse(await f.text())); safeSelected(); save(state); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
+    applyImport(JSON.parse(await f.text()));
   } catch { toast('That backup could not be read.'); }
   input.value = '';
 };
-$('resetBtn').onclick = () => { if (confirm('Reset all Keygrove progress?')) { state = fresh(); save(state); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
+function applyImport(raw: unknown): void {
+  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys); mode = { kind: 'trail' }; save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
+}
+$('resetBtn').onclick = () => { if (confirm('Reset all Keygrove progress?')) { state = fresh(); keys = new KeyModel(); mode = { kind: 'trail' }; save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
+function syncSettingsUi(): void {
+  $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
+  $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
+  $('slowBtn').textContent = 'Slow mode: ' + (state.settings.slowMode ? 'on' : 'off');
+  $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off');
+}
 setInterval(() => { if (run.status === 'playing') metrics(); }, 450);
 
-safeSelected(); resetRun(); save(state); void loadHands(nextVisual);
+syncSettingsUi(); resetRun(); warmupCheck(); save(); void loadHands(nextVisual);
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
-    snapshot: () => JSON.parse(JSON.stringify({ state, run })),
-    lessons: () => LESSONS.map((x) => ({ ...x })),
-    fingers: () => FINGERS.map((x) => ({ ...x })),
+    snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, offer: offer && { kind: offer.kind } })),
+    import: (raw: unknown) => applyImport(raw),
   }),
 });
