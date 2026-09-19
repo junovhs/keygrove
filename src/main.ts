@@ -146,6 +146,7 @@ function typeKey(k: string): void {
   if (r === 'space-wait') { prompt(); nextVisual(); $('nextCue').innerHTML = '<strong>SPACEBAR</strong> · no accuracy penalty yet'; return; }
   const last = run.strokes.at(-1)!;
   if (last.key !== ' ') keys.record(last.key, last.correct, last.latencyMs, Date.now());
+  canvasPrompt?.onKey(last.correct ? 'ok' : 'miss', last.correct ? run.pos - 1 : run.pos, run.combo >= 10);
   if (r === 'done') return finish();
   prompt(); metrics(); keymap(); nextVisual();
 }

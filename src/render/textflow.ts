@@ -4,8 +4,10 @@ import { layoutNextLineRange, layoutWithLines, materializeLineRange, prepareWith
 export interface Glyph { ch: string; index: number; line: number; x: number; y: number; w: number }
 export interface FlowLine { index: number; text: string; width: number; x: number; y: number; maxWidth: number }
 export interface Flow { lines: FlowLine[]; glyphs: Glyph[]; height: number; width: number }
-/** Width available to line `i` whose top edge is at `y`. Lets text flow around obstacles. */
-export type WidthForLine = (i: number, y: number) => number;
+/** A horizontal band a line may occupy: left edge and width, in flow px. */
+export interface Band { x: number; width: number }
+/** Band (or just width) available to line `i` whose top edge is at `y`. Lets text flow around obstacles. */
+export type WidthForLine = (i: number, y: number) => number | Band;
 
 /**
  * Pretext-backed prompt layout. Pretext breaks lines (reflow-free, any width per line);
@@ -74,24 +76,24 @@ export class TextFlow {
     };
     while (pos < disp.length) {
       const y = li * this.lineHeight;
-      const maxWidth = Math.max(1, constant ? width : width(li, y));
+      const band = constant ? width : width(li, y);
+      const bandX = typeof band === 'number' ? 0 : band.x;
+      const maxWidth = Math.max(1, typeof band === 'number' ? band : band.width);
       const range = layoutNextLineRange(this.prepared, cursor, maxWidth);
       if (!range) break;
       const lineText = materializeLineRange(this.prepared, range).text;
       const at = disp.indexOf(lineText, pos);
       const start = at >= 0 ? at : pos;
-      const x0 = this.align === 'center' ? Math.max(0, (box - this.measure(lineText)) / 2) : 0;
-      let x = x0;
-      for (let i = 0; i < lineText.length; i++) {
-        const ch = lineText[i]!; const w = this.advance(ch);
-        push(ch, start + i, x, w); x += w + this.letterSpacing;
-      }
+      // Whitespace consumed by the break still has to be typed: it is pinned to the end of this line.
       let end = start + lineText.length;
-      // Whitespace consumed by the break still has to be typed: pin it to the end of this line.
       const nextStart = Math.max(end, this.cursorOffset(range.end));
-      while (end < disp.length && end < nextStart && /\s/.test(disp[end]!)) {
-        const ch = disp[end]!; const w = this.advance(ch);
-        push(ch, end, x, w); x += w + this.letterSpacing; end++;
+      while (end < disp.length && end < nextStart && /\s/.test(disp[end]!)) end++;
+      const shown = disp.slice(start, end);
+      const x0 = bandX + (this.align === 'center' ? Math.max(0, (maxWidth - this.measure(shown)) / 2) : 0);
+      let x = x0;
+      for (let i = 0; i < shown.length; i++) {
+        const ch = shown[i]!; const w = this.advance(ch);
+        push(ch, start + i, x, w); x += w + this.letterSpacing;
       }
       lines.push({ index: li, text: lineText, width: x - x0, x: x0, y, maxWidth });
       if (end === pos) break; // no progress: bail rather than spin
