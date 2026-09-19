@@ -79,7 +79,9 @@ export class TextFlow {
       const band = constant ? width : width(li, y);
       const bandX = typeof band === 'number' ? 0 : band.x;
       const maxWidth = Math.max(1, typeof band === 'number' ? band : band.width);
-      const range = layoutNextLineRange(this.prepared, cursor, maxWidth);
+      // Reserve room for a break-consumed (widened) space so the pinned pill never overflows the band.
+      const reserve = this.spaceScale > 1 ? this.measure(' '.repeat(this.spaceScale)) + this.letterSpacing : 0;
+      const range = layoutNextLineRange(this.prepared, cursor, Math.max(1, maxWidth - reserve));
       if (!range) break;
       const lineText = materializeLineRange(this.prepared, range).text;
       const at = disp.indexOf(lineText, pos);

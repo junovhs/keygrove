@@ -82,10 +82,11 @@ kbd{font:inherit}
 .info-col small{display:block;font:12px var(--mono);text-transform:uppercase;letter-spacing:.11em;color:var(--soft)}
 .info-col p{margin:6px 0 0;color:var(--ink);font-size:17px;line-height:1.45;white-space:pre-line}
 
-.stage{display:flex;flex-direction:column;align-items:center;padding:18px 0 0;gap:0}
-.keycue{margin-top:8px;min-height:18px;font:12px var(--mono);text-transform:uppercase;letter-spacing:.18em;color:var(--soft)}
+.stage{display:flex;flex-direction:column;align-items:center;padding:14px 0 0;gap:0}
+.keycue{margin-top:18px;min-height:18px;font:12px var(--mono);text-transform:uppercase;letter-spacing:.18em;color:var(--soft)}
 .keycue strong{color:var(--ink);font-weight:600}
-.textline{width:min(1000px,100%);margin-top:0}
+.textbox{width:100%;min-height:200px;display:flex;align-items:center;justify-content:center;padding:18px 24px;border:1px solid var(--line-strong);border-radius:8px;background:rgba(255,255,255,.35)}
+.textbox .prompt{width:min(1000px,100%)}
 .prompt{min-height:44px;display:flex;align-content:center;justify-content:center;align-items:center;flex-wrap:wrap;column-gap:8px;row-gap:6px;padding:2px 8px;font:600 20px/1.3 var(--mono)}
 .ch{min-width:.72em;display:inline-grid;place-items:center;color:var(--ink);border-radius:4px;transition:transform .08s ease,background .08s ease,color .08s ease}
 .ch.done{color:#b3afa8}
@@ -110,36 +111,41 @@ kbd{font:inherit}
 .progress-meter{flex:1;height:12px;margin-top:6px;overflow:hidden;border-radius:3px;background:#e4e1db}
 .progress-meter span{display:block;width:0;height:100%;background:var(--orange);transition:width .16s ease}
 
-.hands-zone{width:100%;padding:0;margin-top:22px;position:relative;z-index:1;height:min(24vw,330px);overflow:hidden}
 .guide-btn{display:flex;align-items:center;gap:10px;padding:8px 0;color:#625f59;font-size:11px;font-weight:700}
 .guide-btn:before{content:"▱";font-size:19px;line-height:1;color:var(--ink)}
 .guide-btn:hover{color:var(--orange)}
-.hand-pair{display:flex;justify-content:center;align-items:flex-end;gap:min(170px,11vw);min-width:0}
-.hand-wrap{position:relative;width:min(27vw,345px);aspect-ratio:1.333/1;overflow:visible}
-.svg-mount{position:absolute;inset:40px 0 0;display:grid;place-items:end center}
+.deck{width:100%;margin-top:14px;display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:24px}
+.hand-col{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.hand-left-col{align-items:flex-start;padding-left:min(4vw,60px)}
+.hand-right-col{align-items:flex-end;padding-right:min(4vw,60px)}
+.hand-wrap{position:relative;width:min(22vw,290px);aspect-ratio:1.333/1;overflow:visible}
+.svg-mount{position:absolute;inset:0;display:grid;place-items:end center}
 .vector-hand{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 14px 13px rgba(84,70,58,.08));transition:filter .18s ease}
 .hand-right .vector-hand{transform:scaleX(-1);transform-origin:50% 50%}
 .hand-wrap.is-hot .vector-hand{filter:drop-shadow(0 16px 14px rgba(255,84,24,.11))}
-.home-letters{position:absolute;inset:-4px 3% auto;height:36px;z-index:2;display:none}
-.hands-zone.guide-strong .home-letters{display:block}
-.hand-letter{position:absolute;top:0;display:grid;place-items:center;min-width:34px;height:34px;border-radius:50%;color:#45423e;font:700 13px var(--mono);transition:.12s ease}
-.hand-letter:nth-child(1){left:14%}
-.hand-letter:nth-child(2){left:37%}
-.hand-letter:nth-child(3){left:58%}
-.hand-letter:nth-child(4){left:80%}
-.hand-letter.active{background:var(--orange);color:#fff;box-shadow:0 5px 13px rgba(255,84,24,.18)}
-.hands-zone.guide-strong .hand-letter{box-shadow:0 0 0 1px var(--line-strong)}
-.hands-zone.guide-strong .hand-letter.active{box-shadow:0 0 0 1px var(--orange),0 5px 13px rgba(255,84,24,.18)}
+.home-letters{position:relative;height:38px;width:min(22vw,290px);z-index:2;display:block}
+.hand-letter{position:absolute;top:0;display:grid;place-items:center;min-width:36px;height:36px;border-radius:50%;border:1px solid var(--line-strong);background:rgba(255,255,255,.6);color:#45423e;font:700 13px var(--mono);transition:.12s ease}
+.hand-left-col .hand-letter:nth-child(1){left:8%}
+.hand-left-col .hand-letter:nth-child(2){left:26%}
+.hand-left-col .hand-letter:nth-child(3){left:46%}
+.hand-left-col .hand-letter:nth-child(4){left:66%}
+.hand-right-col .hand-letter:nth-child(1){left:26%}
+.hand-right-col .hand-letter:nth-child(2){left:43%}
+.hand-right-col .hand-letter:nth-child(3){left:60%}
+.hand-right-col .hand-letter:nth-child(4){left:77%}
+.hand-letter.active{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 5px 13px rgba(255,84,24,.18)}
+.deck.guide-strong .hand-letter{border-color:var(--ink);font-size:15px}
+.deck.guide-strong .keycap.home{border-color:var(--ink);box-shadow:inset 0 -3px 0 var(--orange)}
 
-.keymap{width:min(520px,100%);margin:30px auto 0;position:relative;z-index:4;display:grid;gap:6px}
+.keymap{width:max-content;max-width:100%;margin:44px auto 0;position:relative;z-index:4;display:grid;gap:8px}
 .keyrow{display:flex;justify-content:center;gap:6px}
 .keycap.locked{opacity:.32}
 .focus-key[disabled]{opacity:.35;cursor:default}
-.keycap{min-width:min(44px,4.2vw);height:min(34px,3.6vw);padding:0 4px;display:grid;place-items:center;border:1px solid #d3cfc8;border-bottom-width:2px;border-radius:6px;background:rgba(251,250,247,.92);font-size:11px;color:#3a3833;box-shadow:0 1px 0 rgba(255,255,255,.9) inset;cursor:default;transition:background .1s,color .1s}
+.keycap{min-width:min(52px,4.6vw);height:min(46px,4vw);padding:0 4px;display:grid;place-items:center;border:1px solid #d3cfc8;border-bottom-width:2px;border-radius:6px;background:rgba(251,250,247,.92);font-size:11px;color:#3a3833;box-shadow:0 1px 0 rgba(255,255,255,.9) inset;cursor:default;transition:background .1s,color .1s}
 .keycap.peek{background:#ffe3d8;border-color:var(--orange-soft);color:var(--orange)}
 .keycap.home{border-color:#bdb8b0}
 .keycap.hot{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 4px 11px rgba(255,84,24,.18)}
-.keycap.spacebar{width:min(240px,32vw);height:30px;margin-top:0}
+.keycap.spacebar{width:min(230px,26vw);height:38px;margin-top:0}
 
 .controls{min-height:64px;padding:8px 0 0;display:grid;grid-template-columns:350px 1fr;align-items:center;gap:24px}
 .primary-control{height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 22px;border-radius:5px;background:var(--orange);color:#fff;font-size:13px;font-weight:750}
@@ -233,7 +239,8 @@ kbd{font:inherit}
   .app-shell{width:min(100% - 42px,1480px)}
   .tagline{display:none}
   .lesson-intro{gap:30px;padding-inline:4px}
-  .hand-wrap{width:min(30vw,300px)}
+  .hand-wrap{width:min(26vw,260px)}
+  .home-letters{width:min(26vw,260px)}
   .controls{grid-template-columns:300px 1fr}
   .control-group{gap:18px}
   .keycap{min-width:43px}
@@ -254,10 +261,13 @@ kbd{font:inherit}
   .metrics{height:auto;grid-template-columns:repeat(2,1fr)}
   .metric{min-height:72px;padding:0 18px;border-bottom:1px solid var(--line)}
   .metric+ .metric:before{display:none}
-  .hand-pair{gap:2px}
-  .hand-wrap{width:48%}
-  .hands-zone{margin-top:10px;height:44vw}
-  .keymap{width:100%;gap:5px}
+  .deck{grid-template-columns:1fr 1fr;gap:8px}
+  .keymap{grid-column:1/-1;order:-1;margin-top:14px;width:100%;gap:5px}
+  .hand-col{padding:0!important;min-width:0;overflow:hidden}
+  .hand-wrap,.home-letters{width:100%}
+  .hand-letter{min-width:26px;height:26px;font-size:11px}
+  .hand-right-col .hand-letter:nth-child(4){left:74%}
+  .hand-left-col .hand-letter:nth-child(4){left:70%}
   .keyrow{gap:5px}
   .keycap{min-width:8vw;height:26px;padding:0 1px;font-size:9px;border-radius:4px}
   .keycap.spacebar{width:48vw;height:24px}
@@ -314,29 +324,27 @@ kbd{font:inherit}
         </section>
 
         <section class="stage" id="stage" aria-label="Typing drill">
-          <div class="textline"><div class="prompt" id="prompt"></div><div class="next-cue" id="nextCue"></div></div>
+          <div class="textbox"><div class="prompt" id="prompt"></div><div class="next-cue" id="nextCue"></div></div>
           <div class="keycue" id="handInstruction"></div>
-          <div class="keymap" id="keymap"></div>
-          <div class="hands-zone" id="handsZone" aria-label="Finger guide">
-            <div class="hand-pair">
-              <div class="hand-wrap hand-left" id="leftHandWrap">
-                <div class="home-letters" aria-hidden="true">
-                  <span class="hand-letter" data-finger-label="lp">A</span>
-                  <span class="hand-letter" data-finger-label="lr">S</span>
-                  <span class="hand-letter" data-finger-label="lm">D</span>
-                  <span class="hand-letter" data-finger-label="li">F</span>
-                </div>
-                <div class="svg-mount" id="leftHandMount" aria-label="Left hand vector"></div>
+          <div class="deck" id="handsZone">
+            <div class="hand-col hand-left-col">
+              <div class="home-letters" aria-hidden="true">
+                <span class="hand-letter" data-finger-label="lp">A</span>
+                <span class="hand-letter" data-finger-label="lr">S</span>
+                <span class="hand-letter" data-finger-label="lm">D</span>
+                <span class="hand-letter" data-finger-label="li">F</span>
               </div>
-              <div class="hand-wrap hand-right" id="rightHandWrap">
-                <div class="home-letters" aria-hidden="true">
-                  <span class="hand-letter" data-finger-label="ri">J</span>
-                  <span class="hand-letter" data-finger-label="rm">K</span>
-                  <span class="hand-letter" data-finger-label="rr">L</span>
-                  <span class="hand-letter" data-finger-label="rp">;</span>
-                </div>
-                <div class="svg-mount" id="rightHandMount" aria-label="Right hand vector"></div>
+              <div class="hand-wrap hand-left" id="leftHandWrap"><div class="svg-mount" id="leftHandMount" aria-label="Left hand vector"></div></div>
+            </div>
+            <div class="keymap" id="keymap"></div>
+            <div class="hand-col hand-right-col">
+              <div class="home-letters" aria-hidden="true">
+                <span class="hand-letter" data-finger-label="ri">J</span>
+                <span class="hand-letter" data-finger-label="rm">K</span>
+                <span class="hand-letter" data-finger-label="rr">L</span>
+                <span class="hand-letter" data-finger-label="rp">;</span>
               </div>
+              <div class="hand-wrap hand-right" id="rightHandWrap"><div class="svg-mount" id="rightHandMount" aria-label="Right hand vector"></div></div>
             </div>
           </div>
         </section>
