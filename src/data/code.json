@@ -1,0 +1,14 @@
+[
+ "if (ok) { run(); }",
+ "items = [x for x in data if x]",
+ "return a.b.c(d).e;",
+ "for (const k of keys) { use(k); }",
+ "const x = [a, b];",
+ "let y = (a) => a.b;",
+ "def go(a, b): return a",
+ "while (n) { n = next(n); }",
+ "export default { name: \"grove\" };",
+ "if x < y: print(x)",
+ "const f = () => ({ ok: true });",
+ "list = [w for w in words if w]"
+]
