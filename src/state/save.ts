@@ -7,9 +7,9 @@ const PREV_V5 = 'keygrove.v5';
 const PREV = ['keygrove.v4', 'keygrove.v3', 'keygrove.v2'];
 
 /** Per-trail record. `cleared` is mastery-gated (see progress.ts); `recent` holds the last runs' accuracy. */
-export interface TrailProgress { runs: number; cleared: boolean; stars: 0 | 1 | 2 | 3; bestWpm: number; bestAcc: number; fails: number; recent: number[] }
+export interface TrailProgress { runs: number; cleared: boolean; stars: 0 | 1 | 2 | 3; bestWpm: number; bestAcc: number; fails: number; recent: number[]; cleanStreak: number }
 export interface Stats { runs: number; chars: number; attempts: number; bestWpm: number; bestAcc: number; xp: number; days: number; lastDay: string; bestCombo: number }
-export interface Settings { slowMode: boolean; guideStrong: boolean; reviewOn: boolean; codeGrove: boolean; method: string }
+export interface Settings { guideStrong: boolean; reviewOn: boolean; codeGrove: boolean; method: string }
 export interface SaveV6 {
   v: 6;
   trail: string;
@@ -22,11 +22,11 @@ export interface SaveV6 {
 /** @deprecated alias kept while callers migrate. */
 export type SaveV5 = SaveV6;
 
-export const freshProgress = (): TrailProgress => ({ runs: 0, cleared: false, stars: 0, bestWpm: 0, bestAcc: 0, fails: 0, recent: [] });
+export const freshProgress = (): TrailProgress => ({ runs: 0, cleared: false, stars: 0, bestWpm: 0, bestAcc: 0, fails: 0, recent: [], cleanStreak: 0 });
 export const fresh = (): SaveV6 => ({
   v: 6, trail: MAIN_TRAILS[0]!.id, trails: {}, keys: {}, confusions: {},
   stats: { runs: 0, chars: 0, attempts: 0, bestWpm: 0, bestAcc: 0, xp: 0, days: 0, lastDay: '', bestCombo: 0 },
-  settings: { slowMode: false, guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID },
+  settings: { guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID },
 });
 
 const num = (v: unknown, max = Infinity): number => Math.min(max, Math.max(0, Number(v) || 0));
@@ -45,7 +45,7 @@ export function sanitize(x: unknown): SaveV6 {
       const stage = int(r.stage, 3); // v5 field
       const cleared = typeof r.cleared === 'boolean' ? r.cleared : stage >= 3;
       const recent = Array.isArray(r.recent) ? r.recent.filter((v): v is number => typeof v === 'number').slice(-5).map((v) => num(v, 100)) : [];
-      s.trails[id] = { runs: int(r.runs, 9999) || (cleared ? 3 : stage), cleared, stars: int(r.stars, 3) as 0 | 1 | 2 | 3, bestWpm: num(r.bestWpm, 400), bestAcc: num(r.bestAcc, 100), fails: int(r.fails, 99), recent };
+      s.trails[id] = { runs: int(r.runs, 9999) || (cleared ? 3 : stage), cleared, stars: int(r.stars, 3) as 0 | 1 | 2 | 3, bestWpm: num(r.bestWpm, 400), bestAcc: num(r.bestAcc, 100), fails: int(r.fails, 99), recent, cleanStreak: int(r.cleanStreak, 99) };
     }
   }
   const km = KeyModel.fromJSON(o.keys, o.confusions).toJSON();
@@ -54,7 +54,7 @@ export function sanitize(x: unknown): SaveV6 {
   for (const k of ['runs', 'chars', 'attempts', 'bestWpm', 'bestAcc', 'xp', 'days', 'bestCombo'] as const) s.stats[k] = num(q[k]);
   s.stats.lastDay = typeof q.lastDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(q.lastDay) ? q.lastDay : '';
   const st = (o.settings && typeof o.settings === 'object' ? o.settings : {}) as Record<string, unknown>;
-  for (const k of ['slowMode', 'guideStrong', 'reviewOn', 'codeGrove'] as const) if (typeof st[k] === 'boolean') s.settings[k] = st[k];
+  for (const k of ['guideStrong', 'reviewOn', 'codeGrove'] as const) if (typeof st[k] === 'boolean') s.settings[k] = st[k];
   if (typeof st.method === 'string' && METHODS.some((m) => m.id === st.method)) s.settings.method = st.method;
   return s;
 }
@@ -77,7 +77,7 @@ export function migrateV4(raw: unknown): SaveV6 {
   for (const lesson of completed) for (const id of LESSON_TRAILS[lesson] ?? []) {
     const t = trailById(id);
     // A checkpoint cleared under the old 80% rule counts as ★★ so the next grove stays open.
-    s.trails[id] = { runs: 3, cleared: true, stars: t.checkpoint ? 2 : 1, bestWpm: 0, bestAcc: 0, fails: 0, recent: [] };
+    s.trails[id] = { runs: 3, cleared: true, stars: t.checkpoint ? 2 : 1, bestWpm: 0, bestAcc: 0, fails: 0, recent: [], cleanStreak: 0 };
   }
   const first = MAIN_TRAILS.find((t) => !s.trails[t.id]);
   s.trail = (first ?? MAIN_TRAILS.at(-1)!).id;

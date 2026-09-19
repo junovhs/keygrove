@@ -5,7 +5,7 @@ import { KeyModel, MASTERED } from './engine/keymodel';
 import { decide, readout, sessionReview, type Decision } from './engine/coach';
 import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
-import { effectiveGate, rankFor } from './engine/scoring';
+import { rankFor } from './engine/scoring';
 import { generate, generateDrill } from './engine/textgen';
 import { fresh, load, sanitize, save as persist, type SaveV6 } from './state/save';
 import { $, escapeHtml, toast } from './ui/dom';
@@ -69,7 +69,7 @@ function header(): void {
 }
 function labels(): void {
   const t = trail(), g = groveOf(t), p = progressOf(state, t.id);
-  const gate = effectiveGate(gateFor(t), state.settings.slowMode);
+  const gate = gateFor(t);
   const f = focusFinger();
   const stageCopy = { drill: 'Drill — the new keys only, in rhythm.', mix: 'Mix — new keys blended into what you know.', words: t.checkpoint ? 'Checkpoint run — everything so far.' : 'Words — real words from everything unlocked.' } as const;
   if (f) {
@@ -87,7 +87,7 @@ function labels(): void {
   $('summaryLabel').textContent = f ? 'Trouble spot' : mode.kind === 'coach' ? 'Coach' : 'Mastery';
   $('focusName').textContent = f ? f.full : mode.kind === 'coach' ? mode.decision.required ? 'Required' : 'Optional' : t.checkpoint && p.cleared ? 'Clear it with ★★ to open the next grove.' : p.cleared ? 'Cleared. Replay for more stars.' : `${mastered}/${focus.length} keys mastered · ${p.runs} run${p.runs === 1 ? '' : 's'}`;
   $('gateLabel').textContent = `Pass at ${gate.passAcc}% · any speed`;
-  $('focusInstruction').textContent = `★★ at ${gate.star2Wpm} WPM\n★★★ at ${gate.star3Wpm} WPM\n100% accuracy${state.settings.slowMode ? '\nslow mode on' : ''}`;
+  $('focusInstruction').textContent = `★★ 97% + steady rhythm\n★★★ 100% + very steady\nswift bonus from ${gate.swiftWpm} wpm`;
   $('message').innerHTML = run.status === 'playing' ? '<strong>Typing is live.</strong> Every letter key is typing only.' : '<strong>Just type</strong> to begin. Enter also starts. Tab opens trouble-spot practice. M opens the grove map.';
   $('unlockText').textContent = f || mode.kind === 'coach' ? 'Space returns to your trail.' : `Grove ${g.n} of 7 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
 }
@@ -208,21 +208,24 @@ function finish(): void {
   const masteryHtml = (note: string) => readout(keys, focus).map((r) => `<span class="${r.mastered ? 'ok' : ''}">${escapeHtml(r.key === ' ' ? 'SPACE' : r.key.toUpperCase())} <b>${Math.round(r.mastery * 100)}%</b></span>`).join('') + `<span class="note">${escapeHtml(note)}</span>`;
   if (mode.kind === 'trail') {
     const p = progressOf(state, t.id);
-    outcome = applyRun(state, keys, { hits: run.hits, attempts: run.attempts, maxCombo: run.maxCombo, wpm: m.wpm, acc: m.acc, now: Date.now() });
+    const rhythm = run.rhythm();
+    outcome = applyRun(state, keys, { hits: run.hits, attempts: run.attempts, maxCombo: run.maxCombo, wpm: m.wpm, acc: m.acc, rhythm, now: Date.now() });
     stars = outcome.stars; xp = outcome.xp;
-    const gateNums = effectiveGate(gateFor(t), state.settings.slowMode);
+    const gateNums = gateFor(t);
     const unlocked = [...allowedChars(t)].filter((k) => k.length === 1 && k === k.toLowerCase());
-    decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, star2Wpm: gateNums.star2Wpm, runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, slowMode: state.settings.slowMode, recentAcc: p.recent });
+    decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm, runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent });
     gate = decisions.find((d) => d.required) ?? null;
     if (!outcome.passed) {
       title = 'Not yet.'; copy = `Accuracy ${m.acc}% — this trail needs ${gateNums.passAcc}%. Speed never mattered here.`;
     } else {
-      title = stars === 3 ? 'Perfect line.' : stars === 2 ? 'Clean run.' : m.acc >= 95 ? 'Good rhythm.' : 'Passed.';
+      title = stars === 3 ? 'Perfect line.' : stars === 2 ? 'Clean and steady.' : m.acc >= 97 ? 'Clean, but uneven.' : 'Passed.';
+      const rhythmNote = stars < 2 && m.acc >= 97 ? ` Rhythm ${Math.round(rhythm * 100)}% — ★★ wants an even cadence (60%+), fast or slow.` : '';
       if (outcome.advance === 'grove') copy = `Checkpoint mastered with ★★ — Grove ${groveOf(outcome.nextTrail!).n}, ${groveOf(outcome.nextTrail!).name}, is open. Next: ${outcome.nextTrail!.name}.`;
-      else if (outcome.needsTwoStars) copy = `Checkpoint mastered, but ★★ (${gateNums.star2Wpm} WPM at 97%) opens the next grove. Run it again.`;
+      else if (outcome.needsTwoStars) copy = `Checkpoint mastered, but ★★ (97% with a steady rhythm) opens the next grove. Run it again — slow is fine.${rhythmNote}`;
       else if (outcome.firstClear) copy = outcome.nextTrail ? `Mastered. Next: ${outcome.nextTrail.name}.` : 'Mastered. That was the last trail on the path.';
-      else if (p.cleared) copy = 'Replayed.';
-      else copy = `Run ${p.runs} done. Still to master: ${outcome.blockers.join(' · ')}.`;
+      else if (p.cleared) copy = 'Replayed.' + rhythmNote;
+      else copy = `Run ${p.runs} done. Still to master: ${outcome.blockers.join(' · ')}.` + rhythmNote;
+      void gateNums;
     }
     $('resultMastery').innerHTML = masteryHtml(p.cleared ? 'mastered' : `mastered at ${Math.round(MASTERED * 100)}% each · ${outcome.blockers.length ? 'blocking: ' + outcome.blockers.join(', ') : 'ready'}`);
   } else {
@@ -235,7 +238,7 @@ function finish(): void {
   $('resultStars').innerHTML = mode.kind === 'trail' ? starsHtml(stars) : '';
   $('resultTitle').textContent = title; $('resultCopy').textContent = copy;
   renderOffer();
-  $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%'; $('resultXp').textContent = '+' + xp; $('resultCombo').textContent = String(run.maxCombo);
+  $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%'; $('resultXp').textContent = '+' + xp + (outcome && outcome.swift > 0.05 ? ' · swift +' + Math.round(outcome.swift * 100) + '%' : ''); $('resultCombo').textContent = String(run.maxCombo);
   arena().classList.add('result-mode'); header(); keymap(); nextVisual();
 }
 function renderOffer(): void {
@@ -243,10 +246,10 @@ function renderOffer(): void {
   const d = gate ?? decisions[0] ?? null;
   if (!d || mode.kind !== 'trail') { el.hidden = true; el.classList.remove('required'); return; }
   el.hidden = false; el.classList.toggle('required', d.required);
-  const slow = decisions.find((x) => x.kind === 'slow');
-  const key = d.kind === 'slow' ? 'S' : 'Enter';
-  const skip = d.required ? '' : d.kind === 'slow' ? ' · Enter to keep going as is' : ' · Enter to skip';
-  el.innerHTML = `<strong>${d.required ? 'Coach · required' : 'Coach'}</strong> <b>${escapeHtml(d.title)}.</b> ${escapeHtml(d.reason)} <b>${key}</b> ${d.kind === 'slow' ? 'turns on slow mode' : 'starts it'}${skip}.${slow && d !== slow ? ' <b>S</b> also turns on slow mode.' : ''}${decisions.length > 1 ? ` (+${decisions.length - 1} more note${decisions.length > 2 ? 's' : ''})` : ''}`;
+  const note = d.kind === 'rushing' || d.kind === 'fatigue' || d.kind === 'steady';
+  const key = 'Enter';
+  const skip = d.required ? '' : note ? '' : ' · Enter to skip';
+  el.innerHTML = `<strong>${d.required ? 'Coach · required' : 'Coach'}</strong> <b>${escapeHtml(d.title)}.</b> ${escapeHtml(d.reason)} ${note ? '' : `<b>${key}</b> starts it${skip}.`}${decisions.length > 1 ? ` (+${decisions.length - 1} more note${decisions.length > 2 ? 's' : ''})` : ''}`;
 }
 
 // ---- grove map ---------------------------------------------------------------------
@@ -275,16 +278,8 @@ function chooseFocus(id: string): void {
 function acceptOffer(): boolean {
   const d = gate ?? decisions[0];
   if (!d) return false;
-  if (d.kind === 'slow') { setSlow(true); resetRun(); return true; }
-  if (d.kind === 'rushing' || d.kind === 'fatigue') return false;
+  if (d.kind === 'rushing' || d.kind === 'fatigue' || d.kind === 'steady') return false;
   startCoach(d); return true;
-}
-function setSlow(on: boolean): void {
-  state.settings.slowMode = on; state.settings.guideStrong = on || state.settings.guideStrong; save();
-  $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
-  $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
-  $('slowBtn').textContent = 'Slow mode: ' + (on ? 'on' : 'off');
-  toast(on ? 'Slow mode on — speed targets lowered.' : 'Slow mode off.');
 }
 function sessionCheck(): void {
   if (!state.settings.reviewOn) return;
@@ -310,12 +305,11 @@ function handleFocusKey(e: KeyboardEvent): void {
 function handleIdleOrResult(e: KeyboardEvent): void {
   const done = run.status === 'complete';
   if (e.key === 'Tab') { e.preventDefault(); if (!(done && !gate && acceptOffer())) openFocus(); return; }
-  if (e.key === 'Enter') { e.preventDefault(); if (done) { if (mode.kind === 'trail' && gate && gate.kind !== 'slow') { startCoach(gate); return; } continueAfterResult(); } else begin(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); if (done) { if (mode.kind === 'trail' && gate) { startCoach(gate); return; } continueAfterResult(); } else begin(); return; }
   if (e.key === 'Escape') { e.preventDefault(); if (done) resetRun(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === ' ' && mode.kind !== 'trail') { e.preventDefault(); if (mode.kind === 'coach' && mode.decision === gate && run.status !== 'complete') { toast('Finish this drill first — the coach asked for it.'); return; } mode = { kind: 'trail' }; resetRun(); toast('Back to the trail'); return; }
-  if (done && e.key.toLowerCase() === 's' && decisions.some((d) => d.kind === 'slow')) { e.preventDefault(); setSlow(true); if (gate && gate.kind !== 'slow') startCoach(gate); else resetRun(); return; }
-  if (done && mode.kind === 'trail' && gate && gate.kind !== 'slow' && e.key.length === 1) { e.preventDefault(); startCoach(gate); begin(); typeKey(e.key); return; }
+  if (done && mode.kind === 'trail' && gate && e.key.length === 1) { e.preventDefault(); startCoach(gate); begin(); typeKey(e.key); return; }
   if (!done && run.status === 'idle' && e.key.toLowerCase() === 'w' && pendingReview) { e.preventDefault(); const d = pendingReview; pendingReview = null; startCoach(d); return; }
   if (!done && run.status === 'idle' && e.key.toLowerCase() === 'm') { e.preventDefault(); openMap(); return; }
   if (e.key.length === 1) {
@@ -348,7 +342,6 @@ $('settingsTopBtn').onclick = () => settingsModal().classList.add('open');
 $('settingsBtn').onclick = () => settingsModal().classList.add('open');
 $('closeSettings').onclick = () => settingsModal().classList.remove('open');
 settingsModal().onclick = (e) => { if (e.target === settingsModal()) settingsModal().classList.remove('open'); };
-$('slowBtn').onclick = () => { setSlow(!state.settings.slowMode); if (run.status !== 'playing') render(); };
 $('methodBtn').onclick = () => {
   const i = METHODS.findIndex((m) => m.id === state.settings.method);
   const next = METHODS[(i + 1) % METHODS.length]!;
@@ -376,7 +369,6 @@ $('resetBtn').onclick = () => { if (confirm('Reset all Keygrove progress?')) { s
 function syncSettingsUi(): void {
   $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
   $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
-  $('slowBtn').textContent = 'Slow mode: ' + (state.settings.slowMode ? 'on' : 'off');
   $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off');
   $('methodBtn').textContent = 'Method: ' + activeMethod().name;
   setMethod(state.settings.method);

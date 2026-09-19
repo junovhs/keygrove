@@ -9,7 +9,7 @@ const V4 = {
 
 describe('save v6', () => {
   it('migrates a v5 save: stage 3 → cleared, key stats gain review fields, v6 written on save', () => {
-    const v5 = { v: 5, trail: 'ring-pair', trails: { anchors: { stage: 3, stars: 2, bestWpm: 20, bestAcc: 100, fails: 0 }, 'ring-pair': { stage: 1, stars: 0, bestWpm: 0, bestAcc: 0, fails: 1 } }, keys: { f: { err: 0.1, lat: 300, seen: 40, last: 1_700_000_000_000 } }, stats: { runs: 5, chars: 100, attempts: 110, bestWpm: 20, bestAcc: 100, xp: 120, days: 1, lastDay: '2026-09-18', bestCombo: 12 }, settings: { slowMode: false, guideStrong: false, reviewOn: true, codeGrove: false } };
+    const v5 = { v: 5, trail: 'ring-pair', trails: { anchors: { stage: 3, stars: 2, bestWpm: 20, bestAcc: 100, fails: 0 }, 'ring-pair': { stage: 1, stars: 0, bestWpm: 0, bestAcc: 0, fails: 1 } }, keys: { f: { err: 0.1, lat: 300, seen: 40, last: 1_700_000_000_000 } }, stats: { runs: 5, chars: 100, attempts: 110, bestWpm: 20, bestAcc: 100, xp: 120, days: 1, lastDay: '2026-09-18', bestCombo: 12 }, settings: { guideStrong: false, reviewOn: true, codeGrove: false } };
     const mem = new Map<string, string>([['keygrove.v5', JSON.stringify(v5)]]);
     const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => { mem.set(k, v); } };
     const s = load(storage);
@@ -51,10 +51,10 @@ describe('save v6', () => {
     expect(load(storage)).toEqual(fresh());
   });
   it('sanitize drops unknown trails and clamps', () => {
-    const s = sanitize({ trail: 'nope', trails: { anchors: { stage: 9, stars: -1, bestWpm: 1e9 }, ghost: { stage: 3 } }, stats: { xp: 'x' }, settings: { slowMode: 'yes', codeGrove: true } });
+    const s = sanitize({ trail: 'nope', trails: { anchors: { stage: 9, stars: -1, bestWpm: 1e9 }, ghost: { stage: 3 } }, stats: { xp: 'x' }, settings: { guideStrong: 'yes', codeGrove: true } });
     expect(s.trail).toBe('anchors');
-    expect(s.trails['anchors']).toEqual({ runs: 3, cleared: true, stars: 0, bestWpm: 400, bestAcc: 0, fails: 0, recent: [] });
+    expect(s.trails['anchors']).toEqual({ runs: 3, cleared: true, stars: 0, bestWpm: 400, bestAcc: 0, fails: 0, recent: [], cleanStreak: 0 });
     expect(s.trails['ghost']).toBeUndefined();
-    expect(s.settings).toMatchObject({ slowMode: false, codeGrove: true });
+    expect(s.settings).toMatchObject({ guideStrong: false, codeGrove: true });
   });
 });

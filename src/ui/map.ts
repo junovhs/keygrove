@@ -20,7 +20,7 @@ export function renderMap(root: HTMLElement, state: SaveV6, model: KeyModel, h: 
     const total = ts.reduce((n, t) => n + (state.trails[t.id]?.stars ?? 0), 0);
     return `<section class="grove ${open ? '' : 'grove-locked'} ${g.optional ? 'grove-optional' : ''}">
       <header class="grove-head"><span class="grove-no">Grove ${g.n}${g.optional ? ' · optional' : ''}</span><h3>${escapeHtml(g.name)}</h3>
-        <span class="grove-gate">acc ≥ ${gate.passAcc}% · ★★ ${g.ladder ? g.ladder.join('/') : gate.star2Wpm} wpm</span>
+        <span class="grove-gate">acc ≥ ${gate.passAcc}% · ★★ steady rhythm · swift ${g.ladder ? g.ladder.join('/') : gate.swiftWpm}+ wpm</span>
         <span class="grove-sum">${cleared}/${ts.length} cleared · ${total}/${ts.length * 3} ★</span></header>
       ${ts.map((t) => {
         const p = state.trails[t.id];
