@@ -50,16 +50,17 @@ describe('mastery-gated progress', () => {
   });
   it('checkpoint focus = 5 weakest unlocked keys; ★ clears but ★★ opens the grove', () => {
     const s = fresh(); const m = new KeyModel(); s.trail = 'roots-checkpoint';
-    for (const k of 'asdfghjkl; ') practise(m, k, 80, 1);
+    for (const k of 'fjdkeiru ') practise(m, k, 80, 1);
     expect(focusKeys(trailById('roots-checkpoint'), m)).toHaveLength(5);
     for (let i = 0; i < MIN_RUNS - 1; i++) applyRun(s, m, run(10, 95));
     let o = applyRun(s, m, run(10, 95));
     expect(o).toMatchObject({ firstClear: true, needsTwoStars: true, nextTrail: null });
-    expect(groveOpen(s, 'canopy')).toBe(false);
+    expect(groveOpen(s, 'home')).toBe(false);
     o = applyRun(s, m, run(16, 98));
     expect(o).toMatchObject({ stars: 2, advance: 'grove' });
-    expect(o.nextTrail?.id).toBe('middle-up');
-    expect(trailUnlocked(s, trailById('middle-up'))).toBe(true);
+    expect(o.nextTrail?.id).toBe('ring-pair');
+    expect(trailUnlocked(s, trailById('ring-pair'))).toBe(true);
+    expect(trailUnlocked(s, trailById('outer-pair'))).toBe(false);
   });
   it('slow mode after 3 fails; mastery threshold is exported', () => {
     const s = fresh(); const m = new KeyModel();

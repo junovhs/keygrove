@@ -4,10 +4,10 @@ import { GROVES, TRAILS, MAIN_TRAILS, cumulativeKeys, allowedChars, checkpointOf
 const VALID = new Set('abcdefghijklmnopqrstuvwxyz0123456789;,./\'"?!-:()@#$%&*=+_{}[]<>');
 
 describe('curriculum invariants', () => {
-  it('has 34 main-path trails and 7 groves', () => {
-    expect(MAIN_TRAILS).toHaveLength(34);
-    expect(GROVES).toHaveLength(7);
-    expect(TRAILS.length).toBeGreaterThan(34);
+  it('has 36 main-path trails and 8 groves', () => {
+    expect(MAIN_TRAILS).toHaveLength(36);
+    expect(GROVES).toHaveLength(8);
+    expect(TRAILS.length).toBeGreaterThan(36);
   });
   it('trail ids are unique, numbered in order', () => {
     expect(new Set(TRAILS.map((t) => t.id)).size).toBe(TRAILS.length);
@@ -48,7 +48,7 @@ describe('curriculum invariants', () => {
       expect(main[i]!.wpmTarget).toBeGreaterThanOrEqual(main[i - 1]!.wpmTarget);
     }
   });
-  it('the full alphabet is unlocked by the end of grove 3, shift by grove 4, digits by grove 5', () => {
+  it('the full alphabet is unlocked by the end of Undergrowth, shift by Bark, digits by Rings', () => {
     const cp3 = allowedChars(checkpointOf('undergrowth'));
     for (const c of 'abcdefghijklmnopqrstuvwxyz') expect(cp3.has(c), c).toBe(true);
     expect(cp3.has('A')).toBe(false);
@@ -56,10 +56,10 @@ describe('curriculum invariants', () => {
     const cp5 = allowedChars(checkpointOf('rings'));
     for (const c of '0123456789') expect(cp5.has(c), c).toBe(true);
   });
-  it('the main path walks 34 trails and ends; the code branch inherits grove 4 keys', () => {
+  it('the main path walks 36 trails and ends; the code branch inherits Bark keys', () => {
     let t = MAIN_TRAILS[0]!, n = 1;
     while (nextTrail(t)) { t = nextTrail(t)!; n++; }
-    expect(n).toBe(34);
+    expect(n).toBe(36);
     expect(t.id).toBe('flow-checkpoint');
     const braces = trailsInGrove('code')[0]!;
     const ks = allowedChars(braces);
@@ -70,6 +70,12 @@ describe('curriculum invariants', () => {
     const g = gateFor(MAIN_TRAILS[0]!);
     expect(g).toEqual({ passAcc: 90, star2Wpm: 15, star3Wpm: 18, star2Acc: 97, star3Acc: 100 });
     expect(gateFor(checkpointOf('flow')).star2Wpm).toBe(50);
+  });
+  it('follows spec §22: F J, D K, E I, R U before the rest of the home row', () => {
+    expect(MAIN_TRAILS.slice(0, 4).map((t) => t.newKeys)).toEqual(['fj', 'dk', 'ei', 'ru']);
+    const idx = (k: string) => MAIN_TRAILS.findIndex((t) => t.newKeys.includes(k));
+    expect(idx('s')).toBeGreaterThan(idx('u'));
+    expect(idx('c')).toBeGreaterThan(idx('p'));
   });
   it('prints the path (compare against docs/progression.md)', () => {
     const table = describePath();

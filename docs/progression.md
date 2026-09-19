@@ -2,11 +2,12 @@
 
 Design of record for the curriculum. Ishoo ADR DEC on "progression model" points here.
 Vocabulary: **Grove** = world · **Trail** = level · **Run** = one attempt at a trail's text.
+Finger map: **Relaxed QWERTY 1.0** (docs/typing-method-spec.md) — Z left ring, X left middle, C left index, B right index; Traditional selectable.
 
 ## Principles
 
 1. **Accuracy and rhythm gate, speed decorates.** You never advance on WPM. Advancement is per-key *mastery* (accuracy + steady rhythm + enough volume); WPM only earns stars.
-2. **Introduce keys by finger, in pairs, symmetric.** Each new trail adds one left-hand key and its right-hand mirror (F+J, D+K, …), so both hands learn the same reach at once.
+2. **Strong fingers first, then pairs, symmetric.** Spec §22: F J → D K → E I → R U, then the rest of the home row, then the upper row, then the lower row taught with the relaxed map. Each trail adds one left-hand key and its right-hand mirror so both hands learn the same reach at once.
 3. **Cumulative key set.** A trail's text may only use keys unlocked at or before it. This is a hard invariant, enforced by tests.
 4. **Stages come from evidence, not a counter.** Each run's text kind is picked from the current mastery of the trail's focus keys: `drill` (< 35%) → `mix` (< 70%) → `words`. A trail is **cleared** only when: ≥ 4 runs, the last two runs passed the accuracy gate, and every focus key is ≥ 80% mastery. Focus keys = the trail's new keys (+ Space on trail 1), or the 5 weakest unlocked keys on trails that add none. With ~10 presses of a new key per run this is ≥ 5 runs for a clean typist and open-ended for a sloppy one.
 5. **A coach, not a heat map.** The path is fixed and legible, but the coach watches patterns after every run and redirects: *weak key* (mastery < 50% with errors after 3+ runs) → required finger drill; *confusion pair* (typed X for Y 4+ times recently) → required alternation drill; *searching* (≥ 30% of a key's presses come after a pause ≥ 1.8× its own baseline) → reach drill offer; *rushing* (errors climb as latency drops within a run) → note + slow-mode nudge; *fatigue* (three declining runs) → note; *rusty* (a key past its review date) → review run at session start, required when 3+ keys are due or any has slipped below 50%. Required drills block the next trail run; offers are Tab. Word choice is weighted toward weak, rusty and confused keys.
@@ -25,13 +26,14 @@ Grove-level defaults (each trail can override):
 
 | Grove | passAcc | WPM target |
 |---|---|---|
-| 1 Roots | 90 % | 15 |
-| 2 Canopy | 92 % | 20 |
-| 3 Undergrowth | 94 % | 25 |
-| 4 Bark (shift + punctuation) | 95 % | 30 |
-| 5 Rings (numbers + symbols) | 95 % | 30 |
-| 6 Flow | 96 % | ladder 40 / 50 / 60 / 70 |
-| 7 Code (optional) | 96 % | 40 |
+| 1 Roots (strong fingers) | 90 % | 15 |
+| 2 Home | 91 % | 18 |
+| 3 Canopy | 92 % | 22 |
+| 4 Undergrowth (relaxed lower row) | 94 % | 27 |
+| 5 Bark (shift + punctuation) | 95 % | 32 |
+| 6 Rings (numbers + symbols) | 95 % | 32 |
+| 7 Flow | 96 % | ladder 40 / 50 / 60 / 70 |
+| 8 Code (optional) | 96 % | 40 |
 
 A **Grove checkpoint** is the last trail of each grove: a longer mixed-words run that must be ★★ (not just Pass) to open the next grove. That is the only place speed gates anything, and the target is modest.
 
@@ -39,67 +41,73 @@ A **Grove checkpoint** is the last trail of each grove: a longer mixed-words run
 
 Keys shown as `new keys` — the cumulative set is everything above it.
 
-### Grove 1 — Roots (home row)
+### Grove 1 — Roots (strong fingers)
 | # | Trail | New keys | Notes |
 |---|---|---|---|
-| 1 | Anchors | `f j` + space | Rhythm patterns `fj jf ff jj`; teach thumb space. |
-| 2 | Inner Pair | `d k` | `dk kd fd jk`… |
-| 3 | Ring Pair | `s l` | |
-| 4 | Outer Pair | `a ;` | pinkies; explicitly slower target |
-| 5 | Home Words | — | first real words: `sad lad fall ask flask salad dads` |
-| 6 | Index Reach | `g h` | index fingers stretch inward and return |
-| 7 | **Roots Checkpoint** | — | 60-char mixed words from all 10 keys |
+| 1 | Anchors | `f j` + space | Rhythm patterns; F and J are landmarks. |
+| 2 | Inner Pair | `d k` | |
+| 3 | Middle Up | `e i` | First real words: die, fee, kid. |
+| 4 | Index Up | `r u` | |
+| 5 | Core Words | — | |
+| 6 | **Roots Checkpoint** | — | ★★ opens Home |
 
-### Grove 2 — Canopy (top row)
+### Grove 2 — Home (home-row expansion)
 | # | Trail | New keys |
 |---|---|---|
-| 8 | Middle Up | `e i` |
-| 9 | Index Up | `r u` |
-| 10 | Index Stretch Up | `t y` |
-| 11 | Ring Up | `w o` |
-| 12 | Pinky Up | `q p` |
-| 13 | **Canopy Checkpoint** | — (top + home words) |
+| 7 | Ring Pair | `s l` |
+| 8 | Outer Pair | `a ;` |
+| 9 | Index Reach | `g h` |
+| 10 | Home Words | — |
+| 11 | **Home Checkpoint** | — |
 
-### Grove 3 — Undergrowth (bottom row)
+### Grove 3 — Canopy (rest of the top row)
 | # | Trail | New keys |
 |---|---|---|
-| 14 | Index Down | `v m` |
-| 15 | Index Stretch Down | `b n` |
-| 16 | Middle Down | `c ,` |
-| 17 | Ring Down | `x .` |
-| 18 | Pinky Down | `z /` |
-| 19 | **Undergrowth Checkpoint** | — full alphabet words, sentences without capitals |
+| 12 | Index Stretch Up | `t y` |
+| 13 | Ring Up | `w o` |
+| 14 | Pinky Up | `q p` |
+| 15 | **Canopy Checkpoint** | — |
 
-### Grove 4 — Bark (shift & punctuation)
+### Grove 4 — Undergrowth (lower row, relaxed map)
+| # | Trail | New keys | Notes |
+|---|---|---|---|
+| 16 | Index Down | `v m` | |
+| 17 | Index Stretch Down | `c b` | C = left index, B = right index — stated explicitly (spec §22 phase 5) |
+| 18 | Middle Down | `x ,` | X = left middle |
+| 19 | Ring Down | `z .` | Z = left ring |
+| 22 | Last Reaches | `n /` | |
+| 23 | **Undergrowth Checkpoint** | — | full alphabet, lowercase sentences |
+
+### Grove 5 — Bark (shift & punctuation)
 | # | Trail | New keys |
 |---|---|---|
-| 20 | Opposite Shift | `Shift` — right-shift for left-hand letters, left-shift for right |
-| 21 | Sentences | `.` + capitals in real sentences |
-| 22 | Quotes & Questions | `' " ? !` |
-| 23 | Dashes & Colons | `- : ( )` |
-| 24 | **Bark Checkpoint** | — paragraph of 2–3 full sentences |
+| 24 | Opposite Shift | `Shift` — right-shift for left-hand letters, left-shift for right |
+| 23 | Sentences | `.` + capitals in real sentences |
+| 24 | Quotes & Questions | `' " ? !` |
+| 25 | Dashes & Colons | `- : ( )` |
+| 26 | **Bark Checkpoint** | — paragraph of 2–3 full sentences |
 
-### Grove 5 — Rings (numbers & symbols)
+### Grove 6 — Rings (numbers & symbols)
 | # | Trail | New keys |
 |---|---|---|
-| 25 | Left Numbers | `1 2 3 4 5` |
-| 26 | Right Numbers | `6 7 8 9 0` |
-| 27 | Mixed Numbers | dates, prices, times |
-| 28 | Symbols | `@ # $ % & * = + _` |
-| 29 | **Rings Checkpoint** | — prose with numbers and symbols |
+| 27 | Left Numbers | `1 2 3 4 5` |
+| 28 | Right Numbers | `6 7 8 9 0` |
+| 29 | Mixed Numbers | dates, prices, times |
+| 30 | Symbols | `@ # $ % & * = + _` |
+| 31 | **Rings Checkpoint** | — prose with numbers and symbols |
 
-### Grove 6 — Flow (speed & endurance)
+### Grove 7 — Flow (speed & endurance)
 Same key set; texts get richer, targets climb. Each trail is a WPM ladder (40/50/60/70) — ★ at the first rung, ★★★ at the last.
 | # | Trail | Text source |
 |---|---|---|
-| 30 | Bigrams | top English bigrams/trigrams (`th he in er an re`) as rhythm |
-| 31 | Common Words | top-200 English words, shuffled |
-| 32 | Pangrams & Quotes | sentence bank |
-| 33 | Endurance | 60 s continuous paragraph |
-| 34 | **Flow Checkpoint** | — 90 s paragraph |
+| 32 | Bigrams | top English bigrams/trigrams (`th he in er an re`) as rhythm |
+| 33 | Common Words | top-200 English words, shuffled |
+| 34 | Pangrams & Quotes | sentence bank |
+| 35 | Endurance | 60 s continuous paragraph |
+| 36 | **Flow Checkpoint** | — 90 s paragraph |
 
-### Grove 7 — Code (optional side path)
-Unlocks after Grove 4. `{ } [ ] < > ; = ( ) => .` — snippets in JS/TS/Python. Never required for the main path.
+### Grove 8 — Code (optional side path)
+Unlocks after Grove 5 (Bark). `{ } [ ] < > ; = ( ) => .` — snippets in JS/TS/Python. Never required for the main path.
 
 ## Mastery model (per key)
 
@@ -146,7 +154,7 @@ Migration: v5 `stage: 3` → `cleared: true`; key stats gain review fields with 
 
 ## Invariants (tested)
 
-1. Every trail's stage-3 text bank ⊆ cumulative key set.
+1. Every trail's generated text ⊆ cumulative key set.
 2. Cumulative key sets are monotonic along the path.
 3. Every grove ends in exactly one checkpoint trail.
 4. Gates are monotonic non-decreasing across groves.

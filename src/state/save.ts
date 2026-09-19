@@ -61,10 +61,10 @@ export function sanitize(x: unknown): SaveV6 {
 
 /** v2–v4 saves: six lessons unlocked at 80%. Map cleared lessons onto the trails they covered. */
 const LESSON_TRAILS: Record<string, string[]> = {
-  home: ['anchors', 'inner-pair', 'ring-pair', 'outer-pair', 'home-words'],
-  reach: ['index-reach', 'roots-checkpoint'],
-  top: ['middle-up', 'index-up', 'index-stretch-up', 'ring-up', 'pinky-up', 'canopy-checkpoint'],
-  bottom: ['index-down', 'index-stretch-down', 'middle-down', 'ring-down', 'pinky-down', 'undergrowth-checkpoint'],
+  home: ['anchors', 'inner-pair', 'ring-pair', 'outer-pair'],
+  reach: ['index-reach'],
+  top: ['middle-up', 'index-up', 'core-words', 'roots-checkpoint', 'home-words', 'home-checkpoint', 'index-stretch-up', 'ring-up', 'pinky-up', 'canopy-checkpoint'],
+  bottom: ['index-down', 'index-stretch-down', 'middle-down', 'ring-down', 'last-reaches', 'undergrowth-checkpoint'],
   words: [], notes: [],
 };
 const FINGER_KEYS: Record<string, string> = { lp: 'qaz', lr: 'wsx', lm: 'edc', li: 'rftgvb', ri: 'yhnujm', rm: 'ik,', rr: 'ol.', rp: 'p;/' };

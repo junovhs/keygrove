@@ -89,7 +89,7 @@ function labels(): void {
   $('gateLabel').textContent = `Pass at ${gate.passAcc}% · any speed`;
   $('focusInstruction').textContent = `★★ at ${gate.star2Wpm} WPM\n★★★ at ${gate.star3Wpm} WPM\n100% accuracy${state.settings.slowMode ? '\nslow mode on' : ''}`;
   $('message').innerHTML = run.status === 'playing' ? '<strong>Typing is live.</strong> Every letter key is typing only.' : '<strong>Just type</strong> to begin. Enter also starts. Tab opens trouble-spot practice. M opens the grove map.';
-  $('unlockText').textContent = f || mode.kind === 'coach' ? 'Space returns to your trail.' : `Grove ${g.n} of 6 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
+  $('unlockText').textContent = f || mode.kind === 'coach' ? 'Space returns to your trail.' : `Grove ${g.n} of 7 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
 }
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
 const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true, orb: false });

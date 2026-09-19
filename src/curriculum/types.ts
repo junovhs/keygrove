@@ -7,7 +7,7 @@ export type TextKind =
   | 'rhythm' | 'words' | 'lower-sentences' | 'caps' | 'sentences'
   | 'numbers' | 'symbols' | 'bigrams' | 'top' | 'quotes' | 'long' | 'code';
 
-export type GroveId = 'roots' | 'canopy' | 'undergrowth' | 'bark' | 'rings' | 'flow' | 'code';
+export type GroveId = 'roots' | 'home' | 'canopy' | 'undergrowth' | 'bark' | 'rings' | 'flow' | 'code';
 
 /** A world on the map. Gate numbers here are defaults; a trail may override. */
 export interface Grove {

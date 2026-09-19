@@ -30,7 +30,7 @@ describe('save v6', () => {
     const s = migrateV4(V4);
     expect(s.v).toBe(6);
     expect(s.trails['anchors']).toMatchObject({ cleared: true, stars: 1 });
-    expect(s.trails['roots-checkpoint']).toMatchObject({ cleared: true, stars: 2 });
+    expect(s.trails['index-reach']).toMatchObject({ cleared: true, stars: 1 });
     expect(s.trails['middle-up']).toBeUndefined();
     expect(s.trail).toBe('middle-up');
     expect(s.stats).toMatchObject({ runs: 12, chars: 500, xp: 420, bestWpm: 31, bestCombo: 19 });
