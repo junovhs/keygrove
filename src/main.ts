@@ -3,6 +3,7 @@ import { FINGERS, fingerById, fingerForKey, remedialText, type Finger } from './
 import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { decide, readout, sessionReview, type Decision } from './engine/coach';
+import { classifyRun, explain, rollTally } from './engine/errors';
 import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { rankFor } from './engine/scoring';
@@ -223,7 +224,10 @@ function finish(): void {
     stars = outcome.stars; xp = outcome.xp;
     const gateNums = gateFor(t);
     const unlocked = [...allowedChars(t)].filter((k) => k.length === 1 && k === k.toLowerCase());
-    decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm, runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent });
+    const errors = classifyRun(run.text, run.strokes, activeMethod());
+    state.errors = rollTally(state.errors, errors);
+    const missedKeys = [...new Set(run.strokes.filter((s) => !s.correct).map((s) => s.key.toLowerCase()))];
+    decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm, runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent, errors, missedKeys });
     gate = decisions.find((d) => d.required) ?? null;
     if (!outcome.passed) {
       title = 'Not yet.'; copy = `Accuracy ${m.acc}% — this trail needs ${gateNums.passAcc}%. Speed never mattered here.`;
@@ -237,6 +241,8 @@ function finish(): void {
       else copy = `Run ${p.runs} done. Still to master: ${outcome.blockers.join(' · ')}.` + rhythmNote;
       void gateNums;
     }
+    const why = explain(errors);
+    if (why) copy += ' ' + why;
     $('resultMastery').innerHTML = masteryHtml(p.cleared ? 'mastered' : `mastered at ${Math.round(MASTERED * 100)}% each · ${outcome.blockers.length ? 'blocking: ' + outcome.blockers.join(', ') : 'ready'}`);
   } else {
     title = m.acc >= 95 ? 'Clean drill.' : 'Drill done.';

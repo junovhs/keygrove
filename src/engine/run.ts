@@ -2,7 +2,8 @@ import { accOf, wpmOf } from './scoring';
 
 export type RunStatus = 'idle' | 'playing' | 'complete';
 export type KeyOutcome = 'ok' | 'miss' | 'done' | 'space-wait' | 'ignored';
-export interface Keystroke { key: string; correct: boolean; latencyMs: number }
+/** `key` is what the text wanted at `index`; `typed` is what was pressed. */
+export interface Keystroke { key: string; typed: string; index: number; correct: boolean; latencyMs: number }
 
 /** One attempt at a text. Pure: no DOM, no clock of its own (pass `now`). */
 export class Run {
@@ -26,7 +27,7 @@ export class Run {
     const latencyMs = now - this.lastKeyAt; this.lastKeyAt = now;
     this.attempts++;
     const ok = k === want;
-    this.strokes.push({ key: want, correct: ok, latencyMs });
+    this.strokes.push({ key: want, typed: k, index: this.pos, correct: ok, latencyMs });
     if (ok) {
       this.hits++; this.pos++; this.combo++; this.maxCombo = Math.max(this.maxCombo, this.combo); this.wrong = false;
       if (this.pos === this.text.length) { this.status = 'complete'; this.end = now; return 'done'; }

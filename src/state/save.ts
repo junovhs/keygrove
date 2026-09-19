@@ -1,6 +1,7 @@
 import { MAIN_TRAILS, TRAILS, trailById } from '../curriculum';
 import { KeyModel, type Confusions, type KeyStats } from '../engine/keymodel';
 import { DEFAULT_METHOD_ID, METHODS } from '../curriculum/method';
+import { ERROR_CLASSES, emptyTally, type ErrorTally } from '../engine/errors';
 
 export const KEY = 'keygrove.v6';
 const PREV_V5 = 'keygrove.v5';
@@ -19,6 +20,8 @@ export interface SaveV6 {
   confusions: Confusions;
   stats: Stats;
   settings: Settings;
+  /** Rolling error-class tally (§29), decayed per run. */
+  errors: ErrorTally;
 }
 /** @deprecated alias kept while callers migrate. */
 export type SaveV5 = SaveV6;
@@ -28,6 +31,7 @@ export const fresh = (): SaveV6 => ({
   v: 6, trail: MAIN_TRAILS[0]!.id, trails: {}, keys: {}, confusions: {},
   stats: { runs: 0, chars: 0, attempts: 0, bestWpm: 0, bestAcc: 0, xp: 0, days: 0, lastDay: '', bestCombo: 0 },
   settings: { guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID, onboarded: false },
+  errors: emptyTally(),
 });
 
 const num = (v: unknown, max = Infinity): number => Math.min(max, Math.max(0, Number(v) || 0));
@@ -59,6 +63,8 @@ export function sanitize(x: unknown): SaveV6 {
   // A save written before the question existed has already chosen by playing: never ask it.
   s.settings.onboarded = typeof st.onboarded === 'boolean' ? st.onboarded : true;
   if (typeof st.method === 'string' && METHODS.some((m) => m.id === st.method)) s.settings.method = st.method;
+  const er = (o.errors && typeof o.errors === 'object' ? o.errors : {}) as Record<string, unknown>;
+  for (const c of ERROR_CLASSES) s.errors[c] = num(er[c], 999);
   return s;
 }
 

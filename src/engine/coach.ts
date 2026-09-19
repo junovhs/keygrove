@@ -1,6 +1,7 @@
+import { dominant, type ErrorTally } from './errors';
 import { KeyModel, MASTERED } from './keymodel';
 
-export type DecisionKind = 'remedial' | 'confusion' | 'reach' | 'rushing' | 'review' | 'fatigue' | 'steady';
+export type DecisionKind = 'remedial' | 'confusion' | 'reach' | 'rushing' | 'review' | 'fatigue' | 'steady' | 'anticipation' | 'precision';
 /** What the coach wants next. `required` decisions gate the next trail run. */
 export interface Decision { kind: DecisionKind; required: boolean; keys: string[]; reason: string; title: string }
 
@@ -11,6 +12,8 @@ export interface RunSummary {
   /** Trail-level context. */
   runsOnTrail: number; focusKeys: string[]; unlocked: string[]; passed: boolean; fails: number;
   recentAcc: number[];
+  /** This run's misses by class (§29) and the keys they landed on, wanted → count. Optional for callers without strokes. */
+  errors?: ErrorTally; missedKeys?: string[];
 }
 
 const up = (k: string) => (k === ' ' ? 'Space' : k.toUpperCase());
@@ -38,6 +41,14 @@ export function decide(model: KeyModel, r: RunSummary, now = Date.now()): Decisi
   // Searching: pauses before a key.
   const srch = model.searching(letters)[0];
   if (srch && !out.some((d) => d.keys.includes(srch.key))) out.push({ kind: 'reach', required: false, keys: [srch.key], title: `You pause before ${up(srch.key)}`, reason: `${pct(srch.spikes)} of ${up(srch.key)} presses come after a search pause. A reach drill builds the reflex.` });
+  // Error class (§29): when one kind explains most misses, the drill matches the cause.
+  const dom = r.errors ? dominant(r.errors, 3, 0.4) : null;
+  if (dom && !out.some((d) => d.required)) {
+    const missed = (r.missedKeys ?? []).filter((k) => letters.includes(k));
+    const drill = missed.length ? missed.slice(0, 4) : letters.slice(0, 4);
+    if (dom.cls === 'anticipation') out.push({ kind: 'anticipation', required: false, keys: drill, title: 'You are reading ahead of your hands', reason: `${dom.count} of ${dom.total} misses were a later letter typed early. A steady drill on ${drill.map(up).join(' ')}: one key, then the next, at one pace.` });
+    else if (dom.cls === 'neighbour') out.push({ kind: 'precision', required: false, keys: drill, title: 'Landing a key over', reason: `${dom.count} of ${dom.total} misses hit a neighbouring key. A precision drill on ${drill.map(up).join(' ')}: slower, and let the finger settle before it presses.` });
+  }
   // Rushing: errors pile up as speed climbs.
   if (r.thirds.length === 3) {
     const [a, , z] = r.thirds as [RunSummary['thirds'][0], RunSummary['thirds'][0], RunSummary['thirds'][0]];
