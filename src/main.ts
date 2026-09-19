@@ -1,4 +1,4 @@
-import { allowedChars, gateFor, groveOf, trailsInGrove, type Trail } from './curriculum';
+import { allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type Trail } from './curriculum';
 import { FINGERS, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
 import { METHODS, activeMethod, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
@@ -80,7 +80,7 @@ function labels(): void {
     $('lessonCopy').textContent = mode.decision.reason + (mode.decision.required ? ' Required before the next trail run.' : '');
   } else {
     $('lessonTitle').textContent = t.name;
-    $('lessonCopy').textContent = (t.blurb ?? g.blurb) + ' ' + (p.cleared ? 'Cleared — replay for more stars.' : stageCopy[stageName()]);
+    $('lessonCopy').textContent = resolveCopy(t.blurb ?? g.blurb) + ' ' + (p.cleared ? 'Cleared — replay for more stars.' : stageCopy[stageName()]);
   }
   const focus = focusKeys(t, keys);
   const mastered = readout(keys, focus).filter((r) => r.mastered).length;

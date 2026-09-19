@@ -21,7 +21,7 @@ export interface TypingMethod {
 const NUMBERS: Record<string, FingerId> = { '1': 'lp', '2': 'lr', '3': 'lm', '4': 'li', '5': 'li', '6': 'ri', '7': 'ri', '8': 'rm', '9': 'rr', '0': 'rp' };
 const RIGHT_PINKY_EXTRAS: Record<string, FingerId> = { '-': 'rp', '=': 'rp', '[': 'rp', ']': 'rp', "'": 'rp', '\\': 'rp' };
 const COMMON: Record<string, FingerId> = {
-  q: 'lp', a: 'lp', w: 'lr', s: 'lr', e: 'lm', d: 'lm', r: 'li', f: 'li', t: 'li', g: 'li', v: 'li',
+  q: 'lp', a: 'lp', '`': 'lp', w: 'lr', s: 'lr', e: 'lm', d: 'lm', r: 'li', f: 'li', t: 'li', g: 'li', v: 'li',
   y: 'ri', u: 'ri', h: 'ri', j: 'ri', n: 'ri', m: 'ri', i: 'rm', k: 'rm', ',': 'rm', o: 'rr', l: 'rr', '.': 'rr', p: 'rp', ';': 'rp', '/': 'rp',
   ' ': 'thumb', ...NUMBERS, ...RIGHT_PINKY_EXTRAS,
 };

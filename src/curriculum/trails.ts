@@ -31,11 +31,11 @@ const SPECS: Omit<Trail, 'n'>[] = [
     { name: 'Canopy Checkpoint', newKeys: '', checkpoint: true, kind: 'words', length: 70 },
   ]),
   ...grove('undergrowth', [
-    { name: 'Index Down', newKeys: 'vm', kind: 'words', length: 46, blurb: 'V is left index, M is right index.' },
-    { name: 'Index Stretch Down', newKeys: 'cb', kind: 'words', length: 46, blurb: 'Relaxed QWERTY: C is the LEFT INDEX, B is the RIGHT INDEX. Follow the stagger, not the column.' },
-    { name: 'Middle Down', newKeys: 'x,', kind: 'words', length: 46, blurb: 'X is the left middle finger, comma the right middle.' },
-    { name: 'Ring Down', newKeys: 'z.', kind: 'words', length: 46, blurb: 'Z is the LEFT RING finger — not the pinky. Period is the right ring.' },
-    { name: 'Last Reaches', newKeys: 'n/', kind: 'words', length: 46, blurb: 'N joins the right index; slash is the right pinky.' },
+    { name: 'Index Down', newKeys: 'vm', kind: 'words', length: 46, blurb: 'V is the {v}, M is the {m}.' },
+    { name: 'Index Stretch Down', newKeys: 'cb', kind: 'words', length: 46, blurb: 'C is the {C}, B is the {B}. Follow the stagger, not the column.' },
+    { name: 'Middle Down', newKeys: 'x,', kind: 'words', length: 46, blurb: 'X is the {x}, comma the {,}.' },
+    { name: 'Ring Down', newKeys: 'z.', kind: 'words', length: 46, blurb: 'Z is the {Z}. Period is the {.}.' },
+    { name: 'Last Reaches', newKeys: 'n/', kind: 'words', length: 46, blurb: 'N joins the {n}; slash is the {/}.' },
     { name: 'Undergrowth Checkpoint', newKeys: '', checkpoint: true, kind: 'lower-sentences', length: 80, blurb: 'Full alphabet. Lowercase sentences, no shift yet.' },
   ]),
   ...grove('bark', [

@@ -67,6 +67,11 @@ const LESSON_TRAILS: Record<string, string[]> = {
   bottom: ['index-down', 'index-stretch-down', 'middle-down', 'ring-down', 'last-reaches', 'undergrowth-checkpoint'],
   words: [], notes: [],
 };
+/**
+ * Ownership as taught by the v2–v4 app (traditional touch typing: Z pinky, X ring, C middle, V/B left index).
+ * Used ONLY to convert legacy per-finger stats into per-key stats. Deliberately not the live method table —
+ * replacing it with activeMethod() would mis-attribute historical evidence.
+ */
 const FINGER_KEYS: Record<string, string> = { lp: 'qaz', lr: 'wsx', lm: 'edc', li: 'rftgvb', ri: 'yhnujm', rm: 'ik,', rr: 'ol.', rp: 'p;/' };
 
 export function migrateV4(raw: unknown): SaveV6 {

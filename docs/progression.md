@@ -29,10 +29,10 @@ Grove-level defaults (each trail can override):
 |---|---|---|
 | 1 Roots (strong fingers) | 90 % | 15 |
 | 2 Home | 91 % | 18 |
-| 3 Canopy | 92 % | 22 |
-| 4 Undergrowth (relaxed lower row) | 94 % | 27 |
-| 5 Bark (shift + punctuation) | 95 % | 32 |
-| 6 Rings (numbers + symbols) | 95 % | 32 |
+| 3 Canopy | 92 % | 20 |
+| 4 Undergrowth (relaxed lower row) | 94 % | 25 |
+| 5 Bark (shift + punctuation) | 95 % | 30 |
+| 6 Rings (numbers + symbols) | 95 % | 30 |
 | 7 Flow | 96 % | ladder 40 / 50 / 60 / 70 |
 | 8 Code (optional) | 96 % | 40 |
 
@@ -76,13 +76,13 @@ Keys shown as `new keys` — the cumulative set is everything above it.
 | 17 | Index Stretch Down | `c b` | C = left index, B = right index — stated explicitly (spec §22 phase 5) |
 | 18 | Middle Down | `x ,` | X = left middle |
 | 19 | Ring Down | `z .` | Z = left ring |
-| 22 | Last Reaches | `n /` | |
-| 23 | **Undergrowth Checkpoint** | — | full alphabet, lowercase sentences |
+| 20 | Last Reaches | `n /` | |
+| 21 | **Undergrowth Checkpoint** | — | full alphabet, lowercase sentences |
 
 ### Grove 5 — Bark (shift & punctuation)
 | # | Trail | New keys |
 |---|---|---|
-| 24 | Opposite Shift | `Shift` — right-shift for left-hand letters, left-shift for right |
+| 22 | Opposite Shift | `Shift` — right-shift for left-hand letters, left-shift for right |
 | 23 | Sentences | `.` + capitals in real sentences |
 | 24 | Quotes & Questions | `' " ? !` |
 | 25 | Dashes & Colons | `- : ( )` |
@@ -98,7 +98,7 @@ Keys shown as `new keys` — the cumulative set is everything above it.
 | 31 | **Rings Checkpoint** | — prose with numbers and symbols |
 
 ### Grove 7 — Flow (speed & endurance)
-Same key set; texts get richer, targets climb. Each trail is a WPM ladder (40/50/60/70) — ★ at the first rung, ★★★ at the last.
+Same key set; texts get richer. The grove's 40/50/60/70 WPM ladder is only the *swift* reference for the XP bonus — stars here are accuracy + rhythm like everywhere else.
 | # | Trail | Text source |
 |---|---|---|
 | 32 | Bigrams | top English bigrams/trigrams (`th he in er an re`) as rhythm |
@@ -135,7 +135,7 @@ Unlocks after Grove 5 (Bark). `{ } [ ] < > ; = ( ) => .` — snippets in JS/TS/P
 
 ## Economy
 
-- **XP** per run = `(hits × (acc/100)² + 2·⌊maxCombo/8⌋) × (1 + swift)`, ×1.5 on a first-time trail clear. `swift` = min(1, wpm / 2·reference). (Current formula, with the accuracy term squared so sloppy speed pays less.)
+- **XP** per run = `(hits × (acc/100)² + 2·⌊maxCombo/8⌋) × (1 + swift)`, ×1.5 on a first-time trail clear. `swift` = min(1, wpm / 2·reference). 
 - **Ranks** by total XP: Seed 0 · Sprout 500 · Sapling 2 000 · Young Tree 6 000 · Tree 15 000 · Grove 35 000 · Old Growth 80 000.
 - **Streak** = consecutive calendar days with ≥ 1 run (today's "≥90 % runs in a row" counter becomes *combo streak*, shown on the result card only).
 
@@ -145,14 +145,14 @@ Unlocks after Grove 5 (Bark). `{ } [ ] < > ; = ( ) => .` — snippets in JS/TS/P
 interface SaveV6 {
   v: 6;
   trail: TrailId;                               // current
-  trails: Record<TrailId, { runs: number; cleared: boolean; stars: 0|1|2|3; bestWpm: number; bestAcc: number; fails: number; recent: number[] }>;
+  trails: Record<TrailId, { runs: number; cleared: boolean; stars: 0|1|2|3; bestWpm: number; bestAcc: number; fails: number; recent: number[]; cleanStreak: number }>;
   keys: Record<string, KeyStat>;                // see Mastery model
-  confusions: Record<'k>d', number>;
+  confusions: Record<'k>d', number>;            // wanted>typed substitution counts
   stats: { runs; chars; attempts; bestWpm; bestAcc; xp; days: number; lastDay: string; bestCombo };
-  settings: { slowMode: boolean; guideStrong: boolean; reviewOn: boolean; codeGrove: boolean };
+  settings: { guideStrong: boolean; reviewOn: boolean; codeGrove: boolean; method: string };  // method = TypingMethod id, e.g. 'relaxed-qwerty@1.0'
 }
 ```
-Migration: v5 `stage: 3` → `cleared: true`; key stats gain review fields with defaults. v4 `completed[]` → cleared trails; `fingerStats` → seeded key error rates.
+Migration into v6: v5 `stage: 3` → `cleared: true`, key stats gain review fields with defaults, `settings.method` defaults to relaxed-qwerty@1.0. v2–v4 `completed[]` → cleared trails; `fingerStats` → seeded key error rates using the *traditional* ownership those versions taught (see the comment in save.ts).
 
 ## Invariants (tested)
 

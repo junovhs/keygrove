@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { METHODS, RELAXED_QWERTY, TRADITIONAL, fingerOf, homeOf, keysOf, mirrorOf, setMethod, activeMethod, DEFAULT_METHOD_ID } from './method';
 import { fingerForKey, fingers } from './fingers';
 
-const KEYS = "abcdefghijklmnopqrstuvwxyz0123456789;,./-=[]'\\ ";
+const KEYS = "abcdefghijklmnopqrstuvwxyz0123456789;,./-=[]'\\` ";
 
 describe('typing methods (spec §44, §63)', () => {
   it('every method covers every key exactly once, with eight fingers plus thumb', () => {
@@ -13,7 +13,8 @@ describe('typing methods (spec §44, §63)', () => {
     }
   });
   it('relaxed qwerty 1.0 is the spec map; traditional differs only on Z X C B', () => {
-    expect(keysOf('lp', RELAXED_QWERTY).sort()).toEqual(['1', 'a', 'q']);
+    expect(keysOf('lp', RELAXED_QWERTY).sort()).toEqual(['1', '`', 'a', 'q']);
+    expect(fingerOf('~')).toBe('lp');
     expect(keysOf('lr', RELAXED_QWERTY).sort()).toEqual(['2', 's', 'w', 'z']);
     expect(keysOf('lm', RELAXED_QWERTY).sort()).toEqual(['3', 'd', 'e', 'x']);
     expect(keysOf('li', RELAXED_QWERTY).sort()).toEqual(['4', '5', 'c', 'f', 'g', 'r', 't', 'v']);
@@ -35,5 +36,18 @@ describe('typing methods (spec §44, §63)', () => {
     setMethod('nope');
     expect(activeMethod().id).toBe(DEFAULT_METHOD_ID);
     expect(fingerForKey('c')?.id).toBe('li');
+  });
+});
+
+describe('method-aware lesson copy', () => {
+  it('resolves finger placeholders under whichever method is active', async () => {
+    const { resolveCopy, trailById } = await import('./index');
+    setMethod(RELAXED_QWERTY.id);
+    expect(resolveCopy(trailById('index-stretch-down').blurb)).toBe('C is the LEFT INDEX, B is the RIGHT INDEX. Follow the stagger, not the column.');
+    expect(resolveCopy(trailById('ring-down').blurb)).toBe('Z is the LEFT RING. Period is the right ring.');
+    setMethod(TRADITIONAL.id);
+    expect(resolveCopy(trailById('index-stretch-down').blurb)).toBe('C is the LEFT MIDDLE, B is the LEFT INDEX. Follow the stagger, not the column.');
+    expect(resolveCopy(trailById('ring-down').blurb)).toBe('Z is the LEFT PINKY. Period is the right ring.');
+    setMethod(RELAXED_QWERTY.id);
   });
 });

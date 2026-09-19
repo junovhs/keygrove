@@ -1,8 +1,24 @@
 import { GROVES, groveById } from './groves';
+import { fingerOf, handOf, type FingerId } from './method';
 import { TRAILS, MAIN_TRAILS } from './trails';
 import type { Gate, Grove, Trail } from './types';
 
 export { GROVES, groveById, TRAILS, MAIN_TRAILS };
+
+const FINGER_WORD: Record<FingerId, string> = { lp: 'pinky', lr: 'ring', lm: 'middle', li: 'index', ri: 'index', rm: 'middle', rr: 'ring', rp: 'pinky', thumb: 'thumb' };
+/**
+ * Resolve finger placeholders in lesson copy against the active method: `{c}` → 'left index',
+ * `{C}` → 'LEFT INDEX', `{,}` → 'right middle'. Copy never hard-codes a finger (spec §44).
+ */
+export function resolveCopy(text: string | undefined): string {
+  if (!text) return '';
+  return text.replace(/\{(.)\}/g, (_m, ch: string) => {
+    const id = fingerOf(ch.toLowerCase());
+    if (!id) return ch;
+    const name = id === 'thumb' ? 'thumb' : `${handOf(id)} ${FINGER_WORD[id]}`;
+    return ch === ch.toUpperCase() && ch !== ch.toLowerCase() ? name.toUpperCase() : name;
+  });
+}
 export type * from './types';
 export { STAGES } from './types';
 
