@@ -1,0 +1,269 @@
+// Progress, kept with the account.
+//
+// The account exists so the grove you have grown is there on the next
+// machine. The rules follow CropASAP's size sync (cropasap/src/size-sync.ts):
+//
+//   - Local storage stays the store the app reads. Sync copies into and out of
+//     it through the `local` port; nothing else in the app knows an account exists.
+//   - The first time an account is used on a device, what was already here is
+//     merged in, so signing in never loses a run you made as a guest.
+//   - After that, the account's copy is the truth: signing in adopts it, a
+//     local write pushes it, and a push that lost a race pulls, merges and
+//     pushes again.
+//   - Signing out puts the guest's own progress back, so the next person at
+//     this keyboard does not inherit yours.
+//   - Every failure is a note on the account card, never a broken app.
+
+import type { Session } from '@supabase/supabase-js';
+import type { KeyStat } from '../engine/keymodel';
+import { fresh, sanitize, type SaveV6, type TrailProgress } from './save';
+import type { Client } from './supabase';
+
+/** What the account row holds: a SaveV6 under a schema version of its own. */
+export interface ProgressState { schemaVersion: 1; save: SaveV6 }
+
+export type SyncStatus =
+  | { kind: 'off' }
+  | { kind: 'syncing' }
+  | { kind: 'synced'; runs: number }
+  | { kind: 'unavailable'; reason: 'not-installed' | 'offline' | 'error' };
+
+const TABLE = 'keygrove_progress';
+const SAVE_RPC = 'keygrove_save_progress';
+const GUEST_KEY = 'keygrove.sync.guest';
+const SEEN_KEY = (userId: string): string => `keygrove.sync.${userId}`;
+/** Local writes within this window collapse into one push. */
+const PUSH_DELAY_MS = 800;
+
+/** What the account holds, read defensively: anything malformed reads as a fresh save. */
+export function readProgressState(value: unknown): ProgressState {
+  if (!value || typeof value !== 'object') return { schemaVersion: 1, save: fresh() };
+  const candidate = value as Partial<ProgressState>;
+  if (candidate.schemaVersion !== 1) return { schemaVersion: 1, save: fresh() };
+  return { schemaVersion: 1, save: sanitize(candidate.save) };
+}
+
+export const toProgressState = (save: SaveV6): ProgressState => ({ schemaVersion: 1, save: sanitize(save) });
+
+const totalRuns = (s: SaveV6): number => s.stats.runs;
+
+/** Two records of the same trail: the best of each, run-order fields from the side that has run it more. */
+function mergeTrail(a: TrailProgress, b: TrailProgress): TrailProgress {
+  const lead = a.runs >= b.runs ? a : b;
+  return {
+    runs: Math.max(a.runs, b.runs),
+    cleared: a.cleared || b.cleared,
+    stars: Math.max(a.stars, b.stars) as 0 | 1 | 2 | 3,
+    bestWpm: Math.max(a.bestWpm, b.bestWpm),
+    bestAcc: Math.max(a.bestAcc, b.bestAcc),
+    fails: Math.max(a.fails, b.fails),
+    recent: [...lead.recent],
+    cleanStreak: lead.cleanStreak,
+  };
+}
+
+/** Per-key stats are EMAs that cannot be added; the side with more evidence is the one to keep. */
+const mergeKey = (a: KeyStat, b: KeyStat): KeyStat => ({ ...(a.seen >= b.seen ? a : b) });
+
+/**
+ * Union of two saves. Progress only ever grows: every trail keeps its best,
+ * every key keeps the richer record, lifetime stats take the larger value, and
+ * confusion counts add. Settings and the current trail are the local ones —
+ * a device preference, and the place this person was just working — unless
+ * the remote side has done much more, in which case its position wins.
+ */
+export function mergeProgress(local: SaveV6, remote: SaveV6): SaveV6 {
+  const out = fresh();
+  const remoteLeads = totalRuns(remote) > totalRuns(local);
+  out.trail = remoteLeads ? remote.trail : local.trail;
+  for (const id of new Set([...Object.keys(local.trails), ...Object.keys(remote.trails)])) {
+    const a = local.trails[id], b = remote.trails[id];
+    out.trails[id] = a && b ? mergeTrail(a, b) : { ...(a ?? b)! };
+  }
+  for (const k of new Set([...Object.keys(local.keys), ...Object.keys(remote.keys)])) {
+    const a = local.keys[k], b = remote.keys[k];
+    out.keys[k] = a && b ? mergeKey(a, b) : { ...(a ?? b)! };
+  }
+  for (const k of new Set([...Object.keys(local.confusions), ...Object.keys(remote.confusions)])) {
+    out.confusions[k] = (local.confusions[k] ?? 0) + (remote.confusions[k] ?? 0);
+  }
+  for (const k of ['runs', 'chars', 'attempts', 'bestWpm', 'bestAcc', 'xp', 'days', 'bestCombo'] as const) {
+    out.stats[k] = Math.max(local.stats[k], remote.stats[k]);
+  }
+  out.stats.lastDay = local.stats.lastDay > remote.stats.lastDay ? local.stats.lastDay : remote.stats.lastDay;
+  out.settings = { ...local.settings };
+  return sanitize(out);
+}
+
+export function sameProgress(a: SaveV6, b: SaveV6): boolean {
+  return JSON.stringify(sanitize(a)) === JSON.stringify(sanitize(b));
+}
+
+const errorCode = (error: unknown): string =>
+  typeof error === 'object' && error !== null && 'code' in error ? String((error as { code: unknown }).code) : '';
+
+/** The table or function is not there: the migration has not been applied. */
+const notInstalled = (error: unknown): boolean => {
+  const code = errorCode(error);
+  // 42P01 undefined_table, 42883 undefined_function, PGRST202 function not in schema cache, PGRST205 table not in schema cache
+  return code === '42P01' || code === '42883' || code === 'PGRST202' || code === 'PGRST205';
+};
+
+/** The app's own store, as sync sees it. `write` must not call back into `wrote`. */
+export interface LocalProgress {
+  read(): SaveV6;
+  /** Replace what the device holds with the account's copy; the app re-renders from it. */
+  write(save: SaveV6): void;
+}
+
+export interface ProgressSync {
+  /** Tell sync who is signed in; null on sign-out. */
+  session(session: Session | null, client: Client): void;
+  /** The app saved locally; push after a short quiet period. */
+  wrote(): void;
+  onStatus(listener: (status: SyncStatus) => void): void;
+  status(): SyncStatus;
+}
+
+export function createProgressSync(local: LocalProgress): ProgressSync {
+  let client: Client | null = null;
+  let userId: string | null = null;
+  let revision = 0;
+  let status: SyncStatus = { kind: 'off' };
+  let pushTimer: ReturnType<typeof setTimeout> | undefined;
+  let pushing: Promise<void> | null = null;
+  let dirty = false;
+  const listeners = new Set<(status: SyncStatus) => void>();
+
+  const setStatus = (next: SyncStatus): void => {
+    status = next;
+    for (const listener of listeners) listener(next);
+  };
+
+  const applyRemote = (save: SaveV6): void => {
+    if (sameProgress(local.read(), save)) return;
+    local.write(save);
+  };
+
+  const read = (name: string): string | null => {
+    try { return localStorage.getItem(name); } catch { return null; }
+  };
+  const store = (name: string, value: string | null): void => {
+    try {
+      if (value === null) localStorage.removeItem(name);
+      else localStorage.setItem(name, value);
+    } catch { /* private mode: sync still works for this session */ }
+  };
+
+  const failed = (error: unknown): void => {
+    const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+    setStatus({ kind: 'unavailable', reason: notInstalled(error) ? 'not-installed' : offline ? 'offline' : 'error' });
+  };
+
+  /** The account's row, or null when the account has none yet. */
+  const pull = async (): Promise<{ save: SaveV6; revision: number } | null> => {
+    if (!client || !userId) return null;
+    const { data, error } = await client.from(TABLE).select('state, revision').eq('user_id', userId).maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return { save: readProgressState(data.state).save, revision: Number(data.revision) || 0 };
+  };
+
+  const push = async (save: SaveV6): Promise<void> => {
+    if (!client) return;
+    const { data, error } = await client.rpc(SAVE_RPC, { expected_revision: revision, next_state: toProgressState(save) });
+    if (error) throw error;
+    revision = Number((data as { revision?: unknown } | null)?.revision) || revision + 1;
+  };
+
+  /** Push what is local; on a lost race, take the account's copy in, merge, and push that. */
+  const flush = async (): Promise<void> => {
+    if (!client || !userId) return;
+    if (pushing) { dirty = true; return; }
+    dirty = false;
+    setStatus({ kind: 'syncing' });
+    pushing = (async () => {
+      try {
+        let save = local.read();
+        try {
+          await push(save);
+        } catch (error) {
+          if (errorCode(error) !== 'PT409') throw error;
+          const remote = await pull();
+          if (remote) {
+            revision = remote.revision;
+            save = mergeProgress(save, remote.save);
+            applyRemote(save);
+          }
+          await push(save);
+        }
+        setStatus({ kind: 'synced', runs: totalRuns(save) });
+      } catch (error) {
+        dirty = true;
+        failed(error);
+      } finally {
+        pushing = null;
+        if (dirty && status.kind !== 'unavailable') void flush();
+      }
+    })();
+    await pushing;
+  };
+
+  const schedulePush = (): void => {
+    if (!userId) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => void flush(), PUSH_DELAY_MS);
+  };
+
+  /** Sign-in: bring the account's progress here, merging on first use of this device. */
+  const activate = async (id: string): Promise<void> => {
+    userId = id;
+    revision = 0;
+    setStatus({ kind: 'syncing' });
+    const firstTimeHere = read(SEEN_KEY(id)) === null;
+    // What the guest had, kept aside for sign-out. Once per sign-in.
+    if (read(GUEST_KEY) === null) store(GUEST_KEY, JSON.stringify(local.read()));
+    try {
+      const remote = await pull();
+      if (remote) revision = remote.revision;
+      const here = local.read();
+      const merged = firstTimeHere || !remote ? mergeProgress(here, remote?.save ?? fresh()) : remote.save;
+      applyRemote(merged);
+      store(SEEN_KEY(id), '1');
+      if (!remote || !sameProgress(merged, remote.save)) await push(merged);
+      setStatus({ kind: 'synced', runs: totalRuns(merged) });
+    } catch (error) {
+      failed(error);
+    }
+  };
+
+  /** Sign-out: the guest's own progress comes back. */
+  const deactivate = (): void => {
+    userId = null;
+    revision = 0;
+    clearTimeout(pushTimer);
+    const guest = read(GUEST_KEY);
+    if (guest !== null) {
+      try { applyRemote(sanitize(JSON.parse(guest))); } catch { /* keep what is here */ }
+      store(GUEST_KEY, null);
+    }
+    setStatus({ kind: 'off' });
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => { if (userId && status.kind === 'unavailable' && status.reason === 'offline') void flush(); });
+  }
+
+  return {
+    session(session, loaded) {
+      client = loaded;
+      const next = session?.user.id ?? null;
+      if (next === userId) return;
+      if (next) void activate(next);
+      else deactivate();
+    },
+    wrote: schedulePush,
+    onStatus(listener) { listeners.add(listener); listener(status); },
+    status: () => status,
+  };
+}
