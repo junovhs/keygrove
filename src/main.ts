@@ -69,14 +69,15 @@ function labels(): void {
     $('lessonTitle').textContent = t.name;
     $('lessonCopy').textContent = (t.blurb ?? g.blurb) + ' ' + (p.stage >= 3 ? 'Cleared — replay for more stars.' : stageCopy[stageName()]);
   }
-  $('summaryLabel').textContent = f ? 'Trouble spot' : 'Pass gate';
-  $('focusName').textContent = f ? f.full : `${gate.passAcc}% accuracy`;
-  $('focusInstruction').textContent = f ? 'Isolate this finger briefly, then go back to the trail.' : `Any speed passes. ★★ at ${gate.star2Wpm} WPM / 97%, ★★★ at ${gate.star3Wpm} WPM / 100%.${t.checkpoint ? ' This checkpoint needs ★★ to open the next grove.' : ''}${state.settings.slowMode ? ' Slow mode is on.' : ''}`;
+  $('summaryLabel').textContent = f ? 'Trouble spot' : 'Lesson goal';
+  $('focusName').textContent = f ? f.full : t.checkpoint ? 'Clear it with ★★ to open the next grove.' : p.stage >= 3 ? 'Cleared. Replay for more stars.' : 'Build accuracy and consistency.';
+  $('gateLabel').textContent = `Pass at ${gate.passAcc}% · any speed`;
+  $('focusInstruction').textContent = `★★ at ${gate.star2Wpm} WPM\n★★★ at ${gate.star3Wpm} WPM\n100% accuracy${state.settings.slowMode ? '\nslow mode on' : ''}`;
   $('message').innerHTML = run.status === 'playing' ? '<strong>Typing is live.</strong> Every letter key is typing only.' : '<strong>Just type</strong> to begin. Enter also starts. Tab opens trouble-spot practice. M opens the grove map.';
   $('unlockText').textContent = f || mode.kind === 'warmup' ? 'Space returns to your trail.' : `Grove ${g.n} of 6 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
 }
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
-const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'));
+const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true });
 function prompt(): void {
   if (canvasPrompt) { canvasPrompt.set({ text: run.text, pos: run.pos, wrong: run.wrong }); return; }
   const p = $('prompt'); p.innerHTML = '';
@@ -104,25 +105,29 @@ function focusGrid(): void {
   }).join('');
   grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach((b) => (b.onclick = () => chooseFocus(b.dataset.focus!)));
 }
+const keyLabel = (c: string | undefined): string => (c === undefined || c === '' ? '' : c === ' ' ? 'SPACE' : /[a-z]/.test(c) ? c.toUpperCase() : /[A-Z]/.test(c) ? '⇧ ' + c : c);
 function nextVisual(): void {
   document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
   const c = run.current, f = fingerForKey(c);
-  const shifted = c !== c.toLowerCase() || '!@#$%^&*()_+:"<>?{}'.includes(c) && c !== '';
+  const shifted = c !== '' && (c !== c.toLowerCase() || '!@#$%^&*()_+:"<>?{}'.includes(c));
+  $('keyPrev').textContent = keyLabel(run.pos > 0 ? run.text[run.pos - 1] : '');
+  $('keyCur').textContent = keyLabel(c);
+  $('keyNext').textContent = keyLabel(run.text[run.pos + 1]);
+  $('keyCur').classList.toggle('wrong', run.wrong);
   if (c === ' ') {
     paintHand('left', 'thumb'); paintHand('right', 'thumb');
-    $('handInstruction').innerHTML = '<strong>Spacebar</strong> — press with either thumb.';
-    $('nextCue').innerHTML = '<strong>PRESS SPACEBAR</strong> · it will not hurt accuracy until you do';
+    $('handInstruction').innerHTML = 'Press with either thumb.';
   } else if (f) {
     paintHand('left', f.id); paintHand('right', f.id);
     document.querySelectorAll('[data-finger-label="' + f.id + '"]').forEach((x) => x.classList.add('active'));
-    const shiftNote = shifted && 'hand' in f ? ` Hold ${f.hand === 'left' ? 'right' : 'left'} Shift with the other hand.` : '';
-    $('handInstruction').innerHTML = '<strong>' + escapeHtml(c) + '</strong> — ' + escapeHtml(f.full) + '.' + shiftNote + ' Keep the rest of your hand relaxed.';
-    $('nextCue').innerHTML = 'NEXT · <strong>' + escapeHtml(c) + '</strong> · ' + escapeHtml(f.full) + (shiftNote ? ' + SHIFT' : '');
+    const shiftNote = shifted && 'hand' in f ? ` · hold ${f.hand === 'left' ? 'right' : 'left'} shift` : '';
+    const anchor = 'anchor' in f && f.anchor !== c.toLowerCase() ? ` · from ${f.anchor.toUpperCase()}` : '';
+    $('handInstruction').innerHTML = '<strong>' + escapeHtml(f.full) + '</strong>' + escapeHtml(anchor + shiftNote);
   } else {
     paintHand('left', null); paintHand('right', null);
-    $('handInstruction').innerHTML = '<strong>Home position</strong> — use the guide only when you need a placement reminder.';
-    $('nextCue').textContent = '';
+    $('handInstruction').innerHTML = run.status === 'complete' ? 'Run complete.' : 'Home position.';
   }
+  $('nextCue').textContent = '';
 }
 function keymap(): void {
   const c = run.current.toLowerCase();
@@ -143,7 +148,7 @@ function continueAfterResult(firstKey?: string): void {
 function typeKey(k: string): void {
   const r = run.type(k, now());
   if (r === 'ignored') return;
-  if (r === 'space-wait') { prompt(); nextVisual(); $('nextCue').innerHTML = '<strong>SPACEBAR</strong> · no accuracy penalty yet'; return; }
+  if (r === 'space-wait') { prompt(); nextVisual(); $('handInstruction').innerHTML = '<strong>Spacebar</strong> · either thumb · no penalty yet'; return; }
   const last = run.strokes.at(-1)!;
   if (last.key !== ' ') keys.record(last.key, last.correct, last.latencyMs, Date.now());
   canvasPrompt?.onKey(last.correct ? 'ok' : 'miss', last.correct ? run.pos - 1 : run.pos, run.combo >= 10);
