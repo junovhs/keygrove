@@ -12,30 +12,35 @@ const stars = (n: number) => { let s = ''; for (let i = 1; i <= 3; i++) s += `<s
 export function renderMap(root: HTMLElement, state: SaveV6, model: KeyModel, h: MapHandlers): (e: KeyboardEvent) => void {
   const now = Date.now();
   const visible = GROVES.filter((g) => !g.optional || state.settings.codeGrove);
+  const heading = root.closest('.map-panel')?.querySelector('h2');
+  if (heading) heading.textContent = `${['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'][visible.length] ?? visible.length} groves. One path.`;
   root.innerHTML = visible.map((g) => {
     const open = groveOpen(state, g.id);
     const ts = trailsInGrove(g.id);
     const gate = gateFor(ts[0]!);
     const cleared = ts.filter((t) => isCleared(state, t.id)).length;
     const total = ts.reduce((n, t) => n + (state.trails[t.id]?.stars ?? 0), 0);
+    const runs = ts.reduce((n, t) => n + (state.trails[t.id]?.runs ?? 0), 0);
     return `<section class="grove ${open ? '' : 'grove-locked'} ${g.optional ? 'grove-optional' : ''}">
       <header class="grove-head"><span class="grove-no">Grove ${g.n}${g.optional ? ' · optional' : ''}</span><h3>${escapeHtml(g.name)}</h3>
         <span class="grove-gate">acc ≥ ${gate.passAcc}% · ★★ steady rhythm · swift ${g.ladder ? g.ladder.join('/') : gate.swiftWpm}+ wpm</span>
-        <span class="grove-sum">${cleared}/${ts.length} cleared · ${total}/${ts.length * 3} ★</span></header>
+        <span class="grove-sum">${cleared}/${ts.length} cleared · ${runs} run${runs === 1 ? '' : 's'} · ${total}/${ts.length * 3} ★</span></header>
       ${ts.map((t) => {
         const p = state.trails[t.id];
         const unlocked = trailUnlocked(state, t);
         const cur = state.trail === t.id;
         const done = isCleared(state, t.id);
         const st = p?.stars ?? 0;
-        const mastery = unlocked && p && p.runs > 0 ? Math.round(minMastery(focusKeys(t, model, now), model, now) * 100) : null;
+        const mastery = unlocked ? Math.round(minMastery(focusKeys(t, model, now), model, now) * 100) : null;
+        const runsN = p?.runs ?? 0;
         return `<button type="button" class="map-trail ${cur ? 'current' : ''} ${done ? 'done' : ''} ${unlocked ? '' : 'locked'} ${t.checkpoint ? 'cp' : ''}" data-trail="${t.id}" ${unlocked ? '' : 'disabled'} aria-current="${cur ? 'step' : 'false'}">
           <span class="map-n">${t.n}</span>
           <span class="map-body"><span class="map-name">${escapeHtml(t.name)}</span>
             <span class="map-keys">${t.shift ? '+ Shift' : t.newKeys ? '+ ' + escapeHtml([...t.newKeys].join(' ').toUpperCase()) : t.checkpoint ? 'mixed run' : 'no new keys'}${t.space ? ' + Space' : ''}</span>
             ${unlocked ? `<span class="map-stars">${st ? stars(st) : '<span class="e">★★★</span>'}</span>` : ''}
+            ${unlocked ? `<span class="map-bar" title="mastery of this trail's keys — cleared at 80%"><i style="width:${done ? 100 : Math.min(100, mastery ?? 0)}%"></i><b></b></span>` : ''}
+            ${unlocked ? `<span class="map-depth">${done ? `${runsN} run${runsN === 1 ? '' : 's'} · mastered` : runsN ? `run ${runsN} · ${mastery}%` : 'not started'}</span>` : ''}
           </span>
-          ${mastery !== null ? `<span class="map-mastery ${done ? 'done' : ''}" title="mastery of this trail's keys · ${p?.runs ?? 0} runs">${mastery}%</span>` : ''}
         </button>`;
       }).join('')}
     </section>`;
