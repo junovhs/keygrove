@@ -269,7 +269,8 @@ function renderOffer(): void {
   if (!d || mode.kind !== 'trail') { el.hidden = true; el.classList.remove('required'); return; }
   el.hidden = false; el.classList.toggle('required', d.required);
   const note = d.kind === 'rushing' || d.kind === 'fatigue' || d.kind === 'steady';
-  const key = 'Enter';
+  // Matches the keydown handler: Enter starts a required drill (and skips an optional one); Tab accepts an optional one.
+  const key = d.required ? 'Enter' : 'Tab';
   const skip = d.required ? '' : note ? '' : ' · Enter to skip';
   el.innerHTML = `<strong>${d.required ? 'Coach · required' : 'Coach'}</strong> <b>${escapeHtml(d.title)}.</b> ${escapeHtml(d.reason)} ${note ? '' : `<b>${key}</b> starts it${skip}.`}${decisions.length > 1 ? ` (+${decisions.length - 1} more note${decisions.length > 2 ? 's' : ''})` : ''}`;
 }
