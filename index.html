@@ -36,7 +36,13 @@ kbd{font:inherit}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 .app-shell{width:min(1480px,calc(100% - 96px));margin:0 auto;min-height:100vh}
-.topbar{height:54px;display:flex;align-items:center;border-bottom:1px solid rgba(201,197,189,.72)}
+.topbar,.footer{position:fixed;left:0;right:0;z-index:20;background:var(--bg)}
+.topbar{top:0;padding-top:env(safe-area-inset-top,0px)}
+.footer{bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+.topbar>*,.footer>*{}
+.shell-inner{width:min(1480px,calc(100% - 96px));margin:0 auto}
+.topbar{height:58px;border-bottom:1px solid rgba(201,197,189,.72)}
+.topbar .shell-inner{height:100%;display:flex;align-items:center}
 .brand-block{display:flex;align-items:center;gap:18px}
 .brand{font-size:26px;font-weight:900;letter-spacing:-.055em;color:var(--ink)}
 .tagline{font-size:10px;color:var(--muted);letter-spacing:.22em}
@@ -46,7 +52,7 @@ kbd{font:inherit}
 .nav-divider{display:none;width:1px;height:36px;background:var(--line)}
 .profile-chip{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:5px;background:rgba(255,255,255,.45);font-size:11px;color:var(--ink)}
 
-.workspace{padding:10px 0 14px}
+.workspace{padding:78px 0 190px}
 .arena{width:100%}
 .normal-view{display:block}
 .focus-panel,.result,.map-panel{display:none}
@@ -67,7 +73,7 @@ kbd{font:inherit}
 .route i.done:before{background:#8f8b84}
 .route i.current:before{background:var(--orange)}
 
-.lesson-intro{min-height:96px;display:flex;align-items:flex-start;justify-content:space-between;gap:48px;padding:6px 12px 4px}
+.lesson-intro{min-height:96px;display:flex;align-items:flex-start;justify-content:space-between;gap:48px;padding:10px 12px 12px}
 .lesson-copy{min-width:0}
 .lesson-copy h1{margin:0;color:var(--ink);font-size:clamp(48px,4.8vw,70px);font-weight:850;line-height:.92;letter-spacing:-.06em}
 .lesson-copy p{margin:8px 0 0 4px;color:#4f4c47;font-size:18px;line-height:1.4}
@@ -76,16 +82,10 @@ kbd{font:inherit}
 .info-col small{display:block;font:12px var(--mono);text-transform:uppercase;letter-spacing:.11em;color:var(--soft)}
 .info-col p{margin:6px 0 0;color:var(--ink);font-size:17px;line-height:1.45;white-space:pre-line}
 
-.stage{display:flex;flex-direction:column;align-items:center;padding:4px 0 0}
-.keystream-head{font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.2em;color:var(--ink);padding-bottom:6px;border-bottom:2px solid var(--orange);margin-top:0}
-.keystream{display:flex;align-items:center;gap:16px;margin-top:20px}
-.kcap{display:grid;place-items:center;height:72px;min-width:90px;padding:0 22px;border-radius:8px;border:1px solid var(--line-strong);background:rgba(255,255,255,.55);font:700 30px var(--mono);color:#b3afa8;letter-spacing:.04em}
-.kcap.cur{min-width:230px;height:76px;border:2px solid var(--orange);color:var(--orange);font-size:36px;letter-spacing:.06em;box-shadow:0 0 0 6px rgba(255,84,24,.08),0 10px 30px rgba(255,84,24,.14)}
-.kcap.cur.wrong{background:#ffb49f;border-color:#ffb49f;color:#201814}
-.kcap:empty{visibility:hidden}
-.keycue{margin-top:14px;min-height:18px;font:12px var(--mono);text-transform:uppercase;letter-spacing:.18em;color:var(--soft)}
+.stage{display:flex;flex-direction:column;align-items:center;padding:18px 0 0;gap:0}
+.keycue{margin-top:8px;min-height:18px;font:12px var(--mono);text-transform:uppercase;letter-spacing:.18em;color:var(--soft)}
 .keycue strong{color:var(--ink);font-weight:600}
-.textline{width:min(1000px,100%);margin-top:10px}
+.textline{width:min(1000px,100%);margin-top:0}
 .prompt{min-height:44px;display:flex;align-content:center;justify-content:center;align-items:center;flex-wrap:wrap;column-gap:8px;row-gap:6px;padding:2px 8px;font:600 20px/1.3 var(--mono)}
 .ch{min-width:.72em;display:inline-grid;place-items:center;color:var(--ink);border-radius:4px;transition:transform .08s ease,background .08s ease,color .08s ease}
 .ch.done{color:#b3afa8}
@@ -101,7 +101,7 @@ kbd{font:inherit}
 .next-cue strong{color:var(--orange)}
 @keyframes spacePulse{to{box-shadow:0 0 0 5px rgba(255,84,24,.14)}}
 
-.metrics{position:relative;z-index:2;background:var(--bg);height:78px;display:grid;grid-template-columns:.85fr 1fr 1.35fr .85fr;border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line)}
+.metrics{height:78px;display:grid;grid-template-columns:.85fr 1fr 1.35fr .85fr;border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line)}
 .metric{position:relative;display:flex;flex-direction:column;justify-content:center;padding:0 36px}
 .metric+ .metric:before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:1px;background:var(--line-strong)}
 .metric small{font-size:11.5px;font-weight:700;color:var(--muted)}
@@ -110,17 +110,17 @@ kbd{font:inherit}
 .progress-meter{flex:1;height:12px;margin-top:6px;overflow:hidden;border-radius:3px;background:#e4e1db}
 .progress-meter span{display:block;width:0;height:100%;background:var(--orange);transition:width .16s ease}
 
-.hands-zone{width:100%;padding:0;margin-top:-34px;position:relative;z-index:1;height:min(21vw,270px);overflow:hidden}
+.hands-zone{width:100%;padding:0;margin-top:22px;position:relative;z-index:1;height:min(24vw,330px);overflow:hidden}
 .guide-btn{display:flex;align-items:center;gap:10px;padding:8px 0;color:#625f59;font-size:11px;font-weight:700}
 .guide-btn:before{content:"▱";font-size:19px;line-height:1;color:var(--ink)}
 .guide-btn:hover{color:var(--orange)}
-.hand-pair{display:flex;justify-content:center;align-items:flex-end;gap:min(150px,10vw);min-width:0}
-.hand-wrap{position:relative;width:min(24vw,300px);aspect-ratio:1.333/1;overflow:visible}
-.svg-mount{position:absolute;inset:26px 0 0;display:grid;place-items:end center}
+.hand-pair{display:flex;justify-content:center;align-items:flex-end;gap:min(170px,11vw);min-width:0}
+.hand-wrap{position:relative;width:min(27vw,345px);aspect-ratio:1.333/1;overflow:visible}
+.svg-mount{position:absolute;inset:40px 0 0;display:grid;place-items:end center}
 .vector-hand{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 14px 13px rgba(84,70,58,.08));transition:filter .18s ease}
 .hand-right .vector-hand{transform:scaleX(-1);transform-origin:50% 50%}
 .hand-wrap.is-hot .vector-hand{filter:drop-shadow(0 16px 14px rgba(255,84,24,.11))}
-.home-letters{position:absolute;inset:0 3% auto;height:36px;z-index:2;display:none}
+.home-letters{position:absolute;inset:-4px 3% auto;height:36px;z-index:2;display:none}
 .hands-zone.guide-strong .home-letters{display:block}
 .hand-letter{position:absolute;top:0;display:grid;place-items:center;min-width:34px;height:34px;border-radius:50%;color:#45423e;font:700 13px var(--mono);transition:.12s ease}
 .hand-letter:nth-child(1){left:14%}
@@ -131,15 +131,15 @@ kbd{font:inherit}
 .hands-zone.guide-strong .hand-letter{box-shadow:0 0 0 1px var(--line-strong)}
 .hands-zone.guide-strong .hand-letter.active{box-shadow:0 0 0 1px var(--orange),0 5px 13px rgba(255,84,24,.18)}
 
-.keymap{width:min(920px,100%);margin:14px auto 0;position:relative;z-index:4;display:grid;gap:10px}
-.keyrow{display:flex;justify-content:center;gap:12px}
+.keymap{width:min(520px,100%);margin:30px auto 0;position:relative;z-index:4;display:grid;gap:6px}
+.keyrow{display:flex;justify-content:center;gap:6px}
 .keycap.locked{opacity:.32}
 .focus-key[disabled]{opacity:.35;cursor:default}
-.keycap{min-width:min(74px,7vw);height:min(54px,6vw);padding:0 6px;display:grid;place-items:center;border:1px solid #d3cfc8;border-bottom-width:2px;border-radius:8px;background:rgba(251,250,247,.92);font-size:15px;color:#3a3833;box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
+.keycap{min-width:min(44px,4.2vw);height:min(34px,3.6vw);padding:0 4px;display:grid;place-items:center;border:1px solid #d3cfc8;border-bottom-width:2px;border-radius:6px;background:rgba(251,250,247,.92);font-size:11px;color:#3a3833;box-shadow:0 1px 0 rgba(255,255,255,.9) inset;cursor:default;transition:background .1s,color .1s}
+.keycap.peek{background:#ffe3d8;border-color:var(--orange-soft);color:var(--orange)}
 .keycap.home{border-color:#bdb8b0}
 .keycap.hot{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 4px 11px rgba(255,84,24,.18)}
-.keycap.spacebar{width:min(300px,40vw);height:44px;margin-top:0;background:#fff;border-color:#d3cfc8}
-.keycap.spacebar.hot{background:#ffd9c9;border-color:var(--orange-soft);color:var(--orange)}
+.keycap.spacebar{width:min(240px,32vw);height:30px;margin-top:0}
 
 .controls{min-height:64px;padding:8px 0 0;display:grid;grid-template-columns:350px 1fr;align-items:center;gap:24px}
 .primary-control{height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 22px;border-radius:5px;background:var(--orange);color:#fff;font-size:13px;font-weight:750}
@@ -216,7 +216,7 @@ kbd{font:inherit}
 .modal-actions button{min-height:40px;padding:0 13px;border:1px solid var(--line-strong);border-radius:4px;background:var(--paper);font:600 8px var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .modal-actions .danger{background:var(--ink);color:#fff}
 .modal-actions .primary{background:var(--orange);border-color:var(--orange);color:#fff}
-.utility{display:flex;gap:16px;justify-content:flex-end;padding:0 0 12px}
+.utility{display:flex;gap:16px;justify-content:flex-end;padding:0 0 10px}
 .utility button{font-size:10px;color:var(--muted)}
 .utility button:hover{color:var(--orange)}
 
@@ -247,15 +247,12 @@ kbd{font:inherit}
   .metric+ .metric:before{display:none}
   .hand-pair{gap:2px}
   .hand-wrap{width:48%}
-  .hands-zone{margin-top:-10px;height:44vw}
+  .hands-zone{margin-top:10px;height:44vw}
   .keymap{width:100%;gap:5px}
   .keyrow{gap:5px}
-  .keycap{min-width:8vw;height:32px;padding:0 1px;font-size:10px;border-radius:5px}
-  .keycap.spacebar{width:48vw;height:30px}
-  .kcap{height:56px;min-width:60px;padding:0 12px;font-size:22px}
-  .kcap.cur{min-width:150px;height:60px;font-size:26px}
-  .keystream{gap:8px}
-  .keystream-head{margin-top:0}
+  .keycap{min-width:8vw;height:26px;padding:0 1px;font-size:9px;border-radius:4px}
+  .keycap.spacebar{width:48vw;height:24px}
+  .workspace{padding:86px 0 300px}
   .info-cols{width:100%;padding-top:14px}
   .info-col{min-width:0;flex:1;padding:0 12px}
   .controls{grid-template-columns:1fr;gap:10px;padding:18px 0}
@@ -271,6 +268,7 @@ kbd{font:inherit}
 <body>
 <div class="app-shell">
   <header class="topbar">
+    <div class="shell-inner">
     <div class="brand-block">
       <div class="brand">Keygrove</div>
       
@@ -283,6 +281,7 @@ kbd{font:inherit}
       
     </nav>
     <div class="runtime-values sr-only" aria-hidden="true">XP <b id="xp">0</b> Streak <b id="streak">0</b> Best <b id="bestWpm">0</b></div>
+    </div>
   </header>
 
   <main class="workspace">
@@ -306,14 +305,8 @@ kbd{font:inherit}
         </section>
 
         <section class="stage" id="stage" aria-label="Typing drill">
-          <div class="keystream-head">Type this key</div>
-          <div class="keystream" id="keystream" aria-live="polite">
-            <span class="kcap prev" id="keyPrev"></span>
-            <span class="kcap cur" id="keyCur"></span>
-            <span class="kcap next" id="keyNext"></span>
-          </div>
-          <div class="keycue" id="handInstruction"></div>
           <div class="textline"><div class="prompt" id="prompt"></div><div class="next-cue" id="nextCue"></div></div>
+          <div class="keycue" id="handInstruction"></div>
           <div class="keymap" id="keymap"></div>
           <div class="hands-zone" id="handsZone" aria-label="Finger guide">
             <div class="hand-pair">
@@ -339,26 +332,6 @@ kbd{font:inherit}
           </div>
         </section>
 
-        <section class="metrics" aria-label="Typing metrics">
-          <div class="metric"><small>WPM</small><b id="wpm">0</b></div>
-          <div class="metric"><small>Accuracy</small><b id="acc">100%</b></div>
-          <div class="metric">
-            <small>Progress</small>
-            <div class="progress-row"><b id="pct">0%</b><div class="progress-meter" aria-hidden="true"><span id="progressFill"></span></div></div>
-          </div>
-          <div class="metric"><small>Streak</small><b id="combo">0</b></div>
-        </section>
-
-        <section class="controls" aria-label="Controls">
-          <button class="primary-control" id="startBtn" type="button"><span class="play">▶</span><span>Continue</span><kbd>Enter</kbd></button>
-          <div class="control-group">
-            <button class="control-btn" id="focusBtn" type="button"><span class="icon">◎</span><span>Trouble spot</span><kbd>Tab</kbd></button>
-            <button class="control-btn" id="resetRunBtn" type="button"><span class="icon">↻</span><span>Reset</span><kbd>Esc</kbd></button>
-          </div>
-        </section>
-
-        <div class="message"><span id="message"></span><span id="unlockText"></span></div>
-        <div class="utility"><button id="settingsBtn" type="button">Backup / reset</button><button id="guideBtn" type="button">Show stronger guide</button></div>
       </div>
 
       <div class="focus-panel" id="focusPanel">
@@ -390,6 +363,30 @@ kbd{font:inherit}
       </div>
     </section>
   </main>
+  <footer class="footer" id="footer">
+    <div class="shell-inner">
+        <section class="metrics" aria-label="Typing metrics">
+          <div class="metric"><small>WPM</small><b id="wpm">0</b></div>
+          <div class="metric"><small>Accuracy</small><b id="acc">100%</b></div>
+          <div class="metric">
+            <small>Progress</small>
+            <div class="progress-row"><b id="pct">0%</b><div class="progress-meter" aria-hidden="true"><span id="progressFill"></span></div></div>
+          </div>
+          <div class="metric"><small>Streak</small><b id="combo">0</b></div>
+        </section>
+
+        <section class="controls" aria-label="Controls">
+          <button class="primary-control" id="startBtn" type="button"><span class="play">▶</span><span>Continue</span><kbd>Enter</kbd></button>
+          <div class="control-group">
+            <button class="control-btn" id="focusBtn" type="button"><span class="icon">◎</span><span>Trouble spot</span><kbd>Tab</kbd></button>
+            <button class="control-btn" id="resetRunBtn" type="button"><span class="icon">↻</span><span>Reset</span><kbd>Esc</kbd></button>
+          </div>
+        </section>
+
+        <div class="message"><span id="message"></span><span id="unlockText"></span></div>
+        <div class="utility"><button id="settingsBtn" type="button">Backup / reset</button><button id="guideBtn" type="button">Show stronger guide</button></div>
+    </div>
+  </footer>
 </div>
 
 <div class="toast" id="toast"></div>

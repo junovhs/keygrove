@@ -6,7 +6,7 @@ export interface PromptState { text: string; pos: number; wrong: boolean }
 type Palette = { ink: string; done: string; orange: string; wrongBg: string; wrongInk: string; pill: string; pillLine: string; pillInk: string; pillDone: string; pillDoneInk: string };
 const DARK: Palette = { ink: '#e8e6df', done: '#8e8d86', orange: '#ff5418', wrongBg: '#ffb49f', wrongInk: '#201814', pill: '#2b2c29', pillLine: '#5c5e59', pillInk: '#c5c3bc', pillDone: '#222320', pillDoneInk: '#74766f' };
 const LIGHT: Palette = { ink: '#11110f', done: '#b3afa8', orange: '#ff5418', wrongBg: '#ffb49f', wrongInk: '#201814', pill: '#fbfaf7', pillLine: '#c9c5bd', pillInk: '#6d6a65', pillDone: '#f3f1ec', pillDoneInk: '#b3afa8' };
-export interface PromptOptions { theme?: 'dark' | 'light'; compact?: boolean }
+export interface PromptOptions { theme?: 'dark' | 'light'; compact?: boolean; orb?: boolean }
 
 /**
  * Canvas prompt. Owns a <canvas> inside the host, keeps a hidden text mirror for screen readers,
@@ -33,9 +33,11 @@ export class CanvasPrompt {
 
   private colors: Palette;
   private compact: boolean;
+  private orbEnabled: boolean;
   constructor(private host: HTMLElement, opts: PromptOptions = {}) {
     this.colors = opts.theme === 'light' ? LIGHT : DARK;
     this.compact = !!opts.compact;
+    this.orbEnabled = opts.orb !== false;
     host.innerHTML = '';
     host.classList.add('prompt-canvas');
     this.canvas = document.createElement('canvas');
@@ -60,7 +62,7 @@ export class CanvasPrompt {
 
   /** Pointer → orb in flow coordinates. Reads one rect per event, never inside the frame loop. */
   private pointer(e: PointerEvent): void {
-    if (!this.effects.enabled) return;
+    if (!this.effects.enabled || !this.orbEnabled) return;
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left - this.padding, y = e.clientY - rect.top - this.top;
     this.effects.setOrb(x, y, Math.round(this.fontPx * 1.6));
@@ -90,13 +92,15 @@ export class CanvasPrompt {
   }
 
   private font(): string { return `600 ${this.fontPx}px ${getComputedStyle(this.host).getPropertyValue('--mono') || 'ui-monospace, monospace'}`; }
-  private lineHeight(): number { return Math.round(this.fontPx * (this.compact ? 1.5 : 1.75)); }
-  private letterSpacing(): number { return Math.round(this.fontPx * (this.compact ? 0.22 : 0.32)); }
+  private lineHeight(): number { return Math.round(this.fontPx * (this.compact ? 1.9 : 1.75)); }
+  /** Gap between glyphs. Must exceed 2× the current-box padding so the box never touches a neighbour. */
+  private letterSpacing(): number { return Math.round(this.fontPx * (this.compact ? 0.5 : 0.32)); }
+  private boxPad(): number { return Math.round(this.fontPx * 0.2); }
 
   /** Reads host size once per resize (outside the frame loop) and re-lays out. */
   private measureHost(): void {
     const rect = this.host.getBoundingClientRect();
-    const fontPx = this.compact ? Math.max(16, Math.min(22, Math.round(rect.width * 0.02))) : Math.max(22, Math.min(34, Math.round(rect.width * 0.024)));
+    const fontPx = this.compact ? Math.max(24, Math.min(33, Math.round(rect.width * 0.03))) : Math.max(22, Math.min(34, Math.round(rect.width * 0.024)));
     this.width = Math.max(1, Math.floor(rect.width) - this.padding * 2);
     this.dpr = Math.min(3, window.devicePixelRatio || 1);
     if (fontPx !== this.fontPx) { this.fontPx = fontPx; this.flow.setFont(this.font(), this.lineHeight(), this.letterSpacing()); }
@@ -153,7 +157,8 @@ export class CanvasPrompt {
         const h = Math.round(this.fontPx * 1.25), w = g.w;
         ctx.fillStyle = bad ? this.colors.wrongBg : current ? this.colors.orange : done ? this.colors.pillDone : this.colors.pill;
         ctx.strokeStyle = bad ? this.colors.wrongBg : current ? this.colors.orange : this.colors.pillLine;
-        ctx.beginPath(); ctx.roundRect(x, cy - h / 2, w, h, 4); ctx.fill(); if (!done && !current) ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.roundRect(x, cy - h / 2, w, h, 5); ctx.fill(); if (!current) ctx.stroke();
         ctx.fillStyle = bad ? this.colors.wrongInk : current ? '#fff' : done ? this.colors.pillDoneInk : this.colors.pillInk;
         ctx.font = `600 ${Math.round(this.fontPx * 0.36)}px ${this.flow.font.split('px ')[1]}`;
         ctx.textAlign = 'center'; ctx.fillText('SPACE', x + w / 2, cy + 1); ctx.textAlign = 'left';
@@ -161,9 +166,9 @@ export class CanvasPrompt {
         continue;
       }
       if (current) {
-        const box = Math.round(this.fontPx * 1.4), pad = (box - g.w) / 2;
+        const pad = this.boxPad(), boxH = Math.round(this.fontPx * 1.4), boxW = g.w + pad * 2;
         ctx.fillStyle = bad ? this.colors.wrongBg : this.colors.orange;
-        ctx.beginPath(); ctx.roundRect(x - pad, cy - box / 2, box, box, 5); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(x - pad, cy - boxH / 2, boxW, boxH, 6); ctx.fill();
         ctx.fillStyle = bad ? this.colors.wrongInk : '#fff';
       } else ctx.fillStyle = done ? this.colors.done : this.colors.ink;
       ctx.fillText(g.ch, x, cy + 1);

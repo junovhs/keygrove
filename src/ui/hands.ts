@@ -17,6 +17,13 @@ interface HandRef {
   nails: Partial<Record<Kind, HTMLElement | SVGElement>>;
 }
 const handRefs: Record<Side, HandRef | null> = { left: null, right: null };
+/** Finger id (lp…rp / thumb) → hover callback, wired by the app. null = pointer left. */
+let hoverCb: ((fingerId: string | null) => void) | null = null;
+export function onFingerHover(cb: (fingerId: string | null) => void): void { hoverCb = cb; }
+const FINGER_ID: Record<Side, Record<Kind, string>> = {
+  left: { pinky: 'lp', ring: 'lr', middle: 'lm', index: 'li', thumb: 'thumb' },
+  right: { pinky: 'rp', ring: 'rr', middle: 'rm', index: 'ri', thumb: 'thumb' },
+};
 
 function svgNode(name: string, attrs?: Record<string, string>): SVGElement {
   const n = document.createElementNS('http://www.w3.org/2000/svg', name);
@@ -49,6 +56,15 @@ function installHand(side: Side, svgText: string): void {
     thumb: byOriginal['thumbnail'] as SVGElement | undefined,
   };
   Object.values(nails).forEach((n) => { if (n) { n.style.fill = '#fbf8f3'; n.style.fillOpacity = '1'; n.style.stroke = '#d7d2ca'; n.style.strokeWidth = '2'; } });
+  // Transparent hit-areas over each fingertip so hovering a finger can light its keys.
+  (Object.keys(HAND_POINTS) as Kind[]).forEach((kind) => {
+    const pt = HAND_POINTS[kind];
+    const hit = svgNode('circle', { cx: String(pt.x), cy: String(pt.y), r: String(Math.round(pt.r * 0.42)), fill: 'transparent', 'pointer-events': 'all' });
+    (hit as SVGElement).style.cursor = 'default';
+    hit.addEventListener('pointerenter', () => hoverCb?.(FINGER_ID[side][kind]));
+    hit.addEventListener('pointerleave', () => hoverCb?.(null));
+    svg.appendChild(hit);
+  });
   const mount = $(side + 'HandMount'); mount.innerHTML = ''; mount.appendChild(svg);
   handRefs[side] = { svg, gradient, stops, nails };
   paintHand(side, null);

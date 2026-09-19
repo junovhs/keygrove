@@ -8,7 +8,7 @@ import { generate } from './engine/textgen';
 import { fresh, load, sanitize, save as persist, type SaveV5 } from './state/save';
 import { $, escapeHtml, toast } from './ui/dom';
 import { renderMap } from './ui/map';
-import { loadHands, paintHand } from './ui/hands';
+import { loadHands, onFingerHover, paintHand } from './ui/hands';
 import { CanvasPrompt } from './render/prompt';
 import { selfTest as textflowSelfTest } from './render/textflow';
 
@@ -77,7 +77,7 @@ function labels(): void {
   $('unlockText').textContent = f || mode.kind === 'warmup' ? 'Space returns to your trail.' : `Grove ${g.n} of 6 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
 }
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
-const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true });
+const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true, orb: false });
 function prompt(): void {
   if (canvasPrompt) { canvasPrompt.set({ text: run.text, pos: run.pos, wrong: run.wrong }); return; }
   const p = $('prompt'); p.innerHTML = '';
@@ -105,15 +105,10 @@ function focusGrid(): void {
   }).join('');
   grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach((b) => (b.onclick = () => chooseFocus(b.dataset.focus!)));
 }
-const keyLabel = (c: string | undefined): string => (c === undefined || c === '' ? '' : c === ' ' ? 'SPACE' : /[a-z]/.test(c) ? c.toUpperCase() : /[A-Z]/.test(c) ? '⇧ ' + c : c);
 function nextVisual(): void {
   document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
   const c = run.current, f = fingerForKey(c);
   const shifted = c !== '' && (c !== c.toLowerCase() || '!@#$%^&*()_+:"<>?{}'.includes(c));
-  $('keyPrev').textContent = keyLabel(run.pos > 0 ? run.text[run.pos - 1] : '');
-  $('keyCur').textContent = keyLabel(c);
-  $('keyNext').textContent = keyLabel(run.text[run.pos + 1]);
-  $('keyCur').classList.toggle('wrong', run.wrong);
   if (c === ' ') {
     paintHand('left', 'thumb'); paintHand('right', 'thumb');
     $('handInstruction').innerHTML = 'Press with either thumb.';
@@ -134,9 +129,32 @@ function keymap(): void {
   const allowed = allowedChars(trail());
   const homes = new Set('asdfjkl;');
   const rows = [...([...allowed].some((k) => /[0-9]/.test(k)) ? ['1234567890'] : []), 'qwertyuiop', 'asdfghjkl;', 'zxcvbnm,./'];
-  $('keymap').innerHTML = rows.map((r) => '<div class="keyrow">' + [...r].map((k) => '<span class="keycap ' + (homes.has(k) ? 'home ' : '') + (allowed.has(k) ? '' : 'locked ') + (c === k ? 'hot' : '') + '">' + escapeHtml(k.toUpperCase()) + '</span>').join('') + '</div>').join('')
-    + '<div class="keyrow"><span class="keycap spacebar ' + (c === ' ' ? 'hot' : '') + '">SPACE</span></div>';
+  $('keymap').innerHTML = rows.map((r) => '<div class="keyrow">' + [...r].map((k) => '<span class="keycap ' + (homes.has(k) ? 'home ' : '') + (allowed.has(k) ? '' : 'locked ') + (c === k ? 'hot' : '') + '" data-key="' + escapeHtml(k) + '">' + escapeHtml(k.toUpperCase()) + '</span>').join('') + '</div>').join('')
+    + '<div class="keyrow"><span class="keycap spacebar ' + (c === ' ' ? 'hot' : '') + '" data-key=" ">SPACE</span></div>';
+  $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach((el) => {
+    el.onpointerenter = () => peekKey(el.dataset.key!);
+    el.onpointerleave = () => peekKey(null);
+  });
 }
+/** Hovering a keycap paints its finger; hovering a finger lights its keys. Null restores the live state. */
+function peekKey(k: string | null): void {
+  if (k === null) { nextVisual(); return; }
+  const f = fingerForKey(k);
+  document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
+  if (!f) return;
+  paintHand('left', f.id); paintHand('right', f.id);
+  document.querySelectorAll('[data-finger-label="' + f.id + '"]').forEach((x) => x.classList.add('active'));
+}
+function peekFinger(id: string | null): void {
+  $('keymap').querySelectorAll('.keycap.peek').forEach((x) => x.classList.remove('peek'));
+  if (id === null) { nextVisual(); return; }
+  const f = fingerById(id);
+  const allowed = allowedChars(trail());
+  paintHand('left', id); paintHand('right', id);
+  const keys = id === 'thumb' ? [' '] : f ? [...f.keys].filter((k) => allowed.has(k)) : [];
+  for (const k of keys) $('keymap').querySelector('[data-key="' + (k === ' ' ? ' ' : k) + '"]')?.classList.add('peek');
+}
+onFingerHover(peekFinger);
 function render(): void { header(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); }
 
 // ---- run lifecycle -----------------------------------------------------------
