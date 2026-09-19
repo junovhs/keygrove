@@ -83,6 +83,21 @@ function signUpProblem(error: { code?: string; message: string }): string {
   }
 }
 
+/**
+ * What a completed sign-up means. With email confirmation on, Supabase answers a
+ * sign-up for an address that already has an account with a decoy user (no
+ * session, empty identities) and sends nothing, so that the form cannot be used
+ * to discover accounts. "Check your email" would then wait forever.
+ */
+export function signUpOutcome(result: {
+  session: unknown;
+  user: { identities?: unknown[] | null } | null;
+}): 'signed-in' | 'exists' | 'confirm' {
+  if (result.session) return 'signed-in';
+  if (result.user && (result.user.identities?.length ?? 0) === 0) return 'exists';
+  return 'confirm';
+}
+
 export function createAccount(options: AccountOptions = {}): AccountController {
   const root = $('account');
   const trigger = $<HTMLButtonElement>('accountOpen');
@@ -247,8 +262,10 @@ export function createAccount(options: AccountOptions = {}): AccountController {
             data: consentRecord(signUpConsent.checked),
           },
         });
-        if (error) say(signUpProblem(error), true);
-        else if (result.session) { options.announce?.('Account created'); close(); }
+        if (error) { say(signUpProblem(error), true); return; }
+        const outcome = signUpOutcome(result);
+        if (outcome === 'signed-in') { options.announce?.('Account created'); close(); }
+        else if (outcome === 'exists') say('There is already an account for that email. Sign in instead, or use "Forgot password".', true);
         else say('Check your email for a link to confirm the account.');
       } else if (kind === 'forgot') {
         const { error } = await auth.resetPasswordForEmail(address, {

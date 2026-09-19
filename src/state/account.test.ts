@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { readSupabaseConfig, sessionStorageKey, shippedConfig } from './supabase';
 import { CONSENT_SOURCE, CONSENT_TEXT, consentRecord, hasOptedIn } from './consent';
-import { linkProblem, withoutLinkProblem } from '../ui/account';
+import { linkProblem, signUpOutcome, withoutLinkProblem } from '../ui/account';
 
 describe('supabase config', () => {
   test('an empty pair means no account service; a half-set pair is a mistake', () => {
@@ -72,5 +72,18 @@ describe('emailed links', () => {
     expect(linkProblem('?code=abc', '#access_token=x')).toBeNull();
     expect(withoutLinkProblem(`?${expired}`, `#${expired}`)).toEqual({ search: '', hash: '' });
     expect(withoutLinkProblem('?keep=1&error_code=otp_expired', '#type=recovery&error=x')).toEqual({ search: '?keep=1', hash: '#type=recovery' });
+  });
+});
+
+describe('sign-up outcome', () => {
+  test('a session means the account is live', () => {
+    expect(signUpOutcome({ session: {}, user: { identities: [{}] } })).toBe('signed-in');
+  });
+  test('a user with identities but no session is waiting for the confirmation email', () => {
+    expect(signUpOutcome({ session: null, user: { identities: [{}] } })).toBe('confirm');
+  });
+  test("Supabase's decoy user (no identities) means the address already has an account", () => {
+    expect(signUpOutcome({ session: null, user: { identities: [] } })).toBe('exists');
+    expect(signUpOutcome({ session: null, user: { identities: null } })).toBe('exists');
   });
 });
