@@ -9,6 +9,8 @@ import { fresh, load, sanitize, save as persist, type SaveV5 } from './state/sav
 import { $, escapeHtml, toast } from './ui/dom';
 import { renderMap } from './ui/map';
 import { loadHands, paintHand } from './ui/hands';
+import { CanvasPrompt } from './render/prompt';
+import { selfTest as textflowSelfTest } from './render/textflow';
 
 /** What the current run is for: the trail itself, a finger drill, or a warm-up of rusty keys. */
 type Mode = { kind: 'trail' } | { kind: 'remedial'; finger: Finger } | { kind: 'warmup'; keys: string[] };
@@ -73,7 +75,10 @@ function labels(): void {
   $('message').innerHTML = run.status === 'playing' ? '<strong>Typing is live.</strong> Every letter key is typing only.' : '<strong>Just type</strong> to begin. Enter also starts. Tab opens trouble-spot practice. M opens the grove map.';
   $('unlockText').textContent = f || mode.kind === 'warmup' ? 'Space returns to your trail.' : `Grove ${g.n} of 6 · ${new Set(allowedChars(t)).size - 1} keys unlocked`;
 }
+const useDom = new URLSearchParams(location.search).get('dom') === '1';
+const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'));
 function prompt(): void {
+  if (canvasPrompt) { canvasPrompt.set({ text: run.text, pos: run.pos, wrong: run.wrong }); return; }
   const p = $('prompt'); p.innerHTML = '';
   [...run.text].forEach((c, i) => {
     const s = document.createElement('span');
@@ -319,5 +324,7 @@ Object.defineProperty(window, 'keygrove', {
     snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, offer: offer && { kind: offer.kind } })),
     import: (raw: unknown) => applyImport(raw),
     openMap,
+    selftest: textflowSelfTest,
+    prompt: () => canvasPrompt,
   }),
 });
