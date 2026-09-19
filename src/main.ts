@@ -2,6 +2,7 @@ import { allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type Trail 
 import { FINGERS, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
 import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
+import { TransitionModel } from './engine/transitions';
 import { decide, readout, sessionReview, type Decision } from './engine/coach';
 import { classifyRun, explain, rollTally } from './engine/errors';
 import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
@@ -26,6 +27,7 @@ type Mode = { kind: 'trail' } | { kind: 'remedial'; finger: Finger } | { kind: '
 let state: SaveV6 = load();
 setMethod(state.settings.method);
 let keys = KeyModel.fromJSON(state.keys, state.confusions);
+let trans = TransitionModel.fromJSON(state.transitions);
 let mode: Mode = { kind: 'trail' };
 let run = new Run('');
 let outcome: Outcome | null = null;
@@ -41,13 +43,14 @@ const trail = (): Trail => currentTrail(state);
 const stageName = () => currentStage(state, keys);
 const focusFinger = (): Finger | null => (mode.kind === 'remedial' ? mode.finger : null);
 
-function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; persist(state); sync.wrote(); }
+function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); persist(state); sync.wrote(); }
 /** The account's copy arrived: adopt it as if it had been imported, without disturbing a run in progress. */
 function adopt(next: SaveV6): void {
-  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); gate = null; setMethod(state.settings.method); persist(state); syncSettingsUi();
+  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); gate = null; setMethod(state.settings.method); persist(state); syncSettingsUi();
   if (run.status === 'playing') render(); else { mode = { kind: 'trail' }; resetRun(); }
 }
 
+const unlockedLetters = () => [...allowedChars(trail())].filter((k) => k.length === 1 && k !== ' ' && k === k.toLowerCase());
 const dueNow = () => new Set(keys.dueKeys([...allowedChars(trail())].filter((k) => k.length === 1 && k !== ' ' && k === k.toLowerCase()), Date.now()));
 function makeText(): string {
   const allowed = allowedChars(trail());
@@ -55,9 +58,9 @@ function makeText(): string {
   if (mode.kind === 'coach') {
     const d = mode.decision;
     if (d.kind === 'remedial') { const f = fingerForKey(d.keys[0] ?? 'f'); return f && 'keys' in f ? remedialText(f, allowed, 30) : generate(trail(), 'drill'); }
-    return generateDrill(d.kind === 'confusion' ? 'confusion' : d.kind === 'reach' ? 'reach' : 'review', d.keys, trail());
+    return generateDrill(d.kind === 'confusion' ? 'confusion' : d.kind === 'reach' ? 'reach' : d.kind === 'transition' ? 'transition' : 'review', d.keys, trail());
   }
-  return generate(trail(), stageName(), { heat: keys.heatMap(Date.now(), dueNow()) });
+  return generate(trail(), stageName(), { heat: keys.heatMap(Date.now(), dueNow()), pairHeat: trans.heatMap(unlockedLetters()), weakPairs: trans.weakest(unlockedLetters()).filter((w) => w.mastery < 0.6).slice(0, 8).map((w) => w.pair) });
 }
 function resetRun(): void {
   run = new Run(makeText()); outcome = null; decisions = [];
@@ -197,6 +200,9 @@ function typeKey(k: string): void {
   if (r === 'space-wait') { prompt(); nextVisual(); $('handInstruction').innerHTML = '<strong>Spacebar</strong> · either thumb · no penalty yet'; return; }
   const last = run.strokes.at(-1)!;
   keys.record(last.key, last.correct, run.strokes.length === 1 ? null : last.latencyMs, Date.now(), last.correct ? undefined : k); // first key of a run has no rhythm evidence
+  // The pair is the two wanted letters; its evidence is this press. Only after a correct previous press: a retry is not a transition.
+  const prev = run.strokes.at(-2);
+  if (prev && prev.correct && prev.index === last.index - 1) trans.record(prev.key, last.key, last.correct, last.latencyMs);
   canvasPrompt?.onKey(last.correct ? 'ok' : 'miss', last.correct ? run.pos - 1 : run.pos, run.combo >= 10);
   if (r === 'done') return finish();
   prompt(); metrics(); keymap(); nextVisual();
@@ -227,7 +233,7 @@ function finish(): void {
     const errors = classifyRun(run.text, run.strokes, activeMethod());
     state.errors = rollTally(state.errors, errors);
     const missedKeys = [...new Set(run.strokes.filter((s) => !s.correct).map((s) => s.key.toLowerCase()))];
-    decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm, runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent, errors, missedKeys });
+    decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm, runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent, errors, missedKeys, weakPairs: trans.weakest(unlocked) });
     gate = decisions.find((d) => d.required) ?? null;
     if (!outcome.passed) {
       title = 'Not yet.'; copy = `Accuracy ${m.acc}% — this trail needs ${gateNums.passAcc}%. Speed never mattered here.`;
@@ -411,9 +417,9 @@ $<HTMLInputElement>('importFile').onchange = async (e) => {
   input.value = '';
 };
 function applyImport(raw: unknown): void {
-  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
+  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Progress restored.');
 }
-$('resetBtn').onclick = () => { if (confirm('Reset all your progress?')) { state = fresh(); keys = new KeyModel(); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
+$('resetBtn').onclick = () => { if (confirm('Reset all your progress?')) { state = fresh(); keys = new KeyModel(); trans = new TransitionModel(); mode = { kind: 'trail' }; gate = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
 function syncSettingsUi(): void {
   $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
   $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
@@ -427,7 +433,7 @@ setInterval(() => { if (run.status === 'playing') metrics(); }, 450);
 // panel is open it swallows every keydown in the capture phase, so the run
 // and the shortcuts above never see a password being typed.
 const sync = createProgressSync({
-  read: () => { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; return state; },
+  read: () => { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); return state; },
   write: adopt,
 });
 const account = createAccount({ announce: toast, onSession: (session, client) => sync.session(session, client) });

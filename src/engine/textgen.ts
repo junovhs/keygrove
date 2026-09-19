@@ -9,7 +9,8 @@ import { homeOf, mirrorOf } from '../curriculum/method';
 
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
-export interface GenOptions { heat?: Heat; seed?: number }
+/** `pairHeat`: per-bigram heat ('th') from the transition model; `weakPairs`: the player's weakest real transitions for the Bigrams trail. */
+export interface GenOptions { heat?: Heat; pairHeat?: Heat; weakPairs?: string[]; seed?: number }
 
 const anchorOf = (k: string) => homeOf(k);
 const BIGRAMS = 'th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ne ea ra ce li ch ll be ma si om ur'.split(' ');
@@ -31,11 +32,16 @@ export function wordBank(trail: Trail): string[] {
 const fits = (s: string, allowed: Set<string>) => [...s].every((c) => allowed.has(c));
 
 /** Heat-weighted sampler over a fixed word list; weights are computed once. */
-function sampler(words: readonly string[], heat: Heat): (r: Rng) => string {
+function sampler(words: readonly string[], heat: Heat, pairHeat: Heat = {}): (r: Rng) => string {
   if (!words.length) return () => '';
   const cum = new Float64Array(words.length);
   let total = 0;
-  words.forEach((x, i) => { total += 1 + [...x].reduce((s, c) => s + (heat[c] ?? 0), 0); cum[i] = total; });
+  const pairs = Object.keys(pairHeat).length > 0;
+  words.forEach((x, i) => {
+    let w = 1 + [...x].reduce((s, c) => s + (heat[c] ?? 0), 0);
+    if (pairs) for (let j = 1; j < x.length; j++) w += pairHeat[x.slice(j - 1, j + 1)] ?? 0;
+    total += w; cum[i] = total;
+  });
   return (r) => {
     const t = r() * total;
     let lo = 0, hi = words.length - 1;
@@ -65,7 +71,7 @@ function rhythmPatterns(keys: string): string[] {
 }
 
 /** Coach drills: alternate a confused pair, rebuild one reach, or review rusty keys through real words. */
-export function generateDrill(kind: 'confusion' | 'reach' | 'review', keys: string[], trail: Trail, opts: GenOptions = {}): string {
+export function generateDrill(kind: 'confusion' | 'reach' | 'review' | 'transition', keys: string[], trail: Trail, opts: GenOptions = {}): string {
   const r = rng(opts.seed);
   const allowed = allowedChars(trail);
   const ks = keys.filter((k) => allowed.has(k) && k !== ' ');
@@ -77,6 +83,14 @@ export function generateDrill(kind: 'confusion' | 'reach' | 'review', keys: stri
   if (kind === 'reach' && ks.length) {
     const k = ks[0]!; const a = anchorOf(k); const p = a === k ? mirrorOf(k) : a;
     const pats = [p + k + p, k + p + k, k + k + p, p + k + k, k + p + p + k];
+    return fill(30, () => pickOne(pats, r));
+  }
+  if (kind === 'transition' && ks.length >= 2) {
+    // Words rich in the pair, in the pair's order (R→F: refer fret free); patterns when the bank is thin.
+    const [a, b] = ks as [string, string]; const pair = a + b;
+    const bank = [...new Set([...wordBank(trail), ...TOP.filter((w) => fits(w, allowed))])].filter((w) => w.includes(pair));
+    if (bank.length >= 4) return fill(trail.length, () => pickOne(bank, r));
+    const pats = [pair, pair + a, b + pair, pair + pair, a + pair + b];
     return fill(30, () => pickOne(pats, r));
   }
   // review: real words heavy on the rusty keys, falling back to patterns
@@ -95,14 +109,14 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
   const bank = wordBank(trail);
   const pats = rhythmPatterns(trail.newKeys);
   const pat = () => pickOne(pats, r);
-  const cold = Object.keys(heat).length === 0;
+  const cold = Object.keys(heat).length === 0 && !opts.pairHeat;
   const samplers = cold ? (coldSamplers.get(trail.id) ?? coldSamplers.set(trail.id, new Map()).get(trail.id)!) : new Map<number, (r: Rng) => string>();
   const word = (min = 2) => {
     let s = samplers.get(min);
-    if (!s) { const b = bank.filter((w) => w.length >= min); s = sampler(b.length ? b : bank, heat); samplers.set(min, s); }
+    if (!s) { const b = bank.filter((w) => w.length >= min); s = sampler(b.length ? b : bank, heat, opts.pairHeat); samplers.set(min, s); }
     return s(r) || (pats.length ? pat() : '');
   };
-  const topWord = sampler(TOP, heat);
+  const topWord = sampler(TOP, heat, opts.pairHeat);
   const len = trail.length;
   const short = Math.round(len * 0.8);
   const patternsOr = (fallback: () => string) => (pats.length ? pat : fallback);
@@ -157,8 +171,10 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
       return fill(len, () => { let t = pickOne(tmpl, r)(); let g = 0; while (!fits(t, allowed) && g++ < 10) t = pickOne(tmpl, r)(); return fits(t, allowed) ? t : word(4); });
     }
     case 'bigrams': {
-      if (stage === 'drill') return fill(short, () => pickOne(BIGRAMS, r));
-      if (stage === 'mix') return fill(short, () => (r() < 0.5 ? pickOne(BIGRAMS, r) : pickOne(TOP, r)));
+      // The player's own weakest transitions, when known; the English list until then.
+      const grams = opts.weakPairs?.length ? opts.weakPairs : BIGRAMS;
+      if (stage === 'drill') return fill(short, () => pickOne(grams, r));
+      if (stage === 'mix') return fill(short, () => (r() < 0.5 ? pickOne(grams, r) : pickOne(TOP, r)));
       return fill(len, () => topWord(r));
     }
     case 'top': return fill(stage === 'words' ? len : short, () => topWord(r));

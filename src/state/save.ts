@@ -2,6 +2,7 @@ import { MAIN_TRAILS, TRAILS, trailById } from '../curriculum';
 import { KeyModel, type Confusions, type KeyStats } from '../engine/keymodel';
 import { DEFAULT_METHOD_ID, METHODS } from '../curriculum/method';
 import { ERROR_CLASSES, emptyTally, type ErrorTally } from '../engine/errors';
+import { TransitionModel, type TransitionStats } from '../engine/transitions';
 
 export const KEY = 'keygrove.v6';
 const PREV_V5 = 'keygrove.v5';
@@ -22,6 +23,8 @@ export interface SaveV6 {
   settings: Settings;
   /** Rolling error-class tally (§29), decayed per run. */
   errors: ErrorTally;
+  /** Two-key transition stats (§25), keyed 'ab'. */
+  transitions: TransitionStats;
 }
 /** @deprecated alias kept while callers migrate. */
 export type SaveV5 = SaveV6;
@@ -32,6 +35,7 @@ export const fresh = (): SaveV6 => ({
   stats: { runs: 0, chars: 0, attempts: 0, bestWpm: 0, bestAcc: 0, xp: 0, days: 0, lastDay: '', bestCombo: 0 },
   settings: { guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID, onboarded: false },
   errors: emptyTally(),
+  transitions: {},
 });
 
 const num = (v: unknown, max = Infinity): number => Math.min(max, Math.max(0, Number(v) || 0));
@@ -65,6 +69,7 @@ export function sanitize(x: unknown): SaveV6 {
   if (typeof st.method === 'string' && METHODS.some((m) => m.id === st.method)) s.settings.method = st.method;
   const er = (o.errors && typeof o.errors === 'object' ? o.errors : {}) as Record<string, unknown>;
   for (const c of ERROR_CLASSES) s.errors[c] = num(er[c], 999);
+  s.transitions = TransitionModel.fromJSON(o.transitions).toJSON();
   return s;
 }
 

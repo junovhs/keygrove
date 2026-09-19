@@ -1,7 +1,7 @@
 import { dominant, type ErrorTally } from './errors';
 import { KeyModel, MASTERED } from './keymodel';
 
-export type DecisionKind = 'remedial' | 'confusion' | 'reach' | 'rushing' | 'review' | 'fatigue' | 'steady' | 'anticipation' | 'precision';
+export type DecisionKind = 'remedial' | 'confusion' | 'reach' | 'rushing' | 'review' | 'fatigue' | 'steady' | 'anticipation' | 'precision' | 'transition';
 /** What the coach wants next. `required` decisions gate the next trail run. */
 export interface Decision { kind: DecisionKind; required: boolean; keys: string[]; reason: string; title: string }
 
@@ -14,6 +14,8 @@ export interface RunSummary {
   recentAcc: number[];
   /** This run's misses by class (§29) and the keys they landed on, wanted → count. Optional for callers without strokes. */
   errors?: ErrorTally; missedKeys?: string[];
+  /** Weakest two-key transitions among unlocked keys (§25), weakest first. */
+  weakPairs?: { pair: string; mastery: number; slowness: number; err: number }[];
 }
 
 const up = (k: string) => (k === ' ' ? 'Space' : k.toUpperCase());
@@ -48,6 +50,13 @@ export function decide(model: KeyModel, r: RunSummary, now = Date.now()): Decisi
     const drill = missed.length ? missed.slice(0, 4) : letters.slice(0, 4);
     if (dom.cls === 'anticipation') out.push({ kind: 'anticipation', required: false, keys: drill, title: 'You are reading ahead of your hands', reason: `${dom.count} of ${dom.total} misses were a later letter typed early. A steady drill on ${drill.map(up).join(' ')}: one key, then the next, at one pace.` });
     else if (dom.cls === 'neighbour') out.push({ kind: 'precision', required: false, keys: drill, title: 'Landing a key over', reason: `${dom.count} of ${dom.total} misses hit a neighbouring key. A precision drill on ${drill.map(up).join(' ')}: slower, and let the finger settle before it presses.` });
+  }
+  // Sequence (§25): a transition that flows badly against the typist's own pace.
+  const wp = r.weakPairs?.[0];
+  if (wp && wp.mastery < 0.35 && (wp.slowness >= 1.6 || wp.err > 0.2) && !out.some((d) => d.required)) {
+    const [a, b] = [wp.pair[0]!, wp.pair[1]!];
+    const how = wp.slowness >= 1.6 ? `${Math.round((wp.slowness - 1) * 100)}% slower than your usual transition` : `${pct(wp.err)} of them miss`;
+    out.push({ kind: 'transition', required: false, keys: [a, b], title: `${up(a)}→${up(b)} does not flow yet`, reason: `${up(a)} then ${up(b)} runs ${how}. A drill of words built on ${up(a)}${up(b)} turns the pair into one movement.` });
   }
   // Rushing: errors pile up as speed climbs.
   if (r.thirds.length === 3) {

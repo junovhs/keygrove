@@ -92,6 +92,10 @@ export function mergeProgress(local: SaveV6, remote: SaveV6): SaveV6 {
   }
   out.stats.lastDay = local.stats.lastDay > remote.stats.lastDay ? local.stats.lastDay : remote.stats.lastDay;
   out.settings = { ...local.settings };
+  for (const k of new Set([...Object.keys(local.transitions), ...Object.keys(remote.transitions)])) {
+    const a = local.transitions[k], b = remote.transitions[k];
+    out.transitions[k] = { ...(a && b ? (a.seen >= b.seen ? a : b) : (a ?? b)!) };
+  }
   for (const c of Object.keys(out.errors) as (keyof typeof out.errors)[]) out.errors[c] = Math.max(local.errors[c], remote.errors[c]);
   return sanitize(out);
 }
