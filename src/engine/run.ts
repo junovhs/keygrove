@@ -35,6 +35,21 @@ export class Run {
     this.errors++; this.combo = 0; this.wrong = true; return 'miss';
   }
   elapsed(now: number): number { return this.start ? (this.end || now) - this.start : 0; }
+  /**
+   * 0..1 cadence of this run: ½·(1 − cv/0.6) + ½·(1 − spikeRate/0.3) over correct strokes after the first,
+   * a spike being a press > 1.8× the run's median interval. Slow and even scores as well as fast and even.
+   */
+  rhythm(): number {
+    const lats = this.strokes.slice(1).filter((s) => s.correct).map((s) => s.latencyMs).filter((l) => l > 0);
+    if (lats.length < 4) return 0;
+    const mean = lats.reduce((a, b) => a + b, 0) / lats.length;
+    const sd = Math.sqrt(lats.reduce((a, l) => a + (l - mean) ** 2, 0) / lats.length);
+    const sorted = [...lats].sort((a, b) => a - b); const median = sorted[Math.floor(sorted.length / 2)]!;
+    const spikes = lats.filter((l) => l > 1.8 * median).length / lats.length;
+    const cvScore = Math.max(0, Math.min(1, 1 - (sd / mean) / 0.6));
+    const spikeScore = Math.max(0, Math.min(1, 1 - spikes / 0.3));
+    return 0.5 * cvScore + 0.5 * spikeScore;
+  }
   metrics(now: number): { wpm: number; acc: number; pct: number } {
     return { wpm: wpmOf(this.hits, this.elapsed(now)), acc: accOf(this.hits, this.attempts), pct: Math.round((this.pos / this.text.length) * 100) };
   }

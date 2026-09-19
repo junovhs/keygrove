@@ -1,15 +1,15 @@
 import { KeyModel, MASTERED } from './keymodel';
 
-export type DecisionKind = 'slow' | 'remedial' | 'confusion' | 'reach' | 'rushing' | 'review' | 'fatigue';
+export type DecisionKind = 'remedial' | 'confusion' | 'reach' | 'rushing' | 'review' | 'fatigue' | 'steady';
 /** What the coach wants next. `required` decisions gate the next trail run. */
 export interface Decision { kind: DecisionKind; required: boolean; keys: string[]; reason: string; title: string }
 
 export interface RunSummary {
   /** Per-third error counts and mean latency, to spot rushing. */
   thirds: { errors: number; lat: number }[];
-  wpm: number; acc: number; star2Wpm: number;
+  wpm: number; acc: number; rhythm: number;
   /** Trail-level context. */
-  runsOnTrail: number; focusKeys: string[]; unlocked: string[]; passed: boolean; fails: number; slowMode: boolean;
+  runsOnTrail: number; focusKeys: string[]; unlocked: string[]; passed: boolean; fails: number;
   recentAcc: number[];
 }
 
@@ -21,7 +21,7 @@ export function decide(model: KeyModel, r: RunSummary, now = Date.now()): Decisi
   const out: Decision[] = [];
   const letters = r.unlocked.filter((k) => k !== ' ');
 
-  if (!r.passed && r.fails >= 3 && !r.slowMode) out.push({ kind: 'slow', required: false, keys: [], reason: 'Three misses in a row.', title: 'Slow mode?' });
+  if (!r.passed && r.fails >= 3) out.push({ kind: 'steady', required: false, keys: [], title: 'Three runs below the bar', reason: 'Slow right down and make every press deliberate — an even, slow rhythm scores as well as a fast one here, and the speed comes back on its own.' });
 
   // A focus key that is clearly the blocker after enough runs: required remedial.
   if (r.runsOnTrail >= 3) {

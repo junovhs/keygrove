@@ -1,25 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { bumpStreak, effectiveGate, rankFor, starsFor, xpFor } from './scoring';
+import { bumpStreak, rankFor, starsFor, swiftBonus, xpFor } from './scoring';
 import { gateFor, trailById } from '../curriculum';
 
 describe('scoring', () => {
-  const g = gateFor(trailById('anchors')); // 90 / 15 / 18
-  it('star table', () => {
-    expect(starsFor(g, 100, 89)).toBe(0);
-    expect(starsFor(g, 5, 90)).toBe(1);
-    expect(starsFor(g, 14, 100)).toBe(1);
-    expect(starsFor(g, 15, 96)).toBe(1);
-    expect(starsFor(g, 15, 97)).toBe(2);
-    expect(starsFor(g, 30, 99)).toBe(2);
-    expect(starsFor(g, 17, 100)).toBe(2);
-    expect(starsFor(g, 18, 100)).toBe(3);
+  const g = gateFor(trailById('anchors')); // pass 90 · swift 15
+  it('stars come from accuracy and rhythm; speed is absent', () => {
+    expect(starsFor(g, 89, 1)).toBe(0);
+    expect(starsFor(g, 90, 0)).toBe(1);
+    expect(starsFor(g, 96, 1)).toBe(1);
+    expect(starsFor(g, 97, 0.59)).toBe(1);
+    expect(starsFor(g, 97, 0.6)).toBe(2);
+    expect(starsFor(g, 100, 0.79)).toBe(2);
+    expect(starsFor(g, 100, 0.8)).toBe(3);
+    expect(g).not.toHaveProperty('star2Wpm');
   });
-  it('slow mode scales speed, not accuracy', () => {
-    expect(effectiveGate(g, true)).toEqual({ ...g, star2Wpm: 11, star3Wpm: 13 });
-    expect(effectiveGate(g, false)).toBe(g);
-  });
-  it('xp squares accuracy and rewards first clears', () => {
-    expect(xpFor(40, 100, 16, false)).toBe(44);
+  it('speed is a bonus only: up to double XP at 2× the reference pace', () => {
+    expect(swiftBonus(0, 15)).toBe(0);
+    expect(swiftBonus(15, 15)).toBe(0.5);
+    expect(swiftBonus(30, 15)).toBe(1);
+    expect(swiftBonus(90, 15)).toBe(1);
+    expect(xpFor(40, 100, 16, false, 0)).toBe(44);
+    expect(xpFor(40, 100, 16, false, 1)).toBe(88);
     expect(xpFor(40, 50, 0, false)).toBe(10);
     expect(xpFor(40, 100, 16, true)).toBe(66);
     expect(xpFor(1, 10, 0, false)).toBe(5);

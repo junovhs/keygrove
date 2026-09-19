@@ -5,23 +5,20 @@ export type Stars = 0 | 1 | 2 | 3;
 export const wpmOf = (hits: number, elapsedMs: number): number => (elapsedMs <= 0 ? 0 : Math.round((hits / 5) / Math.max(0.01, elapsedMs / 60000)));
 export const accOf = (hits: number, attempts: number): number => (attempts ? Math.round((hits / attempts) * 100) : 100);
 
-/** Effective gate: slow mode lowers speed targets by 30%, never accuracy. */
-export function effectiveGate(gate: Gate, slowMode: boolean): Gate {
-  if (!slowMode) return gate;
-  return { ...gate, star2Wpm: Math.round(gate.star2Wpm * 0.7), star3Wpm: Math.round(gate.star3Wpm * 0.7) };
-}
-
-/** ★ pass (accuracy only) · ★★ 97% + target · ★★★ 100% + 1.2×target. */
-export function starsFor(gate: Gate, wpm: number, acc: number): Stars {
+/** ★ pass (accuracy only) · ★★ 97% + steady rhythm (≥ 0.6) · ★★★ 100% + very steady (≥ 0.8). Speed never gates a star. */
+export function starsFor(gate: Gate, acc: number, rhythm: number): Stars {
   if (acc < gate.passAcc) return 0;
-  if (acc >= gate.star3Acc && wpm >= gate.star3Wpm) return 3;
-  if (acc >= gate.star2Acc && wpm >= gate.star2Wpm) return 2;
+  if (acc >= gate.star3Acc && rhythm >= gate.star3Rhythm) return 3;
+  if (acc >= gate.star2Acc && rhythm >= gate.star2Rhythm) return 2;
   return 1;
 }
 
-/** hits·(acc/100)² + 2·⌊maxCombo/8⌋, ×1.5 on a first clear; never below 5. */
-export function xpFor(hits: number, acc: number, maxCombo: number, firstClear: boolean): number {
-  const base = hits * Math.pow(acc / 100, 2) + 2 * Math.floor(maxCombo / 8);
+/** Speed is a bonus: 0 at rest, 1.0 (double XP) at 2× the grove's reference pace. */
+export const swiftBonus = (wpm: number, swiftWpm: number): number => Math.max(0, Math.min(1, wpm / (2 * Math.max(1, swiftWpm))));
+
+/** hits·(acc/100)² + 2·⌊maxCombo/8⌋, ×(1 + swift), ×1.5 on a first clear; never below 5. */
+export function xpFor(hits: number, acc: number, maxCombo: number, firstClear: boolean, swift = 0): number {
+  const base = (hits * Math.pow(acc / 100, 2) + 2 * Math.floor(maxCombo / 8)) * (1 + swift);
   return Math.max(5, Math.round(firstClear ? base * 1.5 : base));
 }
 

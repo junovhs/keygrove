@@ -3,7 +3,7 @@ import { KeyModel } from './keymodel';
 import { decide, sessionReview, type RunSummary } from './coach';
 
 const T0 = 1_700_000_000_000;
-const base = (over: Partial<RunSummary> = {}): RunSummary => ({ thirds: [{ errors: 0, lat: 300 }, { errors: 0, lat: 300 }, { errors: 0, lat: 300 }], wpm: 20, acc: 100, star2Wpm: 15, runsOnTrail: 4, focusKeys: ['f', 'j', ' '], unlocked: ['f', 'j', ' '], passed: true, fails: 0, slowMode: false, recentAcc: [], ...over });
+const base = (over: Partial<RunSummary> = {}): RunSummary => ({ thirds: [{ errors: 0, lat: 300 }, { errors: 0, lat: 300 }, { errors: 0, lat: 300 }], wpm: 20, acc: 100, rhythm: 0.9, runsOnTrail: 4, focusKeys: ['f', 'j', ' '], unlocked: ['f', 'j', ' '], passed: true, fails: 0, recentAcc: [], ...over });
 const press = (m: KeyModel, k: string, n: number, ok: boolean, lat = 300, typed?: string) => { for (let i = 0; i < n; i++) m.record(k, ok, lat, T0 + i * 500, typed); };
 
 describe('coach', () => {
@@ -38,10 +38,10 @@ describe('coach', () => {
     const d = decide(m, base({ thirds: [{ errors: 0, lat: 400 }, { errors: 1, lat: 320 }, { errors: 3, lat: 250 }], wpm: 30 }), T0 + 60_000);
     expect(d.find((x) => x.kind === 'rushing')).toBeTruthy();
   });
-  it('three declining runs → fatigue note; 3 fails → slow offer', () => {
+  it('three declining runs → fatigue note; 3 fails → steady note', () => {
     const m = new KeyModel(); press(m, 'f', 30, true);
     expect(decide(m, base({ recentAcc: [98, 94, 90] }), T0 + 60_000).find((x) => x.kind === 'fatigue')).toBeTruthy();
-    expect(decide(m, base({ passed: false, fails: 3 }), T0 + 60_000).find((x) => x.kind === 'slow')).toBeTruthy();
+    expect(decide(m, base({ passed: false, fails: 3 }), T0 + 60_000).find((x) => x.kind === 'steady')).toMatchObject({ required: false });
   });
   it('session review: due keys; required when 3+ or slipped', () => {
     const m = new KeyModel(); for (const k of 'fjdk') press(m, k, 60, true);

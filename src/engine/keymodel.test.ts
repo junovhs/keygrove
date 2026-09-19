@@ -18,8 +18,8 @@ describe('KeyModel mastery', () => {
     const runs: number[] = [];
     for (let run = 1; run <= 10; run++) { sim(m, 'f', 10, 1, 300, 30, 0, T0 + run * 60_000); runs.push(m.mastery('f', T0 + run * 60_000)); }
     const firstMastered = runs.findIndex((v) => v >= MASTERED) + 1;
-    expect(firstMastered).toBeGreaterThanOrEqual(5);
-    expect(firstMastered).toBeLessThanOrEqual(8);
+    expect(firstMastered).toBeGreaterThanOrEqual(3);
+    expect(firstMastered).toBeLessThanOrEqual(6);
     expect(m.stat('f')!.hits).toBeGreaterThanOrEqual(VOLUME);
   });
   it('80% accuracy never masters, whatever the volume', () => {
@@ -28,6 +28,8 @@ describe('KeyModel mastery', () => {
     for (let i = 0; i < 20; i++) { sim(m, 'k', 10, 0.8, 300, 40, 0, T0 + i * 10_000); peak = Math.max(peak, m.mastery('k', T0 + i * 10_000 + 10_000)); }
     expect(peak).toBeLessThan(MASTERED);
     expect(m.accuracy('k')).toBeLessThan(0.93);
+    const sp = new KeyModel(); warm(sp, 'asdjkl'); for (let i = 0; i < 60; i++) sp.record(' ', true, i % 2 ? 900 : 200, T0 + i * 1000);
+    expect(sp.mastery(' ', T0 + 100_000)).toBeGreaterThanOrEqual(MASTERED); // space: uneven timing is fine
   });
   it('speed is not a factor: slow but steady masters like fast and steady', () => {
     const slow = new KeyModel(); warm(slow, 'asdjkl'); sim(slow, 'f', 80, 1, 900, 40);

@@ -66,10 +66,10 @@ describe('curriculum invariants', () => {
     expect(ks.has('{')).toBe(true); expect(ks.has('A')).toBe(true); expect(ks.has('1')).toBe(false);
     expect(groveOf(braces).opensAfter).toBe('bark-checkpoint');
   });
-  it('gate math: ★★★ is 1.2× the ★★ target', () => {
+  it('gates carry accuracy + rhythm thresholds and a swift reference; never a WPM gate', () => {
     const g = gateFor(MAIN_TRAILS[0]!);
-    expect(g).toEqual({ passAcc: 90, star2Wpm: 15, star3Wpm: 18, star2Acc: 97, star3Acc: 100 });
-    expect(gateFor(checkpointOf('flow')).star2Wpm).toBe(50);
+    expect(g).toEqual({ passAcc: 90, star2Acc: 97, star3Acc: 100, star2Rhythm: 0.6, star3Rhythm: 0.8, swiftWpm: 15 });
+    expect(gateFor(checkpointOf('flow')).swiftWpm).toBe(50);
   });
   it('follows spec §22: F J, D K, E I, R U before the rest of the home row', () => {
     expect(MAIN_TRAILS.slice(0, 4).map((t) => t.newKeys)).toEqual(['fj', 'dk', 'ei', 'ru']);

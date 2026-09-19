@@ -1,7 +1,7 @@
 import { GROVES, MAIN_TRAILS, checkpointOf, cumulativeKeys, gateFor, groveOf, nextTrail, trailById, trailsInGrove, type Trail, type StageName } from '../curriculum';
 import { freshProgress, type SaveV6, type TrailProgress } from '../state/save';
 import { KeyModel, MASTERED } from './keymodel';
-import { bumpStreak, effectiveGate, starsFor, xpFor, type Stars } from './scoring';
+import { bumpStreak, starsFor, swiftBonus, xpFor, type Stars } from './scoring';
 
 export const STAGE_NAMES: readonly StageName[] = ['drill', 'mix', 'words'];
 export const progressOf = (s: SaveV6, id: string): TrailProgress => s.trails[id] ?? (s.trails[id] = freshProgress());
@@ -41,7 +41,7 @@ export function stageFor(trail: Trail, model: KeyModel, now = Date.now()): Stage
 }
 export const currentStage = (s: SaveV6, model: KeyModel, now = Date.now()): StageName => stageFor(currentTrail(s), model, now);
 
-export interface RunInput { hits: number; attempts: number; maxCombo: number; wpm: number; acc: number; now: number }
+export interface RunInput { hits: number; attempts: number; maxCombo: number; wpm: number; acc: number; rhythm: number; now: number }
 export interface Outcome {
   passed: boolean; stars: Stars; xp: number; firstClear: boolean;
   /** What this run unlocked: the trail cleared, the next grove opened, or nothing new yet. */
@@ -52,10 +52,13 @@ export interface Outcome {
   nextTrail: Trail | null;
   /** Checkpoint cleared with ★ only — needs ★★ to open the next grove. */
   needsTwoStars: boolean;
-  slowOffer: boolean;
+  /** 0..1 speed bonus applied to XP this run. */
+  swift: number;
 }
 
-export const MIN_RUNS = 4;
+export const MIN_RUNS = 5;
+/** Escape hatch for noisy per-key stats on tiny key sets: this many consecutive clean, steady runs clear a trail. */
+export const CLEAN_STREAK = 3;
 
 /**
  * Apply a finished run of the current trail to the save. Mutates `s`; caller persists.
@@ -64,8 +67,8 @@ export const MIN_RUNS = 4;
 export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   const trail = currentTrail(s);
   const p = progressOf(s, trail.id);
-  const gate = effectiveGate(gateFor(trail), s.settings.slowMode);
-  const stars = starsFor(gate, r.wpm, r.acc);
+  const gate = gateFor(trail);
+  const stars = starsFor(gate, r.acc, r.rhythm);
   const passed = stars >= 1;
   const wasCleared = p.cleared;
   let advance: Outcome['advance'] = 'none';
@@ -74,6 +77,7 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   let firstClear = false;
   p.runs++;
   p.recent = [...p.recent, r.acc].slice(-5);
+  p.cleanStreak = r.acc >= 97 && r.rhythm >= 0.6 ? (p.cleanStreak ?? 0) + 1 : 0;
   const focus = focusKeys(trail, model, r.now);
   const mastery = focus.map((k) => ({ key: k, mastery: model.mastery(k, r.now) }));
   const blockers: string[] = [];
@@ -81,6 +85,8 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   const lastTwo = p.recent.slice(-2);
   if (lastTwo.length < 2 || lastTwo.some((a) => a < gate.passAcc)) blockers.push('two passed runs in a row');
   for (const m of mastery) if (m.mastery < MASTERED) blockers.push(`${m.key === ' ' ? 'Space' : m.key.toUpperCase()} ${Math.round(m.mastery * 100)}%`);
+  // Three clean, steady runs in a row prove it even if a key's stats lag behind.
+  if (p.runs >= MIN_RUNS && p.cleanStreak >= CLEAN_STREAK) blockers.length = 0;
 
   if (passed) {
     p.fails = 0;
@@ -99,14 +105,14 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   } else {
     p.fails++;
   }
-  const xp = xpFor(r.hits, r.acc, r.maxCombo, firstClear);
+  const swift = swiftBonus(r.wpm, gate.swiftWpm);
+  const xp = xpFor(r.hits, r.acc, r.maxCombo, firstClear, swift);
   p.bestWpm = Math.max(p.bestWpm, r.wpm); p.bestAcc = Math.max(p.bestAcc, r.acc);
   const st = s.stats;
   st.runs++; st.chars += r.hits; st.attempts += r.attempts; st.xp += xp;
   st.bestWpm = Math.max(st.bestWpm, r.wpm); st.bestAcc = Math.max(st.bestAcc, r.acc); st.bestCombo = Math.max(st.bestCombo, r.maxCombo);
   const streak = bumpStreak(st.days, st.lastDay, r.now); st.days = streak.days; st.lastDay = streak.lastDay;
-  const slowOffer = !passed && p.fails >= 3 && !s.settings.slowMode;
-  return { passed, stars, xp, firstClear, advance, mastery, blockers, nextTrail: next, needsTwoStars, slowOffer };
+  return { passed, stars, xp, firstClear, advance, mastery, blockers, nextTrail: next, needsTwoStars, swift };
 }
 
 /** Position on the main path, 1-based, for the header. */

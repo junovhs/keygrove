@@ -55,7 +55,7 @@ export function gateFor(trail: Trail): Gate {
   const g = groveOf(trail);
   const passAcc = trail.passAcc ?? g.passAcc;
   const target = trail.wpmTarget ?? g.wpmTarget;
-  return { passAcc, star2Wpm: target, star3Wpm: Math.round(target * 1.2), star2Acc: 97, star3Acc: 100 };
+  return { passAcc, star2Acc: 97, star3Acc: 100, star2Rhythm: 0.6, star3Rhythm: 0.8, swiftWpm: target };
 }
 
 /** Next trail on the main path, or null at the end. Side-branch trails advance within their branch. */
@@ -71,6 +71,6 @@ export function describePath(): string {
     const ks = cumulativeKeys(t);
     const keys = [...ks.keys].join('') + (ks.shift ? ' ⇧' : '');
     const g = gateFor(t);
-    return `${String(t.n).padStart(2)} G${groveOf(t).n} ${t.name.padEnd(24)} +${(t.shift ? 'SHIFT' : t.newKeys || '—').padEnd(9)} acc≥${g.passAcc} ★★${g.star2Wpm} ${t.checkpoint ? 'CP ' : '   '}[${keys}]`;
+    return `${String(t.n).padStart(2)} G${groveOf(t).n} ${t.name.padEnd(24)} +${(t.shift ? 'SHIFT' : t.newKeys || '—').padEnd(9)} acc≥${g.passAcc} swift${g.swiftWpm} ${t.checkpoint ? 'CP ' : '   '}[${keys}]`;
   }).join('\n');
 }

@@ -14,7 +14,7 @@ const ALPHA = 0.15;
 const DAY = 86_400_000;
 export const SPIKE_RATIO = 1.8;
 /** Correct presses needed before a key can reach full mastery. */
-export const VOLUME = 50;
+export const VOLUME = 30;
 export const MASTERED = 0.8;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -79,8 +79,10 @@ export class KeyModel {
     const s = this.stats[key.toLowerCase()];
     if (!s) return 0;
     const volume = clamp01(s.hits / VOLUME);
-    const acc = clamp01((1 - s.err - 0.88) / 0.1); // 88% → 0, 98% → 1
-    const raw = volume * (0.55 * acc + 0.45 * this.rhythm(key));
+    const acc = clamp01((1 - s.err - 0.8) / 0.15); // 80% → 0, 95% → 1
+    // Space ends words, so its timing is naturally uneven: judge it on accuracy and volume only.
+    const rhythm = key === ' ' ? 1 : this.rhythm(key);
+    const raw = volume * (0.55 * acc + 0.45 * rhythm);
     if (now <= s.due) return raw;
     const overdue = (now - s.due) / Math.max(DAY, s.interval);
     return raw * Math.max(0.4, 1 - 0.25 * overdue);

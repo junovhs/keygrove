@@ -17,7 +17,7 @@ export interface Grove {
   blurb: string;
   /** Accuracy (0–100) required to pass any stage in this grove. */
   passAcc: number;
-  /** WPM for ★★ (★★★ = ×1.2). For ladders this is the first rung. */
+  /** Reference pace for the 'swift' XP bonus only — never a gate. For ladders this is the first rung. */
   wpmTarget: number;
   /** Flow grove: per-star WPM rungs. */
   ladder?: readonly number[];
@@ -45,10 +45,12 @@ export interface Trail {
   wpmTarget?: number;
 }
 
+/** Stars come from accuracy and rhythm only. `swiftWpm` is the pace that earns the full XP bonus. */
 export interface Gate {
   passAcc: number;
-  star2Wpm: number;
-  star3Wpm: number;
   star2Acc: 97;
   star3Acc: 100;
+  star2Rhythm: 0.6;
+  star3Rhythm: 0.8;
+  swiftWpm: number;
 }
