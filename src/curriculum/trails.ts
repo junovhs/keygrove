@@ -10,15 +10,15 @@ function grove(g: GroveId, specs: Spec[]): Omit<Trail, 'n'>[] {
 /** All trails in path order. Groves 1–6 are the main path; the Code grove is a side branch. */
 const SPECS: Omit<Trail, 'n'>[] = [
   ...grove('roots', [
-    { name: 'Anchors', newKeys: 'fj', space: true, kind: 'rhythm', length: 36, blurb: 'Index fingers only, plus the spacebar with either thumb. F and J are your landmarks.' },
+    { id: 'anchors', name: 'Landmarks', newKeys: 'fj', space: true, kind: 'rhythm', length: 36, blurb: 'Index fingers only, plus the spacebar with either thumb. F and J are your landmarks.' },
     { name: 'Inner Pair', newKeys: 'dk', kind: 'rhythm', length: 36, blurb: 'Middle fingers. Small reach, easy rhythm.' },
     { name: 'Middle Up', newKeys: 'ei', kind: 'words', length: 40, blurb: 'Middle fingers reach up. First real words appear.' },
     { name: 'Index Up', newKeys: 'ru', kind: 'words', length: 42, blurb: 'Index fingers reach up. R and U share a finger with F and J.' },
     { name: 'Core Words', newKeys: '', kind: 'words', length: 44, blurb: 'Everything so far, as words.' },
-    { name: 'Roots Checkpoint', newKeys: '', checkpoint: true, kind: 'words', length: 60, blurb: 'A longer mixed run. ★★ here opens the Home grove.' },
+    { name: 'Roots Checkpoint', newKeys: '', checkpoint: true, kind: 'words', length: 60, blurb: 'A longer mixed run. Use everything so far in a fresh passage to open Home.' },
   ]),
   ...grove('home', [
-    { name: 'Ring Pair', newKeys: 'sl', kind: 'words', length: 42, blurb: 'Ring fingers. Weakest reach on the row; take it slow.' },
+    { name: 'Ring Pair', newKeys: 'sl', kind: 'words', length: 42, blurb: 'Ring fingers. Give each new reach time to settle.' },
     { name: 'Outer Pair', newKeys: 'a;', kind: 'words', length: 42, blurb: 'Pinkies. The semicolon is a real key — treat it like one.' },
     { name: 'Index Reach', newKeys: 'gh', kind: 'words', length: 44, blurb: 'Index fingers reach inward. F and J stay your landmarks.' },
     { name: 'Home Words', newKeys: '', kind: 'words', length: 48, blurb: 'The whole home row plus E I R U.' },
@@ -56,8 +56,8 @@ const SPECS: Omit<Trail, 'n'>[] = [
     { name: 'Bigrams', newKeys: '', kind: 'bigrams', length: 60, blurb: 'th he in er an — the rhythm units of English.' },
     { name: 'Common Words', newKeys: '', kind: 'top', length: 90, blurb: 'The 200 most common words, shuffled.' },
     { name: 'Pangrams & Quotes', newKeys: '', kind: 'quotes', length: 110 },
-    { name: 'Endurance', newKeys: '', kind: 'long', length: 220, blurb: '60 seconds continuous.' },
-    { name: 'Flow Checkpoint', newKeys: '', checkpoint: true, kind: 'long', length: 320, wpmTarget: 50, blurb: '90 seconds. ★★ = 50 WPM at 97%.' },
+    { name: 'Endurance', newKeys: '', kind: 'long', length: 440, blurb: 'A longer passage. Let words arrive in groups; pause between sentences when you need to.' },
+    { name: 'Flow Checkpoint', newKeys: '', checkpoint: true, kind: 'long', length: 720, wpmTarget: 50, blurb: 'Your final passage: letters, capitals, punctuation, numbers and symbols. Aim for 97% accuracy at your own pace.' },
   ]),
   ...grove('code', [
     { name: 'Braces', newKeys: '{}[]', kind: 'code', length: 40 },

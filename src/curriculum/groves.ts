@@ -8,7 +8,7 @@ export const GROVES: readonly Grove[] = [
   { id: 'undergrowth', n: 4, name: 'Undergrowth', blurb: 'Bottom row: Z {z}, X {x}, C {c}, B {b}.', passAcc: 94, wpmTarget: 25 },
   { id: 'bark', n: 5, name: 'Bark', blurb: 'Shift and punctuation. Real sentences begin.', passAcc: 95, wpmTarget: 30 },
   { id: 'rings', n: 6, name: 'Rings', blurb: 'Numbers and symbols.', passAcc: 95, wpmTarget: 30 },
-  { id: 'flow', n: 7, name: 'Flow', blurb: 'No new keys. Speed ladders and endurance.', passAcc: 96, wpmTarget: 40, ladder: [40, 50, 60, 70] },
+  { id: 'flow', n: 7, name: 'Flow', blurb: 'Make familiar movements work together in longer, varied passages.', passAcc: 96, wpmTarget: 40, ladder: [40, 50, 60, 70] },
   { id: 'code', n: 8, name: 'Code', blurb: 'Optional branch. Brackets and snippets.', passAcc: 96, wpmTarget: 40, optional: true, opensAfter: 'bark-checkpoint' },
 ];
 

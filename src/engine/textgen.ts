@@ -102,7 +102,7 @@ export function generateDrill(kind: 'confusion' | 'reach' | 'review' | 'transiti
 }
 
 /** Generate the text for a trail stage. Output only ever contains allowedChars(trail). */
-export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
+function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
   const r = rng(opts.seed === undefined ? undefined : opts.seed + ['drill', 'mix', 'words'].indexOf(stage) * 1000003);
   const heat = opts.heat ?? {};
   const allowed = allowedChars(trail);
@@ -193,4 +193,33 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
       return fill(stage === 'mix' ? short : len, () => pickOne(ok, r));
     }
   }
+}
+
+/** Generate varied practice while guaranteeing evidence for every introduced key.
+ * Checkpoints revisit the complete chapter vocabulary; characters never escape
+ * the cumulative set. Coverage is explicit rather than left to random chance.
+ */
+export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
+  const allowed = allowedChars(trail);
+  let text = generateRaw(trail, stage, opts);
+  const r = rng((opts.seed ?? Math.floor(Math.random() * 1e8)) + 17);
+  const focus = trail.checkpoint ? [...cumulativeKeys(trail).keys] : [...trail.newKeys];
+  const bank = wordBank(trail);
+  for (const k of focus) {
+    const count = [...text.toLowerCase()].filter(c => c === k).length;
+    const needed = trail.checkpoint ? 1 : 3;
+    if (count >= needed) continue;
+    const words = bank.filter(w => w.includes(k) && w.length <= 6);
+    for (let n = count; n < needed; n++) {
+      const piece = words.length && stage !== 'drill' ? pickOne(words, r) : k;
+      text += (text ? ' ' : '') + piece;
+    }
+  }
+  if (trail.shift && !/[A-Z]/.test(text)) text += ' Fir Jar';
+  if (trail.id === 'flow-checkpoint') {
+    const closing = 'The final note reads: "Meet at 10:30 by gate 7." Bring $8.50 for tea & cake! Send a reply to hello@grove.dev. Mark #home on your map (page 6). The code is blue_fox = 2 * 4 + 1. Keep 95% of the seeds.';
+    text += ' ' + closing;
+  }
+  if (![...text].every(c => allowed.has(c))) throw new Error(`Invalid curriculum text for ${trail.id}`);
+  return text;
 }

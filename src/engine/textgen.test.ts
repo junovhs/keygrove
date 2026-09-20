@@ -11,6 +11,9 @@ describe('textgen', () => {
         const text = generate(t, stage, { seed }); n++;
         if (text.length <= 6) throw new Error(`${t.id}/${stage}/${seed} too short: ${JSON.stringify(text)}`);
         if (text.length >= t.length * 2 + 40) throw new Error(`${t.id}/${stage}/${seed} too long (${text.length})`);
+        for (const key of t.checkpoint ? [...allowed].filter(c => c !== ' ' && c === c.toLowerCase()) : [...t.newKeys]) {
+          if (!text.toLowerCase().includes(key)) throw new Error(`${t.id}/${stage}/${seed} missing ${key}`);
+        }
         if (text.includes('  ')) throw new Error(`${t.id}/${stage} double space`);
         const bad = [...text].find((c) => !allowed.has(c));
         if (bad !== undefined) throw new Error(`${t.id}/${stage}/${seed}: ${JSON.stringify(bad)} not unlocked in ${JSON.stringify(text)}`);
@@ -31,9 +34,9 @@ describe('textgen', () => {
     expect(wordBank(trailById('anchors')).length).toBe(0);
   });
   it('heat pulls hot-key words in', () => {
-    const t = trailById('canopy-checkpoint');
-    const count = (heat: Record<string, number>) => { let k = 0, n = 0; for (let s = 0; s < 200; s++) { const txt = generate(t, 'words', { seed: s, heat }); n += txt.length; k += [...txt].filter((c) => c === 'q').length; } return k / n; };
-    expect(count({ q: 6 })).toBeGreaterThan(count({}) * 2);
+    const t = trailById('home-words');
+    const count = (heat: Record<string, number>) => { let k = 0, n = 0; for (let s = 0; s < 200; s++) { const txt = generate(t, 'words', { seed: s, heat }); n += txt.length; k += [...txt].filter((c) => c === 'g').length; } return k / n; };
+    expect(count({ g: 6 })).toBeGreaterThan(count({}) * 2);
   });
   it('sentence trails introduce their new punctuation', () => {
     const q = generate(trailById('quotes-and-questions'), 'words', { seed: 2 });
