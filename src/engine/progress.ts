@@ -1,6 +1,6 @@
 import { GROVES, MAIN_TRAILS, checkpointOf, cumulativeKeys, gateFor, groveOf, nextTrail, trailById, trailsInGrove, type Trail, type StageName } from '../curriculum';
 import { freshProgress, type SaveV6, type TrailProgress } from '../state/save';
-import { KeyModel, MASTERED } from './keymodel';
+import { KeyModel } from './keymodel';
 import { bumpStreak, starsFor, swiftBonus, xpFor, type Stars } from './scoring';
 
 export const STAGE_NAMES: readonly StageName[] = ['drill', 'mix', 'words'];
@@ -25,7 +25,7 @@ export function trailUnlocked(s: SaveV6, trail: Trail): boolean {
 }
 
 export const currentTrail = (s: SaveV6): Trail => trailById(s.trail);
-/** Keys a trail is judged on: its new keys (+ space on trail 1), or the 5 weakest unlocked keys when it adds none. */
+/** Keys a trail practices: its new keys (+ space on trail 1), or the 5 weakest unlocked keys when it adds none. */
 export function focusKeys(trail: Trail, model: KeyModel, now = Date.now()): string[] {
   const own = [...trail.newKeys, ...(trail.space ? [' '] : [])];
   if (own.length) return own;
@@ -35,6 +35,7 @@ export function focusKeys(trail: Trail, model: KeyModel, now = Date.now()): stri
 export const minMastery = (keys: string[], model: KeyModel, now = Date.now()): number => keys.reduce((m, k) => Math.min(m, model.mastery(k, now)), 1);
 /** Stage for the next run comes from evidence, not a counter: drill until the new keys settle, mix until they are solid, then words. */
 export function stageFor(trail: Trail, model: KeyModel, now = Date.now()): StageName {
+  if (trail.checkpoint) return 'words';
   const m = minMastery(focusKeys(trail, model, now).filter((k) => k !== ' '), model, now);
   if (!trail.newKeys) return m < 0.5 ? 'mix' : 'words';
   return m < 0.35 ? 'drill' : m < 0.7 ? 'mix' : 'words';
@@ -50,49 +51,42 @@ export interface Outcome {
   mastery: { key: string; mastery: number }[];
   blockers: string[];
   nextTrail: Trail | null;
-  /** Checkpoint cleared with ★ only — needs ★★ to open the next grove. */
+  /** Legacy compatibility field; stars never gate the next chapter. */
   needsTwoStars: boolean;
   /** 0..1 speed bonus applied to XP this run. */
   swift: number;
 }
 
-/** Apply an observation. Accurate repeated evidence plus a transfer passage opens the next lesson. */
+/** Apply an observation. One completed passage at the visible accuracy target opens the next lesson. */
 export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   const trail = currentTrail(s);
   const p = progressOf(s, trail.id);
   const gate = gateFor(trail);
   const stars = starsFor(gate, r.acc, r.rhythm);
-  const passed = stars >= 1;
+  const target = trail.checkpoint ? 97 : gate.passAcc;
+  const passed = r.acc >= target;
   const wasCleared = p.cleared;
   let advance: Outcome['advance'] = 'none';
   let next: Trail | null = null;
-  let needsTwoStars = false;
+  const needsTwoStars = false;
   let firstClear = false;
   p.runs++;
   p.recent = [...p.recent, r.acc].slice(-5);
   p.cleanStreak = r.acc >= 97 && r.rhythm >= 0.6 ? (p.cleanStreak ?? 0) + 1 : 0;
   const focus = focusKeys(trail, model, r.now);
   const mastery = focus.map((k) => ({ key: k, mastery: model.mastery(k, r.now) }));
-  const blockers: string[] = [];
-  
-  const lastTwo = p.recent.slice(-2);
-  if (lastTwo.length < 2 || lastTwo.some((a) => a < gate.passAcc)) blockers.push('another accurate sample');
-  for (const m of mastery) if (m.mastery < MASTERED) blockers.push(`${m.key === ' ' ? 'Space' : m.key.toUpperCase()} ${Math.round(m.mastery * 100)}%`);
-  if ((r.stage ?? stageFor(trail, model, r.now)) !== 'words') blockers.push('use these keys in a fresh context');
-  if (trail.checkpoint && r.acc < 97) blockers.push('97% accuracy on the chapter passage');
+  const blockers = passed ? [] : [`${r.acc}% accuracy; ${target}% needed to continue`];
 
   if (passed) {
     p.fails = 0;
     p.stars = Math.max(p.stars, stars) as Stars;
-    if (!wasCleared && blockers.length === 0) { p.cleared = true; firstClear = true; advance = 'trail'; }
+    if (!wasCleared) { p.cleared = true; firstClear = true; advance = 'trail'; }
     if (p.cleared) {
       const n = nextTrail(trail);
       if (n) {
-        const opens = true;
-        if (opens) {
-          next = n;
-          if (s.trail !== n.id) { s.trail = n.id; advance = trail.checkpoint ? 'grove' : 'trail'; }
-        } else needsTwoStars = true;
+        next = n;
+        s.trail = n.id;
+        advance = trail.checkpoint ? 'grove' : 'trail';
       }
     }
   } else {

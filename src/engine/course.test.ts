@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { MAIN_TRAILS, trailsInGrove } from '../curriculum';
+import { MAIN_TRAILS, gateFor, trailsInGrove } from '../curriculum';
 import { METHODS, setMethod, DEFAULT_METHOD_ID } from '../curriculum/method';
 import { fresh } from '../state/save';
 import { KeyModel } from './keymodel';
@@ -18,7 +18,7 @@ for (const method of METHODS) it(`${method.name}: the complete course and option
       expect(state.trail).toBe(trail.id);
       expect(trailUnlocked(state, trail)).toBe(true);
       let runs = 0;
-      while (!state.trails[trail.id]?.cleared && runs < 35) {
+      while (!state.trails[trail.id]?.cleared && runs < 2) {
         const stage = stageFor(trail, model, now);
         const text = generate(trail, stage, { seed: ++runs, heat: model.heatMap(now) });
         const run = new Run(text); run.begin(now);
@@ -27,13 +27,15 @@ for (const method of METHODS) it(`${method.name}: the complete course and option
         }
         for (const ch of text) { now += ch === ' ' ? 1900 : 1200; run.type(ch, now); model.record(ch, true, ch === ' ' ? null : 1200, now); }
         const metrics = run.metrics(now);
-        applyRun(state, model, { hits: run.hits, attempts: run.attempts, maxCombo: run.maxCombo, wpm: metrics.wpm, acc: metrics.acc, rhythm: run.rhythm(), now, stage });
+        const outcome = applyRun(state, model, { hits: run.hits, attempts: run.attempts, maxCombo: run.maxCombo, wpm: metrics.wpm, acc: metrics.acc, rhythm: run.rhythm(), now, stage });
+        const passed = metrics.acc >= (trail.checkpoint ? 97 : gateFor(trail).passAcc);
+        expect(outcome.firstClear, `${trail.id}: passing must immediately advance`).toBe(passed);
         model.endRun(); total++;
       }
       expect(state.trails[trail.id]?.cleared, `${trail.id} stalled after ${runs} runs`).toBe(true);
     }
-    expect(total).toBeGreaterThan(80);
-    expect(total).toBeLessThan(300);
+    expect(total).toBeGreaterThanOrEqual(40);
+    expect(total).toBeLessThanOrEqual(80);
     expect(Object.values(state.trails).filter(p => p.cleared)).toHaveLength(40);
   } finally { setMethod(DEFAULT_METHOD_ID); }
 });

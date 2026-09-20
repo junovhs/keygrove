@@ -22,7 +22,7 @@ Guest learning persists locally in a separate save. The optional account uses Su
 
 - [Method specification](docs/typing-method-spec.md): canonical finger assignments and teaching philosophy.
 - [Current progression](docs/progression.md): evidence, routing, permanence and compatibility.
-- Ishoo DEC-05 governs the guided-course direction and supersedes the older star-gated progression proposal.
+- Ishoo DEC-06 governs immediate advancement on a visible pass; mastery guides practice rather than blocking lessons.
 
 The app observes characters and timing, not finger choice or posture. Completing the course demonstrates performance on its passages; it does not promise a particular real-world typing speed.
 

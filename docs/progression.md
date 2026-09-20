@@ -1,10 +1,10 @@
 # RQWERTY — guided course progression
 
-Current implementation contract under Ishoo **DEC-05**. This replaces the earlier fixed-run, rhythm-star and XP progression proposal. Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
+Current implementation contract under Ishoo **DEC-06**. This replaces the earlier fixed-run, rhythm-star and XP progression proposal. Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
 
 ## One course, one next action
 
-A learner follows 36 lessons in seven chapters. Continue either presents the next useful passage, inserts one short targeted practice after a repeated error pattern, or opens the next lesson after sufficient evidence. A practice always returns to the course; it does not recursively generate more practices. The player can skip it. A due review at the start of a visit offers a short warm-up, also skippable.
+A learner follows 36 lessons in seven chapters. Continue either presents the next useful passage, inserts one short targeted practice after a repeated error pattern, or opens the next lesson after one completed passage meeting the visible accuracy target. A practice always returns to the course; it does not recursively generate more practices. The player can skip it. A due review at the start of a visit offers a short warm-up, also skippable.
 
 The Course book is optional navigation. Cleared lessons can be revisited. A keepsake replay returns to the earliest unfinished main-course lesson. Earned chapters and keepsakes persist through absence and method changes. No daily retention mechanic, speed gate, spendable currency or random loot exists.
 
@@ -25,14 +25,9 @@ Code is enabled in Settings and opens after Bark. It never blocks the main cours
 
 ## Evidence to clear a lesson
 
-All conditions must hold:
+One completed passage meeting the visible target clears its lesson immediately: the chapter target for regular lessons, **97% for checkpoints**. Mastery, rhythm, sample count, speed and practice stage never veto a passing result. A failed attempt does not impose a second-pass requirement on the next attempt.
 
-1. The latest two course attempts meet the chapter’s accuracy target.
-2. Every focus key has at least 0.8 mastery. Focus is the new keys (plus Space on lesson 1), or the five weakest cumulative keys when none are introduced.
-3. The completed attempt **started in the words stage**. Improving enough during a drill does not make that drill count as transfer.
-4. For checkpoints, the latest passage also reaches **97% accuracy**.
-
-There is no five-run quota, speed requirement, consecutive-clean-run escape hatch or two-star chapter gate. Short patterns precede real words when the available alphabet cannot form words yet. Stages are drill below 0.35 minimum focus mastery, mix below 0.7, then words. Lessons without new keys use mix below 0.5, otherwise words.
+Short patterns precede real words when the available alphabet cannot form words yet. Mastery chooses useful text, not permission to advance: drill below 0.35 minimum focus mastery, mix below 0.7, then words. Lessons without new keys use mix below 0.5, otherwise words. Checkpoints always use the words stage for a cumulative passage. Later lessons keep practising earlier keys.
 
 ## Key model and timing
 
@@ -55,13 +50,13 @@ Only repeated mistakes trigger automatic targeted practice. Timing-only observat
 
 ## Save compatibility
 
-Save version remains 6. Legacy `stars`, `xp`, `days`, `cleanStreak`, WPM references and rank helpers remain for compatibility, but do not govern the visible experience. Old clears are retained. Account and guest storage are separate. A new account adopts current guest progress; an existing account loads its own progress. Replays save the course destination rather than moving the learner backwards.
+Save version remains 6. Legacy `stars`, `xp`, `days`, `cleanStreak`, WPM references and rank helpers remain for compatibility, but do not govern the visible experience. Old clears are retained. Recorded passing attempts formerly blocked by hidden requirements are credited on load, including account sync and imports; a newly credited current lesson moves to the next unfinished lesson. Existing intentional replay selections stay intact. Account and guest storage are separate. A new account adopts current guest progress; an existing account loads its own progress. Replays save the course destination rather than moving the learner backwards.
 
 ## Verification
 
 - All 40 trails × three stages × 50 seeds use allowed characters, fit a bounded passage length and include their intended keys.
 - A simulated learner types generated passages slowly through all 40 lessons using each method, including recoverable mistakes, without a coverage dead end.
-- Regression tests exercise transfer-stage gating, repeated accuracy samples, no absence penalty, honest missed-space accuracy, bounded review coverage, guest/account isolation, migration and permanent keepsakes.
+- Regression tests exercise first-passage advancement, explicit accuracy boundaries, credit for previously trapped learners, no absence penalty, honest missed-space accuracy, bounded review coverage, guest/account isolation, migration and permanent keepsakes.
 - Browser checks use real key events and the normal Import interface for isolated late-course fixtures. They cover first use, repair/return, welcome-back practice, chapter reveals, keepsake replay, the final assessment, keyboard navigation and narrow viewports.
 
 These checks establish software behavior. They are not longitudinal evidence of learning outcomes or a guarantee of typing speed.

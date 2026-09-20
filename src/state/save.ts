@@ -1,4 +1,4 @@
-import { MAIN_TRAILS, TRAILS, trailById } from '../curriculum';
+import { MAIN_TRAILS, TRAILS, gateFor, nextTrail, trailById } from '../curriculum';
 import { KeyModel, type Confusions, type KeyStats } from '../engine/keymodel';
 import { DEFAULT_METHOD_ID, METHODS } from '../curriculum/method';
 import { ERROR_CLASSES, emptyTally, type ErrorTally } from '../engine/errors';
@@ -8,7 +8,7 @@ export const KEY = 'keygrove.v6';
 const PREV_V5 = 'keygrove.v5';
 const PREV = ['keygrove.v4', 'keygrove.v3', 'keygrove.v2'];
 
-/** Per-trail record. `cleared` is mastery-gated (see progress.ts); `recent` holds the last runs' accuracy. */
+/** Per-trail record. `cleared` records a passage meeting the visible accuracy target; `recent` holds the last runs' accuracy. */
 export interface TrailProgress { runs: number; cleared: boolean; stars: 0 | 1 | 2 | 3; bestWpm: number; bestAcc: number; fails: number; recent: number[]; cleanStreak: number }
 export interface Stats { runs: number; chars: number; attempts: number; bestWpm: number; bestAcc: number; xp: number; days: number; lastDay: string; bestCombo: number }
 /** `onboarded`: the method question has been answered (or the save predates it). */
@@ -55,6 +55,21 @@ export function sanitize(x: unknown): SaveV6 {
       const cleared = typeof r.cleared === 'boolean' ? r.cleared : stage >= 3;
       const recent = Array.isArray(r.recent) ? r.recent.filter((v): v is number => typeof v === 'number').slice(-5).map((v) => num(v, 100)) : [];
       s.trails[id] = { runs: int(r.runs, 9999) || (cleared ? 3 : stage), cleared, stars: int(r.stars, 3) as 0 | 1 | 2 | 3, bestWpm: num(r.bestWpm, 400), bestAcc: num(r.bestAcc, 100), fails: int(r.fails, 99), recent, cleanStreak: int(r.cleanStreak, 99) };
+    }
+  }
+  // Credit passing work that older hidden mastery/stage gates left uncleared.
+  // Only move a newly credited current lesson: preserve deliberately selected replays.
+  const wasCurrentCleared = !!s.trails[s.trail]?.cleared;
+  for (const t of TRAILS) {
+    const p = s.trails[t.id];
+    const target = t.checkpoint ? 97 : gateFor(t).passAcc;
+    if (p && p.runs > 0 && (p.bestAcc >= target || p.recent.some(acc => acc >= target))) p.cleared = true;
+  }
+  if (!wasCurrentCleared && s.trails[s.trail]?.cleared) {
+    while (s.trails[s.trail]?.cleared) {
+      const next = nextTrail(trailById(s.trail));
+      if (!next) break;
+      s.trail = next.id;
     }
   }
   const km = KeyModel.fromJSON(o.keys, o.confusions).toJSON();

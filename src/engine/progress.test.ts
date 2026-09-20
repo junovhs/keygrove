@@ -4,45 +4,42 @@ import { applyRun, currentTrail, groveOpen, stageFor } from './progress';
 import { KeyModel } from './keymodel';
 
 const T = 1_700_000_000_000;
-const sample = (acc = 100, stage: 'drill' | 'words' = 'words') => ({ hits: 40, attempts: 40, maxCombo: 40, wpm: 8, acc, rhythm: 0.2, now: T, stage });
-const learn = (m: KeyModel, keys: string) => { for (const k of keys) for (let i = 0; i < 30; i++) m.record(k, true, 400, T); };
-describe('evidence-based course', () => {
-  it('requires volume and a second accurate sample, not five compulsory runs', () => {
+const sample = (acc = 100) => ({ hits: 40, attempts: 40, maxCombo: 40, wpm: 8, acc, rhythm: 0.2, now: T, stage: 'drill' as const });
+describe('a visible pass means progress', () => {
+  it('advances after the very first passage at 90%, even with no mastery or words-stage evidence', () => {
     const s = fresh(), m = new KeyModel();
     expect(stageFor(currentTrail(s), m, T)).toBe('drill');
-    learn(m, 'fj ');
-    expect(applyRun(s, m, sample()).firstClear).toBe(false);
-    expect(applyRun(s, m, sample()).firstClear).toBe(true);
+    expect(applyRun(s, m, sample(90))).toMatchObject({ passed: true, firstClear: true, blockers: [] });
+    expect(s.trail).toBe('inner-pair');
+    expect(s.trails.anchors!.runs).toBe(1);
+  });
+  it('explains the exact accuracy shortfall, then advances on the first successful retry', () => {
+    const s = fresh(), m = new KeyModel();
+    expect(applyRun(s, m, sample(89))).toMatchObject({ passed: false, firstClear: false, blockers: ['89% accuracy; 90% needed to continue'] });
+    expect(s.trail).toBe('anchors');
+    expect(applyRun(s, m, sample(90)).firstClear).toBe(true);
     expect(s.trail).toBe('inner-pair');
   });
-  it('cannot advance on repeated scores without key coverage', () => {
-    const s = fresh(), m = new KeyModel(); learn(m, 'f ');
-    for (let i = 0; i < 12; i++) expect(applyRun(s, m, sample()).firstClear).toBe(false);
-    expect(s.trail).toBe('anchors');
+  it('does not let old errors, slow timing or low key mastery veto a passing passage', () => {
+    const s = fresh(), m = new KeyModel();
+    for (let i = 0; i < 50; i++) m.record('f', false, null, T, 'j');
+    expect(m.mastery('f', T)).toBe(0);
+    expect(applyRun(s, m, { ...sample(95), wpm: 1, rhythm: 0 }).firstClear).toBe(true);
+    expect(s.trail).toBe('inner-pair');
   });
-  it('requires transfer after accurate drill practice', () => {
-    const s = fresh(), m = new KeyModel(); learn(m, 'fj ');
-    applyRun(s, m, sample(100, 'drill'));
-    expect(applyRun(s, m, sample(100, 'drill')).firstClear).toBe(false);
-    expect(applyRun(s, m, sample()).firstClear).toBe(true);
-  });
-  it('a recent accuracy miss requires another stable sample', () => {
-    const s = fresh(), m = new KeyModel(); learn(m, 'fj ');
-    applyRun(s, m, sample(70));
-    expect(applyRun(s, m, sample()).firstClear).toBe(false);
-    expect(applyRun(s, m, sample()).firstClear).toBe(true);
-  });
-  it('a checkpoint needs 97% transfer, never rhythm stars or speed', () => {
-    const s = fresh(), m = new KeyModel(); s.trail = 'roots-checkpoint'; learn(m, 'fjdkeiru ');
-    applyRun(s, m, sample(95));
-    expect(applyRun(s, m, sample(95)).firstClear).toBe(false);
-    expect(applyRun(s, m, sample(98))).toMatchObject({ firstClear: true, advance: 'grove' });
+  it('a checkpoint generates a cumulative passage and requires exactly 97%, never speed or repeats', () => {
+    const s = fresh(), m = new KeyModel(); s.trail = 'roots-checkpoint';
+    expect(stageFor(currentTrail(s), m, T)).toBe('words');
+    expect(applyRun(s, m, sample(96))).toMatchObject({ passed: false, firstClear: false });
+    expect(groveOpen(s, 'home')).toBe(false);
+    expect(applyRun(s, m, sample(97))).toMatchObject({ passed: true, firstClear: true, advance: 'grove' });
     expect(groveOpen(s, 'home')).toBe(true);
   });
-  it('absence never revokes demonstrated control or opens a new path', () => {
-    const s = fresh(), m = new KeyModel(); learn(m, 'fj ');
-    applyRun(s, m, sample()); applyRun(s, m, sample());
-    expect(m.mastery('f', T + 90 * 86400000)).toBe(m.mastery('f', T));
+  it('a failed replay and absence never revoke a clear', () => {
+    const s = fresh(), m = new KeyModel();
+    applyRun(s, m, sample());
+    s.trail = 'anchors';
+    applyRun(s, m, { ...sample(20), now: T + 90 * 86400000 });
     expect(s.trails.anchors!.cleared).toBe(true);
     expect(groveOpen(s, 'home')).toBe(false);
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KEY, fresh, load, loadGuest, saveGuest, migrateV4, sanitize, save } from './save';
+import { KEY, fresh, freshProgress, load, loadGuest, saveGuest, migrateV4, sanitize, save } from './save';
 
 const V4 = {
   selected: 'top', completed: ['home', 'reach'], focus: 'all',
@@ -74,4 +74,39 @@ it('guest reload retains course work independently of account saves', () => {
   const account = fresh(); account.stats.runs = 20; save(account, storage);
   expect(loadGuest(storage).stats.runs).toBe(3);
   expect(load(storage).stats.runs).toBe(20);
+});
+
+
+describe('credit passing attempts held by the old hidden gates', () => {
+  it('loads five passing first-lesson attempts at lesson two for both guests and accounts', () => {
+    const old = fresh();
+    old.trails.anchors = { ...freshProgress(), runs: 5, bestAcc: 100, recent: [95, 100, 92, 97, 100] };
+    old.stats.runs = 5;
+    const storage = { getItem: () => JSON.stringify(old) };
+    for (const loadSave of [load, loadGuest]) {
+      const s = loadSave(storage);
+      expect(s.trails.anchors!.cleared).toBe(true);
+      expect(s.trail).toBe('inner-pair');
+      expect(s.stats.runs).toBe(5);
+      expect(sanitize(s)).toEqual(s);
+    }
+  });
+  it('credits older best scores and recent passes, but not below-target checkpoints or empty records', () => {
+    const old = fresh();
+    old.trails.anchors = { ...freshProgress(), runs: 10, bestAcc: 90, recent: [80, 80, 80, 80, 80] };
+    old.trails['inner-pair'] = { ...freshProgress(), runs: 1, recent: [90] };
+    old.trails['middle-up'] = { ...freshProgress(), bestAcc: 100 };
+    old.trails['roots-checkpoint'] = { ...freshProgress(), runs: 5, bestAcc: 96, recent: [96] };
+    const s = sanitize(old);
+    expect(s.trail).toBe('middle-up');
+    expect(s.trails['inner-pair']!.cleared).toBe(true);
+    expect(s.trails['middle-up']!.cleared).toBe(false);
+    expect(s.trails['roots-checkpoint']!.cleared).toBe(false);
+  });
+  it('retains intentional replay selections and permanent clears', () => {
+    const old = fresh();
+    old.trails.anchors = { ...freshProgress(), runs: 1, cleared: true, bestAcc: 80 };
+    expect(sanitize(old).trail).toBe('anchors');
+    expect(sanitize(old).trails.anchors!.cleared).toBe(true);
+  });
 });
