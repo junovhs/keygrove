@@ -1,3 +1,4 @@
+import { lessonExercises } from '../curriculum/lesson-flow';
 import { GROVES, MAIN_TRAILS, checkpointOf, cumulativeKeys, gateFor, groveOf, nextTrail, trailById, trailsInGrove, type Trail, type StageName } from '../curriculum';
 import { freshProgress, type SaveV6, type TrailProgress } from '../state/save';
 import { KeyModel } from './keymodel';
@@ -40,10 +41,13 @@ export function stageFor(trail: Trail, model: KeyModel, now = Date.now()): Stage
   if (!trail.newKeys) return m < 0.5 ? 'mix' : 'words';
   return m < 0.35 ? 'drill' : m < 0.7 ? 'mix' : 'words';
 }
-export const currentStage = (s: SaveV6, model: KeyModel, now = Date.now()): StageName => stageFor(currentTrail(s), model, now);
+/** Cleared lessons replay their application exercise; unfinished lessons resume their saved step. */
+export const exerciseIndex = (s: SaveV6, t = currentTrail(s)): number => s.trails[t.id]?.cleared ? lessonExercises(t).length - 1 : Math.min(s.lessonSteps[t.id] ?? 0, lessonExercises(t).length - 1);
+export const currentStage = (s: SaveV6, _model: KeyModel, _now = Date.now()): StageName => lessonExercises(currentTrail(s))[exerciseIndex(s)]!.stage;
 
 export interface RunInput { hits: number; attempts: number; maxCombo: number; wpm: number; acc: number; rhythm: number; now: number; stage?: StageName }
 export interface Outcome {
+  exercise: { index: number; total: number; name: string; nextName: string | null };
   passed: boolean; stars: Stars; xp: number; firstClear: boolean;
   /** What this run unlocked: the trail cleared, the next grove opened, or nothing new yet. */
   advance: 'trail' | 'grove' | 'none';
@@ -57,10 +61,12 @@ export interface Outcome {
   swift: number;
 }
 
-/** Apply an observation. One completed passage at the visible accuracy target opens the next lesson. */
+/** Each visible accuracy pass advances one planned exercise; the final exercise clears its lesson. */
 export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   const trail = currentTrail(s);
+  const exercises = lessonExercises(trail), index = exerciseIndex(s, trail);
   const p = progressOf(s, trail.id);
+  if (!p.cleared) s.lessonSteps[trail.id] ??= 0;
   const gate = gateFor(trail);
   const stars = starsFor(gate, r.acc, r.rhythm);
   const target = trail.checkpoint ? 97 : gate.passAcc;
@@ -80,7 +86,10 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   if (passed) {
     p.fails = 0;
     p.stars = Math.max(p.stars, stars) as Stars;
-    if (!wasCleared) { p.cleared = true; firstClear = true; advance = 'trail'; }
+    if (!wasCleared) {
+      s.lessonSteps[trail.id] = index + 1;
+      if (index + 1 === exercises.length) { p.cleared = true; firstClear = true; advance = 'trail'; }
+    }
     if (p.cleared) {
       const n = nextTrail(trail);
       if (n) {
@@ -99,7 +108,8 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   st.runs++; st.chars += r.hits; st.attempts += r.attempts; st.xp += xp;
   st.bestWpm = Math.max(st.bestWpm, r.wpm); st.bestAcc = Math.max(st.bestAcc, r.acc); st.bestCombo = Math.max(st.bestCombo, r.maxCombo);
   const streak = bumpStreak(st.days, st.lastDay, r.now); st.days = streak.days; st.lastDay = streak.lastDay;
-  return { passed, stars, xp, firstClear, advance, mastery, blockers, nextTrail: next, needsTwoStars, swift };
+  const exercise = { index, total: exercises.length, name: exercises[index]!.name, nextName: !p.cleared ? exercises[exerciseIndex(s, trail)]!.name : null };
+  return { exercise, passed, stars, xp, firstClear, advance, mastery, blockers, nextTrail: next, needsTwoStars, swift };
 }
 
 /** Position on the main path, 1-based, for the header. */

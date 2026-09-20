@@ -1,9 +1,10 @@
+import { lessonExercises } from '../curriculum/lesson-flow';
 import { expect, it } from 'vitest';
 import { MAIN_TRAILS, gateFor, trailsInGrove } from '../curriculum';
 import { METHODS, setMethod, DEFAULT_METHOD_ID } from '../curriculum/method';
 import { fresh } from '../state/save';
 import { KeyModel } from './keymodel';
-import { applyRun, stageFor, trailUnlocked } from './progress';
+import { applyRun, currentStage, trailUnlocked } from './progress';
 import { generate } from './textgen';
 import { Run } from './run';
 
@@ -18,8 +19,8 @@ for (const method of METHODS) it(`${method.name}: the complete course and option
       expect(state.trail).toBe(trail.id);
       expect(trailUnlocked(state, trail)).toBe(true);
       let runs = 0;
-      while (!state.trails[trail.id]?.cleared && runs < 2) {
-        const stage = stageFor(trail, model, now);
+      while (!state.trails[trail.id]?.cleared && runs < lessonExercises(trail).length + 1) {
+        const stage = currentStage(state, model, now);
         const text = generate(trail, stage, { seed: ++runs, heat: model.heatMap(now) });
         const run = new Run(text); run.begin(now);
         if (runs === 1 && trail.n % 3 === 0) {
@@ -29,13 +30,14 @@ for (const method of METHODS) it(`${method.name}: the complete course and option
         const metrics = run.metrics(now);
         const outcome = applyRun(state, model, { hits: run.hits, attempts: run.attempts, maxCombo: run.maxCombo, wpm: metrics.wpm, acc: metrics.acc, rhythm: run.rhythm(), now, stage });
         const passed = metrics.acc >= (trail.checkpoint ? 97 : gateFor(trail).passAcc);
-        expect(outcome.firstClear, `${trail.id}: passing must immediately advance`).toBe(passed);
+        expect(outcome.passed, `${trail.id}: passing must immediately advance an exercise`).toBe(passed);
+        if (passed) expect(state.lessonSteps[trail.id]).toBe(runs);
         model.endRun(); total++;
       }
       expect(state.trails[trail.id]?.cleared, `${trail.id} stalled after ${runs} runs`).toBe(true);
     }
     expect(total).toBeGreaterThanOrEqual(40);
-    expect(total).toBeLessThanOrEqual(80);
+    expect(total).toBeLessThanOrEqual(160);
     expect(Object.values(state.trails).filter(p => p.cleared)).toHaveLength(40);
   } finally { setMethod(DEFAULT_METHOD_ID); }
 });

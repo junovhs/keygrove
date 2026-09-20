@@ -1,3 +1,4 @@
+import { lessonExercises } from '../curriculum/lesson-flow';
 import { MAIN_TRAILS, TRAILS, gateFor, nextTrail, trailById } from '../curriculum';
 import { KeyModel, type Confusions, type KeyStats } from '../engine/keymodel';
 import { DEFAULT_METHOD_ID, METHODS } from '../curriculum/method';
@@ -16,6 +17,8 @@ export interface Settings { guideStrong: boolean; reviewOn: boolean; codeGrove: 
 export interface SaveV6 {
   v: 6;
   fingerCourses: Record<string, number>;
+  /** Completed visible exercises per lesson; presence distinguishes new partial progress from legacy passes. */
+  lessonSteps: Record<string, number>;
   trail: string;
   trails: Record<string, TrailProgress>;
   keys: KeyStats;
@@ -32,7 +35,7 @@ export type SaveV5 = SaveV6;
 
 export const freshProgress = (): TrailProgress => ({ runs: 0, cleared: false, stars: 0, bestWpm: 0, bestAcc: 0, fails: 0, recent: [], cleanStreak: 0 });
 export const fresh = (): SaveV6 => ({
-  v: 6, fingerCourses: {}, trail: MAIN_TRAILS[0]!.id, trails: {}, keys: {}, confusions: {},
+  v: 6, fingerCourses: {}, lessonSteps: {}, trail: MAIN_TRAILS[0]!.id, trails: {}, keys: {}, confusions: {},
   stats: { runs: 0, chars: 0, attempts: 0, bestWpm: 0, bestAcc: 0, xp: 0, days: 0, lastDay: '', bestCombo: 0 },
   settings: { guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID, onboarded: false },
   errors: emptyTally(),
@@ -58,13 +61,19 @@ export function sanitize(x: unknown): SaveV6 {
       s.trails[id] = { runs: int(r.runs, 9999) || (cleared ? 3 : stage), cleared, stars: int(r.stars, 3) as 0 | 1 | 2 | 3, bestWpm: num(r.bestWpm, 400), bestAcc: num(r.bestAcc, 100), fails: int(r.fails, 99), recent, cleanStreak: int(r.cleanStreak, 99) };
     }
   }
+  if (o.lessonSteps && typeof o.lessonSteps === 'object') {
+    for (const t of TRAILS) {
+      const value = (o.lessonSteps as Record<string, unknown>)[t.id];
+      if (typeof value === 'number' && Number.isFinite(value)) s.lessonSteps[t.id] = int(value, lessonExercises(t).length);
+    }
+  }
   // Credit passing work that older hidden mastery/stage gates left uncleared.
   // Only move a newly credited current lesson: preserve deliberately selected replays.
   const wasCurrentCleared = !!s.trails[s.trail]?.cleared;
   for (const t of TRAILS) {
     const p = s.trails[t.id];
     const target = t.checkpoint ? 97 : gateFor(t).passAcc;
-    if (p && p.runs > 0 && (p.bestAcc >= target || p.recent.some(acc => acc >= target))) p.cleared = true;
+    if (!(t.id in s.lessonSteps) && p && p.runs > 0 && (p.bestAcc >= target || p.recent.some(acc => acc >= target))) p.cleared = true;
   }
   if (!wasCurrentCleared && s.trails[s.trail]?.cleared) {
     while (s.trails[s.trail]?.cleared) {
