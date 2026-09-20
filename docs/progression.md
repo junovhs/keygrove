@@ -12,8 +12,8 @@ The Course book is optional navigation. Cleared lessons can be revisited. A keep
 
 | Chapter | Lessons | Content | Lesson accuracy target | Keepsake |
 |---|---:|---|---:|---|
-| Roots | 1–6 | F J + Space, D K, E I, R U, first words | 90% | Little fir |
-| Home | 7–11 | S L, A ;, G H, home words | 91% | Blue cup |
+| Roots | 1–6 | F J + Space, D K, E I, G H, first words | 90% | Little fir |
+| Home | 7–11 | R U, S L, A ;, home words | 91% | Blue cup |
 | Canopy | 12–15 | T Y, W O, Q P | 92% | Paper kite |
 | Undergrowth | 16–21 | V M, C B, X comma, Z period, N slash | 94% | Emerald beetle |
 | Bark | 22–26 | Opposite-hand Shift, sentences, quotes, questions, dashes, colons, parentheses | 95% | Sealed letter |
@@ -25,7 +25,7 @@ Code is enabled in Settings and opens after Bark. It never blocks the main cours
 
 ## Evidence to clear a lesson
 
-Lessons expose a finite sequence before practice: four exercises for a new letter pair (meet, connect, useful words, application), three for a new Shift/number/symbol skill, two for application lessons, and one chapter assessment. The first two lessons have an intentionally limited alphabet, so their application is rhythm and deliberate Space use; real words begin with E/I.
+Lessons expose a finite sequence before practice: four exercises for a new letter pair (meet, connect, useful words, application), three for a new Shift/number/symbol skill, two for application lessons, and one chapter assessment. The first two lessons have an intentionally limited alphabet, so their application is rhythm and deliberate Space use; real words begin with E/I and become two-handed with G/H.
 
 Every passing exercise advances immediately at the shown target; checkpoints require **97%**. Mastery, rhythm and speed never veto a pass. Failed attempts retry only the current exercise. Saved exercise counts survive reload/sync, and all previously completed lessons remain completed. Older recorded passes are still credited; new partial exercise results are never misread as legacy lesson clears.
 
@@ -90,6 +90,15 @@ Counts below are derived from `lessonExercises` across the 36 main lessons. Thes
 | **Total** | **40** | **27** | **34** | **101** |
 
 About 40% movement practice and 60% language/application overall. New-letter lessons split two movement exercises and two application exercises. Later chapters lean further toward readable text. Words are filtered to taught keys. Early vocabulary prioritizes familiar words and names, avoiding unexplained fragments such as `iii`, `diff` and `ref`. Authored phrases are selected whole, never mutilated to fit the alphabet. Lowercase is intentional until Shift is taught; punctuation appears only when taught.
+
+### Hand and finger load
+
+Movement blocks split evenly between hands by construction, but real words do not: over the original Roots set F J D K E I R U, English vocabulary runs about 83/17 left because E, D, R and F are common while J and K are the rarest letters. Measured over many seeds, Roots word and passage exercises ran 76–89% left-hand and the left middle finger alone pressed more than half of all keys. Two changes correct this:
+
+- **G H arrive in Roots, R U move to Home.** H is one of the most frequent letters and sits under the right index finger, so the right hand gets real words (`he`, `hi`, `hid`, `high`, `hide`) in the first chapter. This keeps the spec's strong-finger core (index and middle fingers) while making the early vocabulary two-handed.
+- **Word and phrase selection is balance-aware.** For words and passage exercises the generator samples a handful of candidates from the usual weak-key-weighted pool and keeps the one that holds the running left/right split nearest to even without one finger dominating, and without repeating the previous phrase. Thin phrase pools are widened rather than repeated.
+
+A regression test (`src/engine/balance.test.ts`) holds every words/passage exercise in the four letter chapters within 40–60 left/right under both methods, each letter chapter within 45–55, no finger above half, and any finger the lesson is not introducing under roughly 30–35%. Lesson `Last Reaches` (N and slash) is the one whose two new keys both belong to the right hand; its short movement drill is single-handed by design. Finger Focus courses are intentionally single-finger and are excluded. Shift, number, symbol and Flow chapters are not yet held to this rule.
 
 ### Space and paired finger courses
 

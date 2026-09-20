@@ -2,7 +2,7 @@ import type { Grove } from './types';
 
 /** The seven groves, in path order. Numbers mirror docs/progression.md §Gates. */
 export const GROVES: readonly Grove[] = [
-  { id: 'roots', n: 1, name: 'Roots', blurb: 'Strong fingers first: index and middle, home and top row.', passAcc: 90, wpmTarget: 15 },
+  { id: 'roots', n: 1, name: 'Roots', blurb: 'Strong fingers first: index and middle fingers, with both hands sharing the work.', passAcc: 90, wpmTarget: 15 },
   { id: 'home', n: 2, name: 'Home', blurb: 'The rest of the home row. Use F and J to stay oriented — it is a landmark, not a cage.', passAcc: 91, wpmTarget: 18 },
   { id: 'canopy', n: 3, name: 'Canopy', blurb: 'The rest of the top row. Let the hand drift a little toward the reach.', passAcc: 92, wpmTarget: 20 },
   { id: 'undergrowth', n: 4, name: 'Undergrowth', blurb: 'Bottom row: Z {z}, X {x}, C {c}, B {b}.', passAcc: 94, wpmTarget: 25 },

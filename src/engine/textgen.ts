@@ -7,7 +7,7 @@ import SENTENCES from '../data/sentences.json';
 import QUOTES from '../data/quotes.json';
 import CODE from '../data/code.json';
 import { rng, pickOne, shuffle, type Rng } from './rng';
-import { homeOf, mirrorOf } from '../curriculum/method';
+import { fingerOf, handOf, homeOf, mirrorOf, type FingerId } from '../curriculum/method';
 
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
@@ -50,6 +50,51 @@ function sampler(words: readonly string[], heat: Heat, pairHeat: Heat = {}): (r:
     while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid]! < t) lo = mid + 1; else hi = mid; }
     return words[lo]!;
   };
+}
+
+/** Running hand and finger load of a text under construction; Space (thumb) is not counted. */
+export interface Load { left: number; right: number; fingers: Partial<Record<FingerId, number>> }
+export const emptyLoad = (): Load => ({ left: 0, right: 0, fingers: {} });
+export function addLoad(load: Load, piece: string): Load {
+  const next: Load = { left: load.left, right: load.right, fingers: { ...load.fingers } };
+  for (const c of piece) {
+    const f = fingerOf(c);
+    if (!f || f === 'thumb') continue;
+    next.fingers[f] = (next.fingers[f] ?? 0) + 1;
+    if (handOf(f) === 'left') next.left++; else next.right++;
+  }
+  return next;
+}
+/** Share of the busiest finger (0..1). */
+export const peakFinger = (load: Load): number => { const t = load.left + load.right; return t ? Math.max(0, ...Object.values(load.fingers)) / t : 0; };
+
+/** No finger should carry more than this share of an exercise; with few keys unlocked the floor is 1/active fingers. */
+export const FINGER_CAP = 0.3;
+
+/**
+ * Pick the candidate that keeps the text closest to an even left/right split without any one finger
+ * dominating. Candidates come from the heat-weighted sampler, so weak keys still pull their words in;
+ * this only decides between a handful of otherwise acceptable choices. Repeating the previous piece
+ * costs extra, and every reuse a little more, so short pools do not degenerate into one phrase.
+ */
+function balancedPick(load: Load, sample: () => string, used: Map<string, number>, last: string, r: Rng, tries = 8): string {
+  let best = '', bestCost = Infinity;
+  for (let i = 0; i < tries; i++) {
+    const p = sample();
+    if (!p) continue;
+    const next = addLoad(load, p);
+    const total = next.left + next.right;
+    const imbalance = total ? Math.abs(next.left - next.right) / total : 0;
+    const cost = imbalance + 2 * Math.max(0, peakFinger(next) - FINGER_CAP) + (p === last ? 0.35 : 0) + 0.04 * (used.get(p) ?? 0) + r() * 0.05;
+    if (cost < bestCost) { best = p; bestCost = cost; }
+  }
+  return best;
+}
+/** `fill` with balance-aware selection. */
+function balancedFill(len: number, sample: () => string, r: Rng): string {
+  let load = emptyLoad(), last = '';
+  const used = new Map<string, number>();
+  return fill(len, () => { const p = balancedPick(load, sample, used, last, r); load = addLoad(load, p); used.set(p, (used.get(p) ?? 0) + 1); last = p; return p; });
 }
 
 /** Join pieces until the text reaches `len` characters (never cuts a piece). */
@@ -160,19 +205,18 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
     const phrases = readablePhrases(allowed);
     // Prefer language that actually exercises the new keys, rather than unrelated easy text.
     const target = phrases.filter(p => [...trail.newKeys].some(k => p.toLowerCase().includes(k)));
-    const pool = shuffle(target.length ? target : phrases, r);
+    // A thin target pool would repeat one phrase; widen it with the rest so the balancer has real choices.
+    const pool = shuffle(target.length >= 4 ? target : [...target, ...phrases.filter(p => !target.includes(p))], r);
     if (pool.length) {
-      const richer = pool.filter(p => p.length >= Math.min(16, Math.max(...pool.map(p => p.length)) * 0.65));
-      const use = richer.length ? richer : pool; let i = 0;
-      return fill(trail.id === 'middle-up' ? Math.min(32, len) : len, () => use[i++ % use.length]!);
+      // Cycle the whole eligible pool with balance-aware choice, rather than repeating the one or two longest phrases.
+      return balancedFill(trail.id === 'middle-up' ? Math.min(32, len) : len, () => pickOne(pool, r), r);
     }
   }
   if (exercise?.format === 'words' && trail.kind === 'words') {
     const familiar = PRACTICE_WORDS.filter(w => w.length >= 2 && fits(w, allowed));
     const pool = familiar.length ? familiar : bank;
     const pick = sampler(pool, heat, opts.pairHeat);
-    let last = '';
-    return fill(len, () => { let next = pick(r); for (let i = 0; next === last && pool.length > 1 && i < 8; i++) next = pick(r); last = next; return next; });
+    return balancedFill(len, () => pick(r), r);
   }
 
   switch (trail.kind) {

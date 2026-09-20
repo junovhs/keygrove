@@ -71,8 +71,9 @@ describe('curriculum invariants', () => {
     expect(g).toEqual({ passAcc: 90, star2Acc: 97, star3Acc: 100, star2Rhythm: 0.6, star3Rhythm: 0.8, swiftWpm: 15 });
     expect(gateFor(checkpointOf('flow')).swiftWpm).toBe(50);
   });
-  it('follows spec §22: F J, D K, E I, R U before the rest of the home row', () => {
-    expect(MAIN_TRAILS.slice(0, 4).map((t) => t.newKeys)).toEqual(['fj', 'dk', 'ei', 'ru']);
+  it('follows spec Phase 2: strong-finger core F J, D K, E I, G H, then R U before the rest of the home row', () => {
+    // G/H replace R/U in Roots so a frequent right-hand letter arrives early; the fjdkeiru set is finger-symmetric but ~83/17 left in English.
+    expect(MAIN_TRAILS.slice(0, 4).map((t) => t.newKeys)).toEqual(['fj', 'dk', 'ei', 'gh']);
     const idx = (k: string) => MAIN_TRAILS.findIndex((t) => t.newKeys.includes(k));
     expect(idx('s')).toBeGreaterThan(idx('u'));
     expect(idx('c')).toBeGreaterThan(idx('p'));

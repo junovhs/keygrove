@@ -32,14 +32,14 @@ it('introduces Space deliberately after the first three short landmark exercises
   expect(text).toContain(' ');
   expect(text.split(' ').slice(0, -1).every(w => w.length === 6)).toBe(true);
 });
-it('guarantees real words with E/I and constrained phrases with R/U', () => {
-  for (const id of ['middle-up', 'index-up']) {
+it('guarantees real words with E/I and G/H and constrained phrases with G/H', () => {
+  for (const id of ['middle-up', 'index-reach']) {
     const t = trailById(id), ex = lessonExercises(t)[2]!;
     const text = generate(t, ex.stage, { exercise: ex, seed: 2 });
     expect(text.split(' ').every(w => PRACTICE_WORDS.includes(w))).toBe(true);
     expect(text).not.toMatch(/\b(iii|diff|ref)\b/);
   }
-  const t = trailById('index-up'), ex = lessonExercises(t)[3]!;
+  const t = trailById('index-reach'), ex = lessonExercises(t)[3]!;
   const text = generate(t, ex.stage, { exercise: ex, seed: 7 });
   expect(readablePhrases(allowedChars(t)).some(p => text.includes(p))).toBe(true);
 });
