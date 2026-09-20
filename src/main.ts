@@ -141,8 +141,8 @@ function labels(): void {
     $('gateLabel').textContent = 'Accuracy before speed';
     $('focusInstruction').textContent = `${FINGER_PASS_ACC}% for each finger · at your pace`;
   }
-  $('beginCue').hidden = run.status !== 'idle' || !!brief;
-  $('beginCue').textContent = mode.kind === 'trail' ? 'Begin typing when you\'re ready' : 'Begin typing when you\'re ready · a short practice';
+  $('beginCue').classList.toggle('gone', run.status !== 'idle' || !!brief);
+  $('beginCue').textContent = mode.kind === 'trail' ? 'Begin typing when you\'re ready · any key' : 'Begin typing when you\'re ready · a short practice';
 }
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
 const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true, orb: false });
@@ -191,17 +191,24 @@ function focusGrid(): void {
   grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach(b => b.onclick = () => chooseFocus(b.dataset.focus!));
   $('startFingerLevel').onclick = startFingerLevel;
 }
+/** Badges above the hands: the active finger shows the key it is being asked for; the rest show their home keys. */
+function badges(active: Partial<Record<string, string>>): void {
+  document.querySelectorAll<HTMLElement>('[data-finger-label]').forEach((x) => {
+    const id = x.dataset.fingerLabel!, key = active[id];
+    x.classList.toggle('active', key !== undefined);
+    x.textContent = (key ?? fingerById(id)?.anchor ?? x.textContent ?? '').toUpperCase();
+  });
+}
 function nextVisual(): void {
   if (brief) { paintBrief(); return; }
-  document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
   const c = run.current, f = fingerForKey(c);
+  badges(f && 'anchor' in f && c !== ' ' ? { [f.id]: baseKey(c) } : {});
   const shifted = isShifted(c);
   if (c === ' ') {
     paintHand('left', 'thumb'); paintHand('right', 'thumb');
     $('handInstruction').innerHTML = 'Press with either thumb.';
   } else if (f) {
     paintHand('left', f.id); paintHand('right', f.id);
-    document.querySelectorAll('[data-finger-label="' + f.id + '"]').forEach((x) => x.classList.add('active'));
     const shiftNote = shifted && 'hand' in f ? ` · hold ${f.hand === 'left' ? 'right' : 'left'} shift` : '';
     const anchor = 'anchor' in f && f.anchor !== c.toLowerCase() ? ` · landmark ${f.anchor.toUpperCase()}` : '';
     $('handInstruction').innerHTML = '<strong>' + escapeHtml(f.full) + '</strong>' + escapeHtml(anchor + shiftNote);
@@ -224,10 +231,10 @@ function keymap(): void {
 function peekKey(k: string | null): void {
   if (k === null) { nextVisual(); return; }
   const f = fingerForKey(k);
-  document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
+  badges({});
   if (!f) return;
   paintHand('left', f.id); paintHand('right', f.id);
-  document.querySelectorAll('[data-finger-label="' + f.id + '"]').forEach((x) => x.classList.add('active'));
+  if ('anchor' in f && k !== ' ') badges({ [f.id]: k });
 }
 function peekFinger(id: string | null): void {
   $('keymap').querySelectorAll('.keycap.peek').forEach((x) => x.classList.remove('peek'));
@@ -302,11 +309,13 @@ function paintBrief(): void {
   const ks = [...(t.keys ?? runTrail.newKeys ?? 'fj')];
   // During a press step, only the keys still to press stay lit.
   const lit = t.press ? ks.filter((k) => !brief!.pressed.has(k)) : ks;
-  document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
   $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach((el) => el.classList.toggle('hot', lit.includes(el.dataset.key!)));
   const perSide = (side: 'left' | 'right') => lit.map((k) => fingerOf(k)).find((f) => f === 'thumb' || f?.startsWith(side[0]!)) ?? null;
   paintHand('left', perSide('left')); paintHand('right', perSide('right'));
-  for (const k of lit) { const f = fingerOf(k); if (f && f !== 'thumb') document.querySelectorAll('[data-finger-label="' + f + '"]').forEach((x) => x.classList.add('active')); }
+  // Each lit finger's badge shows the key it is being asked for (E above the middle finger, not its home D).
+  const active: Partial<Record<string, string>> = {};
+  for (const k of lit) { const f = fingerOf(k); if (f && f !== 'thumb' && !active[f]) active[f] = k; }
+  badges(active);
   $('handInstruction').textContent = '';
 }
 function renderBrief(): void {
@@ -328,7 +337,7 @@ function renderBrief(): void {
   } else {
     keysEl.hidden = true; keysEl.innerHTML = ''; next.hidden = false;
     $('briefNextLabel').textContent = last ? 'Start typing' : 'Next';
-    $('briefNextHint').innerHTML = last ? '<kbd>Enter</kbd>' : '→';
+    $('briefNextHint').innerHTML = '<small>any key</small>';
   }
   const card = $('briefCard'); card.hidden = false; card.classList.remove('brief-fade'); void card.offsetWidth; card.classList.add('brief-fade');
 }
@@ -502,8 +511,11 @@ function handleIdleOrResult(e: KeyboardEvent): void {
   if (e.key === 'Enter') { e.preventDefault(); if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); return; }
   if (e.key === 'Escape') { e.preventDefault(); if (run.status === 'complete') continueAfterResult(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  // A result is a resting place. Stray typing never dismisses a chapter reveal.
-  if (!completionHome && run.status === 'idle' && e.key.length === 1) { e.preventDefault(); begin(); typeKey(e.key); }
+  if (e.key.length !== 1 || completionHome) return;
+  e.preventDefault();
+  // Any key moves on from a result and starts the next passage with that letter; the course-complete home alone waits for Enter.
+  if (run.status === 'complete') { continueAfterResult(e.key === ' ' ? undefined : e.key); return; }
+  if (run.status === 'idle') { begin(); typeKey(e.key); }
 }
 function trapDialog(e: KeyboardEvent, dialog: HTMLElement): void {
   if (e.key !== 'Tab') return;
@@ -522,9 +534,9 @@ document.addEventListener('keydown', (e) => {
     // A press step listens for its own keys instead.
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (briefTip()?.press && e.key.length === 1) { e.preventDefault(); briefPress(e.key); }
-    else if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); briefNext(); }
     else if (e.key === 'Escape') { e.preventDefault(); endBrief(true); render(); }
-    else if (e.key.length === 1) e.preventDefault();
+    // Any key advances a text step, so hands never have to leave the home row to reach Enter or the mouse.
+    else if (e.key === 'Enter' || e.key === 'ArrowRight' || e.key.length === 1) { e.preventDefault(); briefNext(); }
     return;
   }
   if (run.status === 'playing') {
@@ -632,6 +644,14 @@ const ensureDocs = (): PanelHandle => docsPanel ??= mountPanel(document.body, do
   onToggle(open) { docsOpen.setAttribute('aria-expanded', String(open)); if (!open) docsOpen.focus(); },
 });
 docsOpen.addEventListener('click', () => ensureDocs().open());
+/** The brand mark always leads back to the lesson in progress. A run mid-passage is left alone. */
+$('brandHome').onclick = () => {
+  if (arena().classList.contains('map-mode')) closeMap();
+  if (arena().classList.contains('focus-mode')) closeFocus();
+  if (run.status === 'playing') return;
+  if (mode.kind !== 'trail' || replayReturn || completionHome || run.status === 'complete') { mode = { kind: 'trail' }; replayReturn = null; gate = null; if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else resetRun(); }
+  $('lessonTitle').focus();
+};
 document.addEventListener('keydown', (e) => { if (docsPanel?.isOpen && e.key !== 'Escape') e.stopImmediatePropagation(); }, { capture: true });
 
 syncSettingsUi(); resetRun(); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else sessionCheck(); save(); showGuestHint(); void loadHands(nextVisual);

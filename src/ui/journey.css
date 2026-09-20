@@ -88,13 +88,13 @@ body:has(.arena.brief-mode) .metrics{visibility:hidden}
 /* Streamlined shell: no footer controls; the text box carries its own restart and begin cue. */
 .nav-cta{background:var(--orange)!important;color:#fff!important;padding:9px 16px!important;border-radius:5px;font-weight:750!important}
 .nav-cta:hover{background:#ef4b12!important;color:#fff!important}
-.textbox{position:relative;flex-direction:column}.textbox .prompt{width:100%}
+.textbox{position:relative}
 .restart-btn{position:absolute;top:12px;right:12px;width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:rgba(255,255,255,.7);color:#5f5b55;cursor:pointer;z-index:2;transition:color .1s,border-color .1s}
 .restart-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .restart-btn:hover{color:var(--orange);border-color:var(--orange)}
 .restart-btn:focus-visible{outline:3px solid #37749c;outline-offset:2px}
-.begin-cue{text-align:center;font:700 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin:0 0 14px;animation:cue-pulse 2.2s ease-in-out infinite}
-.begin-cue[hidden]{display:none}
+.begin-cue{position:absolute;top:14px;left:0;right:0;text-align:center;font:700 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--orange);pointer-events:none;animation:cue-pulse 2.2s ease-in-out infinite;transition:opacity .35s ease}
+.begin-cue.gone{opacity:0;animation:none}
 @keyframes cue-pulse{0%,100%{opacity:1}50%{opacity:.45}}
 .result-actions{display:flex;align-items:center;gap:28px;margin-top:28px}
 .result-actions .primary-control{min-width:280px;height:52px;font-size:12px;letter-spacing:.06em}
@@ -115,6 +115,7 @@ body:has(.arena.brief-mode) .metrics{visibility:hidden}
 .brief-check svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40;animation:check-draw .4s .1s ease forwards}
 @keyframes check-in{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes check-draw{to{stroke-dashoffset:0}}
+.brief-next small{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#ffd8c9}
 .brief-next kbd{font:600 12px var(--mono);letter-spacing:.06em;padding:4px 8px;border:1px solid rgba(255,255,255,.55);border-radius:4px;color:#fff}
 @media(prefers-reduced-motion:reduce){.begin-cue,.brief-key,.brief-check,.brief-check svg{animation:none}.brief-check svg{stroke-dashoffset:0}}
-@media(max-width:760px){.nav-cta{padding:7px 10px!important}.result-actions{flex-direction:column;align-items:stretch}.brief-keys{grid-column:1/-1;justify-content:center}.restart-btn{top:8px;right:8px;width:32px;height:32px}}
+@media(max-width:760px){.brand-hint{display:none}.nav-cta{padding:7px 10px!important}.result-actions{flex-direction:column;align-items:stretch}.brief-keys{grid-column:1/-1;justify-content:center}.restart-btn{top:8px;right:8px;width:32px;height:32px}}
