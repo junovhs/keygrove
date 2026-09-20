@@ -36,7 +36,7 @@ body:has(.arena.focus-mode) .metrics,body:has(.arena.focus-mode) .controls,body:
 .finger-page-heading h2{font-size:36px;letter-spacing:-1.4px}
 .finger-page-heading p{margin:10px 0 0;font-size:14px;max-width:none}
 .finger-back{padding:12px 16px;border:1px solid var(--line);border-radius:6px;white-space:nowrap;font-size:13px}
-.finger-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin-bottom:28px}
+.finger-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:28px}
 .finger-picker .focus-key{min-height:68px;padding:12px 10px;text-align:left;border:1px solid var(--line);border-radius:7px;letter-spacing:0;text-transform:none;background:transparent}
 .finger-picker .focus-key strong{display:block;font-size:13px;white-space:nowrap}
 .finger-picker .focus-key span{display:block;font-size:11px;margin-top:7px;color:var(--soft)}
@@ -57,3 +57,5 @@ body:has(.arena.focus-mode) .metrics,body:has(.arena.focus-mode) .controls,body:
 @media(max-width:1050px){.finger-picker{grid-template-columns:repeat(4,1fr)}.finger-course-layout{grid-template-columns:280px 1fr;gap:18px}.finger-levels{grid-template-columns:1fr}.finger-overview{padding:22px}}
 @media(max-width:760px){.finger-page-heading{align-items:flex-start;flex-direction:column;gap:14px}.finger-page-heading h2{font-size:32px}.finger-page-heading p{font-size:13px}.finger-picker{grid-template-columns:repeat(2,1fr);margin-bottom:20px}.finger-course-layout{grid-template-columns:1fr}.finger-overview{position:static}.finger-level-heading>span{font-size:11px}.finger-levels{grid-template-columns:1fr}.finger-level{min-height:82px}.finger-start{min-height:56px}.finger-picker .focus-key strong{font-size:14px}}
 @media(max-width:760px){.finger-picker{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.finger-picker .focus-key{padding:10px 7px;min-height:72px}.finger-picker .focus-key strong{white-space:normal;font-size:12px;line-height:1.35}.finger-picker .focus-key span{font-size:9px}.finger-overview{padding:20px}.finger-overview h3{font-size:28px;margin-bottom:14px}.finger-selected{margin-top:18px;padding-top:18px}.finger-selected p{margin:10px 0 18px}.finger-page-heading{margin-bottom:18px}}
+
+@media(max-width:760px){.finger-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.finger-picker .focus-key{min-height:62px}.finger-picker .focus-key strong{font-size:14px}.finger-picker .focus-key span{font-size:11px}}

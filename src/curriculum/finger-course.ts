@@ -28,14 +28,32 @@ export function fingerLevels(f: Finger): FingerLevel[] {
   const contexts = letters.flatMap(k => vocabulary.filter(w => w.includes(k)).slice(0, 3));
   return [
     level('Find your landmarks', 'Small home-row movements. Let your hand stay comfortable.', reaches(home)),
-    level('Reach up', 'Explore every upper-row reach for this finger.', reaches(upper)),
-    level('Reach down', 'Explore every lower-row reach for this finger.', reaches(lower)),
+    level('Reach up', 'Explore every upper-row reach for these fingers.', reaches(upper)),
+    level('Reach down', 'Explore every lower-row reach for these fingers.', reaches(lower)),
     level('Across the rows', 'Move directly between keys; the landmark is there to help you orient.', pairs([...home, ...upper, ...lower])),
     level('Repeated movements', 'Settle repeated keys and changes of direction.', owned.filter(k => /[a-z;,./]/.test(k)).map(k => k + k + f.anchor + k)),
-    level('Words with other fingers', 'Use both hands in words, with extra work for your chosen finger.', contexts.length ? contexts : reaches(owned)),
+    level('Words with other fingers', 'Use both hands in words, with extra work for your chosen fingers.', contexts.length ? contexts : reaches(owned)),
     level('Capital letters', 'Hold the opposite-hand Shift for capitals. Release it for lowercase.', letters.length ? letters.map(k => k + k.toUpperCase() + k.toUpperCase() + k) : reaches(home)),
-    level('Number reaches', 'Meet every number assigned to this finger, at your own pace.', reaches(digits)),
-    level('Punctuation and symbols', 'Practice every symbol for this finger. Use opposite-hand Shift when shown.', symbols.map(k => f.anchor + k + baseKey(k) + k)),
+    level('Number reaches', 'Meet every number assigned to these fingers, at your own pace.', reaches(digits)),
+    level('Punctuation and symbols', 'Practice every symbol for these fingers. Use opposite-hand Shift when shown.', symbols.map(k => f.anchor + k + baseKey(k) + k)),
     level('Complete finger passage', 'Bring all reaches together: words, capitals, numbers and symbols.', [...reaches(owned), ...letters.map(k => k.toUpperCase() + k), ...symbols.map(k => f.anchor + k), ...contexts.slice(0, 8)]),
   ];
+}
+
+/** Player-facing courses group matching fingers; assignments still come from the active method. */
+export interface FingerPair {
+  id: 'index' | 'middle' | 'ring' | 'pinky';
+  name: string;
+  sides: readonly [Exclude<FingerId, 'thumb'>, Exclude<FingerId, 'thumb'>];
+}
+/** One visible progression for each pair, backed by two existing method-specific records. */
+export const FINGER_PAIRS: readonly FingerPair[] = [
+  { id: 'index', name: 'Index fingers', sides: ['li', 'ri'] },
+  { id: 'middle', name: 'Middle fingers', sides: ['lm', 'rm'] },
+  { id: 'ring', name: 'Ring fingers', sides: ['lr', 'rr'] },
+  { id: 'pinky', name: 'Pinkies', sides: ['lp', 'rp'] },
+];
+/** Both sides must have cleared a level before the shared course can move beyond it. */
+export function pairCompleted(progress: Readonly<Record<string, number>>, pair: FingerPair): number {
+  return Math.min(...pair.sides.map(id => progress[fingerCourseId(id)] ?? 0));
 }

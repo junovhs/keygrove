@@ -1,4 +1,5 @@
-import { fingerLevels, fingerCourseId, FINGER_PASS_ACC } from './curriculum/finger-course';
+import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
+import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
 import { fingers, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
 import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, isShifted, setMethod } from './curriculum/method';
@@ -26,7 +27,7 @@ import { CanvasPrompt } from './render/prompt';
 import { selfTest as textflowSelfTest } from './render/textflow';
 
 /** What the current run is for: the trail itself, a finger drill, or a coach drill (confusion / reach / review). */
-type Mode = { kind: 'trail' } | { kind: 'remedial'; finger: Finger; level: number } | { kind: 'coach'; decision: Decision };
+type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number } | { kind: 'coach'; decision: Decision };
 
 // Guests have a separate durable save. Account state never leaks into a
 // signed-out session; first signup carries the current guest course forward.
@@ -42,6 +43,8 @@ let trans = TransitionModel.fromJSON(state.transitions);
 let mode: Mode = { kind: 'trail' };
 let run = new Run('');
 let outcome: Outcome | null = null;
+let practice: FingerPractice | null = null;
+let fingerPassed = false;
 /** Coach decisions for the run just finished: [0] may be required (blocks Continue). */
 let decisions: Decision[] = [];
 /** A required decision the player still has to act on before the next trail run. */
@@ -60,9 +63,9 @@ const arena = () => $('arena');
 const settingsModal = () => $('settingsModal');
 const trail = (): Trail => currentTrail(state);
 const stageName = () => currentStage(state, keys);
-const fingerLevel = () => mode.kind === 'remedial' ? fingerLevels(mode.finger)[mode.level]! : null;
+const fingerLevel = () => mode.kind === 'remedial' ? fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level]! : null;
 const practiceAllowed = () => mode.kind === 'remedial' ? new Set(run.text) : allowedChars(runTrail);
-const focusFinger = (): Finger | null => (mode.kind === 'remedial' ? mode.finger : null);
+const focusPair = (): FingerPair | null => (mode.kind === 'remedial' ? mode.pair : null);
 
 function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); store(); sync.wrote(); }
 /** Account adoption resets the active passage so strokes from two accounts never mix. */
@@ -75,7 +78,7 @@ const unlockedLetters = () => [...allowedChars(trail())].filter((k) => k.length 
 const dueNow = () => new Set(keys.dueKeys([...allowedChars(trail())].filter((k) => k.length === 1 && k !== ' ' && k === k.toLowerCase()), Date.now()));
 function makeText(): string {
   const allowed = allowedChars(trail());
-  if (mode.kind === 'remedial') return fingerLevel()!.text;
+  if (mode.kind === 'remedial') { practice = fingerPractice(mode.pair, mode.level, state.fingerCourses); return practice.text; }
   if (mode.kind === 'coach') {
     const d = mode.decision;
     if (d.kind === 'remedial') { const f = fingerForKey(d.keys[0] ?? 'f'); return f && 'keys' in f ? remedialText(f, allowed, 30) : generate(trail(), 'drill'); }
@@ -88,6 +91,7 @@ function resetRun(): void {
   $('result').querySelector<HTMLElement>('.score')!.hidden = false;
   runTrail = trail(); runStage = stageName();
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
+  practice = null; fingerPassed = false;
   run = new Run(makeText()); outcome = null; decisions = [];
   wordScene.reset(keepsakeFor(runTrail.grove));
   if (mode.kind !== 'trail' && courseComplete(state)) $('wordScene').querySelector('.scene-caption')!.textContent = 'Familiar movements. A little room to play.';
@@ -105,9 +109,9 @@ function header(): void {
   const t = runTrail, g = groveOf(t);
   if (mode.kind === 'remedial') {
     const selected = mode;
-    $('route').innerHTML = fingerLevels(selected.finger).map((_, i) => '<i class="' + (i === selected.level ? 'current' : i < (state.fingerCourses[fingerCourseId(selected.finger.id)] ?? 0) ? 'done' : '') + '"></i>').join('');
+    $('route').innerHTML = fingerLevels(fingerById(selected.pair.sides[0])!).map((_, i) => '<i class="' + (i === selected.level ? 'current' : i < pairCompleted(state.fingerCourses, selected.pair) ? 'done' : '') + '"></i>').join('');
     $('lessonNo').textContent = `Level ${mode.level + 1} of 10`;
-    $('modeLabel').textContent = mode.finger.full + ' course';
+    $('modeLabel').textContent = mode.pair.name + ' course';
     return;
   }
   $('route').innerHTML = trailsInGrove(g.id).map(x => '<i class="' + (x.id === t.id ? 'current' : isCleared(state, x.id) ? 'done' : '') + '"></i>').join('');
@@ -115,18 +119,18 @@ function header(): void {
   $('modeLabel').textContent = mode.kind === 'trail' ? `${g.name} · Chapter ${g.n}` : 'A little practice';
 }
 function labels(): void {
-  const t = runTrail, g = groveOf(t), f = focusFinger();
+  const t = runTrail, g = groveOf(t), f = focusPair();
   const stageCopy = { drill: 'Meet the new keys. Take your time.', mix: 'Now weave them into familiar movements.', words: t.checkpoint ? 'A fresh passage using everything so far.' : 'Put those movements to work.' };
-  $('lessonTitle').textContent = f ? f.full + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : t.name;
+  $('lessonTitle').textContent = f ? f.name + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : t.name;
   $('lessonCopy').textContent = f ? fingerLevel()!.instruction : mode.kind === 'coach' ? mode.decision.reason : resolveCopy(t.blurb ?? g.blurb);
   $('summaryLabel').textContent = replayReturn ? 'A familiar place' : 'This passage';
   $('focusName').textContent = mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : stageCopy[runStage] : 'Short practice · then your course';
   $('gateLabel').textContent = mode.kind !== 'trail' ? 'No test here' : t.checkpoint ? 'Chapter passage' : 'Accuracy before speed';
   $('focusInstruction').textContent = mode.kind === 'trail' ? `${t.checkpoint ? 97 : gateFor(t).passAcc}% accuracy · at your pace` : 'No passing score · just a little familiarity';
   if (f) {
-    $('focusName').textContent = 'Your own finger progression · independent of the main course';
+    $('focusName').textContent = 'Practice adapts to the movements that need attention';
     $('gateLabel').textContent = 'Accuracy before speed';
-    $('focusInstruction').textContent = `${FINGER_PASS_ACC}% accuracy to advance · no speed gate`;
+    $('focusInstruction').textContent = `${FINGER_PASS_ACC}% for each finger · at your pace`;
   }
   $('message').textContent = run.status === 'playing' ? 'Take your time. You can pause between words.' : 'Just type to begin. Use a physical QWERTY keyboard.';
   $('unlockText').textContent = 'Your progress stays. Come back whenever you like.';
@@ -151,27 +155,28 @@ function metrics(): { wpm: number; acc: number; pct: number } {
   const fill = document.getElementById('progressFill'); if (fill) fill.style.width = m.pct + '%';
   return m;
 }
-let browseFinger = 'li';
+let browseFinger: FingerPair['id'] = 'index';
 let browseLevel = 0;
 function startFingerLevel(): void {
-  const f = fingerById(browseFinger);
+  const f = FINGER_PAIRS.find(p => p.id === browseFinger);
   if (!f) return;
   if (replayReturn) { state.trail = replayReturn; replayReturn = null; }
-  mode = { kind: 'remedial', finger: f, level: browseLevel };
+  mode = { kind: 'remedial', pair: f, level: browseLevel };
   resetRun();
 }
 function focusGrid(): void {
   const grid = $('focusGrid');
-  const f = fingerById(browseFinger)!;
-  const completed = state.fingerCourses[fingerCourseId(f.id)] ?? 0;
-  const levels = fingerLevels(f), selected = levels[browseLevel]!;
-  grid.innerHTML = '<div class="finger-picker" aria-label="Choose a finger">' + fingers().map(x => {
-    const count = state.fingerCourses[fingerCourseId(x.id)] ?? 0;
-    return `<button class="focus-key ${x.id === f.id ? 'active' : ''}" data-focus="${x.id}" aria-pressed="${x.id === f.id}"><strong>${escapeHtml(x.full)}</strong><span>${count}/10 complete</span></button>`;
+  const f = FINGER_PAIRS.find(p => p.id === browseFinger)!;
+  const completed = pairCompleted(state.fingerCourses, f);
+  const inProgress = (level: number) => f.sides.some(id => (state.fingerCourses[fingerCourseId(id)] ?? 0) > level);
+  const levels = fingerLevels(fingerById(f.sides[0])!), selected = levels[browseLevel]!;
+  grid.innerHTML = '<div class="finger-picker" aria-label="Choose fingers to practice">' + FINGER_PAIRS.map(x => {
+    const count = pairCompleted(state.fingerCourses, x);
+    return `<button class="focus-key ${x.id === f.id ? 'active' : ''}" data-focus="${x.id}" aria-pressed="${x.id === f.id}"><strong>${escapeHtml(x.name)}</strong><span>${count}/10 complete</span></button>`;
   }).join('') + '</div>'
-    + `<div class="finger-course-layout"><section class="finger-overview" aria-labelledby="fingerCourseTitle"><span class="eyebrow">${completed === 10 ? 'Course complete' : 'Your finger course'}</span><h3 id="fingerCourseTitle">${escapeHtml(f.full)}</h3><div class="finger-progress"><span style="width:${completed * 10}%"></span></div><div class="finger-progress-label">${completed} of 10 levels complete</div><div class="finger-selected"><span class="eyebrow">Selected · Level ${browseLevel + 1}</span><h4>${escapeHtml(selected.name)}</h4><p>${escapeHtml(selected.instruction)}</p></div><button class="finger-start" id="startFingerLevel">${browseLevel < completed ? 'Replay' : completed ? 'Continue' : 'Start'} level ${browseLevel + 1} <span aria-hidden="true">→</span></button><small class="finger-target">95% accuracy to advance · No speed target</small></section>`
+    + `<div class="finger-course-layout"><section class="finger-overview" aria-labelledby="fingerCourseTitle"><span class="eyebrow">${completed === 10 ? 'Course complete' : 'Your finger course'}</span><h3 id="fingerCourseTitle">${escapeHtml(f.name)}</h3><div class="finger-progress"><span style="width:${completed * 10}%"></span></div><div class="finger-progress-label">${completed} of 10 levels complete</div><div class="finger-selected"><span class="eyebrow">Selected · Level ${browseLevel + 1}</span><h4>${escapeHtml(selected.name)}</h4><p>${escapeHtml(selected.instruction)}</p></div><button class="finger-start" id="startFingerLevel">${browseLevel < completed ? 'Replay' : completed || inProgress(browseLevel) ? 'Continue' : 'Start'} level ${browseLevel + 1} <span aria-hidden="true">→</span></button><small class="finger-target">95% for each finger · No speed target</small></section>`
     + '<section class="finger-level-section" aria-labelledby="fingerLevelsTitle"><div class="finger-level-heading"><h3 id="fingerLevelsTitle">Your 10 levels</h3><span>Choose a level to practice</span></div><div class="finger-levels">'
-    + levels.map((l,i) => `<button class="finger-level ${i === browseLevel ? 'selected' : ''} ${i < completed ? 'completed' : ''}" data-level="${i}" aria-pressed="${i === browseLevel}" ${i > completed ? 'disabled' : ''}><span class="finger-level-number">${String(i+1).padStart(2,'0')}</span><span class="finger-level-body"><strong>${escapeHtml(l.name)}</strong><small>${i < completed ? '✓ Complete · Replay available' : i === completed ? 'Ready to start' : 'Locked · Complete level ' + i}</small></span>${i === browseLevel ? '<span class="finger-selected-mark">Selected</span>' : ''}</button>`).join('')
+    + levels.map((l,i) => `<button class="finger-level ${i === browseLevel ? 'selected' : ''} ${i < completed ? 'completed' : ''}" data-level="${i}" aria-pressed="${i === browseLevel}" ${i > completed ? 'disabled' : ''}><span class="finger-level-number">${String(i+1).padStart(2,'0')}</span><span class="finger-level-body"><strong>${escapeHtml(l.name)}</strong><small>${i < completed ? '✓ Complete · Replay available' : i === completed ? inProgress(i) ? 'In progress · Practice adapts to you' : 'Ready to start' : 'Locked · Complete level ' + i}</small></span>${i === browseLevel ? '<span class="finger-selected-mark">Selected</span>' : ''}</button>`).join('')
     + '</div></section></div>';
   grid.querySelectorAll<HTMLButtonElement>('[data-level]').forEach(b => b.onclick = () => { browseLevel = Number(b.dataset.level); focusGrid(); grid.querySelector<HTMLButtonElement>(`[data-level="${browseLevel}"]`)?.focus(); });
   grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach(b => b.onclick = () => chooseFocus(b.dataset.focus!));
@@ -253,7 +258,7 @@ function showCompletion(): void {
 }
 function continueAfterResult(firstKey?: string): void {
   if (mode.kind === 'remedial') {
-    if (run.metrics(now()).acc >= FINGER_PASS_ACC) mode.level = Math.min(9, mode.level + 1);
+    if (fingerPassed) mode.level = Math.min(9, mode.level + 1);
     resetRun(); return;
   }
   if (completionHome) { startMaintenance(); return; }
@@ -312,12 +317,13 @@ function finish(): void {
     else { title = 'Lesson complete.'; copy = outcome.nextTrail ? `Next: ${outcome.nextTrail.name}.` : 'The whole path is open.'; }
     copy = `${m.acc}% accuracy · ${t.checkpoint ? 97 : gateFor(t).passAcc}% needed. ${copy}`;
   }
-  if (mode.kind === 'remedial') {
-    const passed = m.acc >= FINGER_PASS_ACC;
-    const id = fingerCourseId(mode.finger.id);
-    if (passed) state.fingerCourses[id] = Math.max(state.fingerCourses[id] ?? 0, mode.level + 1);
-    title = passed ? mode.level === 9 ? `${mode.finger.full} course complete.` : 'Finger level complete.' : 'Try this finger level again.';
-    copy = `${m.acc}% accuracy · ${FINGER_PASS_ACC}% needed. ` + (passed ? mode.level === 9 ? 'All ten levels are yours to revisit from the finger selector.' : 'Continue with this finger at your own pace.' : 'Take your time; there is no speed requirement.');
+  if (mode.kind === 'remedial' && practice) {
+    const replay = pairCompleted(state.fingerCourses, mode.pair) > mode.level;
+    fingerPassed = completeFingerPractice(state.fingerCourses, mode.pair, mode.level, practice, run).passed;
+    title = replay ? 'Level revisited.' : fingerPassed ? mode.level === 9 ? `${mode.pair.name} course complete.` : 'Finger level complete.' : 'A little more practice here.';
+    copy = fingerPassed
+      ? mode.level === 9 ? 'All ten levels are yours to revisit whenever you like.' : 'Your progress is saved. Continue to the next level at your own pace.'
+      : 'Some movements need another pass. Your next practice will focus on them; the progress you earned is saved.';
   }
   const newly = [...allowedChars(t)].filter(k => k === k.toLowerCase()).filter(k => keys.mastery(k) >= MASTERED && (beforeMastery[k] ?? 0) < MASTERED);
   $('resultMastery').textContent = newly.length ? `Settled this time: ${newly.map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}` : `${run.hits} characters typed · ${run.errors === 0 ? 'no missed keys' : `${run.errors} missed ${run.errors === 1 ? 'key' : 'keys'}`}`;
@@ -335,7 +341,7 @@ function finish(): void {
   $('skipPractice').hidden = !gate;
   $('skipPractice').textContent = 'Try the passage instead';
   if (mode.kind === 'remedial') {
-    $('nextAction').textContent = m.acc < FINGER_PASS_ACC ? 'Retry finger level' : mode.level === 9 ? 'Replay final level' : `Next: ${fingerLevels(mode.finger)[mode.level + 1]!.name}`;
+    $('nextAction').textContent = !fingerPassed ? 'Continue practice' : mode.level === 9 ? 'Replay final level' : `Next: ${fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level + 1]!.name}`;
     $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my course';
   }
   save(); arena().classList.add('result-mode'); document.body.classList.add('showing-result');
@@ -364,16 +370,16 @@ function closeMap(): void { arena().classList.remove('map-mode'); document.body.
 // ---- focus / remedial ----------------------------------------------------------
 function openFocus(): void {
   if (run.status === 'playing') { toast('Finish or reset before opening trouble-spot practice.'); return; }
-  if (mode.kind === 'remedial') { browseFinger = mode.finger.id; browseLevel = Math.min(9, state.fingerCourses[fingerCourseId(browseFinger as Finger['id'])] ?? 0); }
-  else browseLevel = Math.min(9, state.fingerCourses[fingerCourseId(browseFinger as Finger['id'])] ?? 0);
+  if (mode.kind === 'remedial') browseFinger = mode.pair.id;
+  browseLevel = Math.min(9, pairCompleted(state.fingerCourses, FINGER_PAIRS.find(p => p.id === browseFinger)!));
   arena().classList.remove('result-mode'); document.body.classList.remove('showing-result'); arena().classList.add('focus-mode'); focusGrid(); $('focusTitle').focus();
 }
 function closeFocus(): void { arena().classList.remove('focus-mode'); if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); }
 function chooseFocus(id: string): void {
-  const f = fingerById(id);
+  const f = FINGER_PAIRS.find(p => p.id === id);
   if (!f) { closeFocus(); return; }
   browseFinger = f.id;
-  browseLevel = Math.min(9, state.fingerCourses[fingerCourseId(f.id)] ?? 0);
+  browseLevel = Math.min(9, pairCompleted(state.fingerCourses, f));
   focusGrid();
   $('focusGrid').querySelector<HTMLButtonElement>(`[data-focus="${f.id}"]`)?.focus();
 }
@@ -387,7 +393,7 @@ function sessionCheck(): void {
 function handleFocusKey(e: KeyboardEvent): void {
   if (e.key === 'Escape') { e.preventDefault(); closeFocus(); return; }
   if (e.key === ' ') { e.preventDefault(); chooseFocus('none'); return; }
-  const f = fingers().find((x) => x.anchor === e.key.toLowerCase()); if (f) { e.preventDefault(); chooseFocus(f.id); }
+  const f = fingers().find((x) => x.anchor === e.key.toLowerCase()); if (f) { e.preventDefault(); chooseFocus(FINGER_PAIRS.find(p => p.sides.includes(f.id as Exclude<Finger['id'], 'thumb'>))!.id); }
 }
 function handleIdleOrResult(e: KeyboardEvent): void {
   if (e.key === 'Enter') { e.preventDefault(); if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); return; }
