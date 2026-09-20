@@ -1,3 +1,4 @@
+import { lessonExercises, type LessonExercise } from './curriculum/lesson-flow';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
@@ -7,7 +8,7 @@ import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
 import { classifyRun, rollTally } from './engine/errors';
-import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
+import { applyRun, currentStage, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { courseComplete, keepsakeFor, ownedKeepsakes } from './engine/keepsakes';
 import { objectArt, collectionHtml, WordScene } from './ui/scene';
@@ -53,6 +54,8 @@ let replayReturn: string | null = null;
 let completionHome = false;
 let runTrail = currentTrail(state);
 let runStage: StageName = 'drill';
+let runExercise: LessonExercise = lessonExercises(runTrail)[0]!;
+let runExerciseIndex = 0;
 let beforeMastery: Record<string, number> = {};
 const wordScene = new WordScene($('wordScene'));
 const actionable = (d: Decision) => !['rushing', 'fatigue', 'steady', 'reach'].includes(d.kind);
@@ -90,6 +93,7 @@ function resetRun(): void {
   completionHome = false;
   $('result').querySelector<HTMLElement>('.score')!.hidden = false;
   runTrail = trail(); runStage = stageName();
+  runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail)[runExerciseIndex]!;
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
   practice = null; fingerPassed = false;
   run = new Run(makeText()); outcome = null; decisions = [];
@@ -115,16 +119,16 @@ function header(): void {
     return;
   }
   $('route').innerHTML = trailsInGrove(g.id).map(x => '<i class="' + (x.id === t.id ? 'current' : isCleared(state, x.id) ? 'done' : '') + '"></i>').join('');
-  $('lessonNo').textContent = `Lesson ${pathIndex(t)} of ${pathLength(t)}`;
+  $('lessonNo').textContent = `Lesson ${pathIndex(t)} of ${pathLength(t)} · Exercise ${runExerciseIndex + 1}/${lessonExercises(t).length}`;
   $('modeLabel').textContent = mode.kind === 'trail' ? `${g.name} · Chapter ${g.n}` : 'A little practice';
 }
 function labels(): void {
   const t = runTrail, g = groveOf(t), f = focusPair();
   const stageCopy = { drill: 'Meet the new keys. Take your time.', mix: 'Now weave them into familiar movements.', words: t.checkpoint ? 'A fresh passage using everything so far.' : 'Put those movements to work.' };
   $('lessonTitle').textContent = f ? f.name + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : t.name;
-  $('lessonCopy').textContent = f ? fingerLevel()!.instruction : mode.kind === 'coach' ? mode.decision.reason : resolveCopy(t.blurb ?? g.blurb);
+  $('lessonCopy').textContent = f ? fingerLevel()!.instruction : mode.kind === 'coach' ? mode.decision.reason : runExercise.instruction;
   $('summaryLabel').textContent = replayReturn ? 'A familiar place' : 'This passage';
-  $('focusName').textContent = mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : stageCopy[runStage] : 'Short practice · then your course';
+  $('focusName').textContent = mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : `${runExerciseIndex + 1}/${lessonExercises(t).length} · ${runExercise.name}` : 'Short practice · then your course';
   $('gateLabel').textContent = mode.kind !== 'trail' ? 'No test here' : t.checkpoint ? 'Chapter passage' : 'Accuracy before speed';
   $('focusInstruction').textContent = mode.kind === 'trail' ? `${t.checkpoint ? 97 : gateFor(t).passAcc}% accuracy · at your pace` : 'No passing score · just a little familiarity';
   if (f) {
@@ -308,13 +312,13 @@ function finish(): void {
     const missedKeys = [...new Set(run.strokes.filter(s => !s.correct).map(s => s.key.toLowerCase()))];
     decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm: run.rhythm(), runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent, errors, missedKeys, weakPairs: trans.weakest(unlocked) });
     // One bounded repair between course attempts. Timing alone never sends a player off course.
-    if (!outcome.firstClear && !wasReplay && missedKeys.length && run.errors >= 3) gate = decisions.find(actionable) ?? { kind: 'precision', required: false, keys: missedKeys.slice(0, 3), title: 'A little room to settle', reason: `A short practice with ${missedKeys.slice(0, 3).map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}, then we will try the passage again.` };
+    if (!outcome.passed && !wasReplay && missedKeys.length && run.errors >= 3) gate = decisions.find(actionable) ?? { kind: 'precision', required: false, keys: missedKeys.slice(0, 3), title: 'A little room to settle', reason: `A short practice with ${missedKeys.slice(0, 3).map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}, then we will try the passage again.` };
     if (wasReplay) { title = 'A familiar place, revisited.'; copy = 'Your next lesson is waiting right where you left it.'; state.trail = replayReturn!; }
     else if (outcome.firstClear && t.id === 'flow-checkpoint') { title = 'Look what your hands can do.'; copy = 'You completed all 36 lessons: letters, capitals, punctuation, numbers and a longer mixed passage. Keep using this in everyday writing. Fluency grows with use.'; }
     else if (outcome.firstClear && t.checkpoint) { title = `${groveOf(t).name}, complete.`; copy = keepsakeFor(t.grove).line + (outcome.nextTrail ? ` Next, ${groveOf(outcome.nextTrail).name}: ${resolveCopy(outcome.nextTrail.blurb ?? groveOf(outcome.nextTrail).blurb)}` : ' A small extra, made yours.'); }
     else if (outcome.firstClear) { title = 'Lesson complete.'; copy = `${t.name} is complete. ${outcome.nextTrail ? `Next: ${outcome.nextTrail.name}.` : 'The whole path is open.'}`; }
     else if (!outcome.passed) { title = 'Try this passage again.'; copy = `${gate ? 'A short practice will help with the missed keys, then we’ll try again.' : 'Take your time; there is no timer to beat.'}`; }
-    else { title = 'Lesson complete.'; copy = outcome.nextTrail ? `Next: ${outcome.nextTrail.name}.` : 'The whole path is open.'; }
+    else { title = 'Exercise complete.'; copy = `${outcome.exercise.index + 1} of ${outcome.exercise.total} complete. Next: ${outcome.exercise.nextName}.`; }
     copy = `${m.acc}% accuracy · ${t.checkpoint ? 97 : gateFor(t).passAcc}% needed. ${copy}`;
   }
   if (mode.kind === 'remedial' && practice) {
@@ -337,7 +341,7 @@ function finish(): void {
   $('resultOffer').hidden = !gate;
   $('resultOffer').textContent = gate ? `Up next: ${gate.title}. A short practice, then back here.` : '';
   $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Relaxed hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
-  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${trail().name}` : `Retry: ${t.name}`;
+  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${outcome.exercise.nextName ?? trail().name}` : `Retry: ${t.name}`;
   $('skipPractice').hidden = !gate;
   $('skipPractice').textContent = 'Try the passage instead';
   if (mode.kind === 'remedial') {

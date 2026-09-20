@@ -1,10 +1,10 @@
 # RQWERTY — guided course progression
 
-Current implementation contract under Ishoo **DEC-06**. This replaces the earlier fixed-run, rhythm-star and XP progression proposal. Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
+Current implementation contract under Ishoo **DEC-07**. This replaces the earlier fixed-run, rhythm-star and XP progression proposal. Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
 
 ## One course, one next action
 
-A learner follows 36 lessons in seven chapters. Continue either presents the next useful passage, inserts one short targeted practice after a repeated error pattern, or opens the next lesson after one completed passage meeting the visible accuracy target. A practice always returns to the course; it does not recursively generate more practices. The player can skip it. A due review at the start of a visit offers a short warm-up, also skippable.
+A learner follows 36 lessons in seven chapters. Continue either presents the next useful passage, inserts one short targeted practice after a repeated error pattern, or advances one visible exercise after a passage meets its accuracy target. The final exercise opens the next lesson. A practice always returns to the course; it does not recursively generate more practices. The player can skip it. A due review at the start of a visit offers a short warm-up, also skippable.
 
 The Course book is optional navigation. Cleared lessons can be revisited. A keepsake replay returns to the earliest unfinished main-course lesson. Earned chapters and keepsakes persist through absence and method changes. No daily retention mechanic, speed gate, spendable currency or random loot exists.
 
@@ -25,9 +25,11 @@ Code is enabled in Settings and opens after Bark. It never blocks the main cours
 
 ## Evidence to clear a lesson
 
-One completed passage meeting the visible target clears its lesson immediately: the chapter target for regular lessons, **97% for checkpoints**. Mastery, rhythm, sample count, speed and practice stage never veto a passing result. A failed attempt does not impose a second-pass requirement on the next attempt.
+Lessons expose a finite sequence before practice: four exercises for a new letter pair (meet, connect, useful words, application), three for a new Shift/number/symbol skill, two for application lessons, and one chapter assessment. The first two lessons have an intentionally limited alphabet, so their application is rhythm and deliberate Space use; real words begin with E/I.
 
-Short patterns precede real words when the available alphabet cannot form words yet. Mastery chooses useful text, not permission to advance: drill below 0.35 minimum focus mastery, mix below 0.7, then words. Lessons without new keys use mix below 0.5, otherwise words. Checkpoints always use the words stage for a cumulative passage. Later lessons keep practising earlier keys.
+Every passing exercise advances immediately at the shown target; checkpoints require **97%**. Mastery, rhythm and speed never veto a pass. Failed attempts retry only the current exercise. Saved exercise counts survive reload/sync, and all previously completed lessons remain completed. Older recorded passes are still credited; new partial exercise results are never misread as legacy lesson clears.
+
+The header and results identify exercise number, purpose and next action. Opening Course or Keepsakes during typing restarts the unfinished passage and opens navigation immediately.
 
 ## Key model and timing
 
@@ -56,7 +58,7 @@ Save version remains 6. Legacy `stars`, `xp`, `days`, `cleanStreak`, WPM referen
 
 - All 40 trails × three stages × 50 seeds use allowed characters, fit a bounded passage length and include their intended keys.
 - A simulated learner types generated passages slowly through all 40 lessons using each method, including recoverable mistakes, without a coverage dead end.
-- Regression tests exercise first-passage advancement, explicit accuracy boundaries, credit for previously trapped learners, no absence penalty, honest missed-space accuracy, bounded review coverage, guest/account isolation, migration and permanent keepsakes.
+- Regression tests exercise explicit exercise advancement, explicit accuracy boundaries, credit for previously trapped learners, no absence penalty, honest missed-space accuracy, bounded review coverage, guest/account isolation, migration and permanent keepsakes.
 - Browser checks use real key events and the normal Import interface for isolated late-course fixtures. They cover first use, repair/return, welcome-back practice, chapter reveals, keepsake replay, the final assessment, keyboard navigation and narrow viewports.
 
 These checks establish software behavior. They are not longitudinal evidence of learning outcomes or a guarantee of typing speed.

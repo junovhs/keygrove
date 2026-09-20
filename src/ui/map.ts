@@ -1,3 +1,4 @@
+import { lessonExercises } from '../curriculum/lesson-flow';
 import { GROVES, TRAILS, resolveCopy, trailsInGrove, type Trail } from '../curriculum';
 import { groveOpen, isCleared, trailUnlocked } from '../engine/progress';
 import type { KeyModel } from '../engine/keymodel';
@@ -19,7 +20,7 @@ export function renderMap(root: HTMLElement, state: SaveV6, _model: KeyModel, h:
       <summary><span class="chapter-number">${earned ? objectArt(keepsakeFor(g.id), true) : String(g.n).padStart(2, '0')}</span><span><span class="eyebrow">${g.optional ? 'Optional chapter' : 'Chapter ' + g.n}</span><strong>${esc(g.name)}</strong><small>${esc(resolveCopy(g.blurb))}</small></span><span class="chapter-status">${earned ? 'Complete ✓' : open ? `${cleared} / ${ts.length}` : 'Up ahead'}</span></summary>
       <div class="chapter-lessons">${ts.map(t => {
         const done = isCleared(state, t.id), unlocked = trailUnlocked(state, t), cur = t.id === state.trail;
-        return `<button type="button" class="map-trail ${cur ? 'current' : ''} ${done ? 'done' : ''}" data-trail="${t.id}" ${unlocked ? '' : 'disabled'} ${cur ? 'aria-current="step"' : ''}><span class="map-n">${done ? '✓' : t.n}</span><span class="map-body"><span class="map-name">${esc(t.name)}</span><span class="map-keys">${t.checkpoint ? 'A chapter passage · a keepsake to remember it' : t.shift ? 'Opposite-hand Shift' : t.newKeys ? esc([...t.newKeys].join(' ').toUpperCase()) : 'Put familiar keys to work'}</span></span><span class="lesson-state">${done ? 'Revisit ↗' : cur ? 'Continue →' : unlocked ? 'Begin →' : ''}</span></button>`;
+        return `<button type="button" class="map-trail ${cur ? 'current' : ''} ${done ? 'done' : ''}" data-trail="${t.id}" ${unlocked ? '' : 'disabled'} ${cur ? 'aria-current="step"' : ''}><span class="map-n">${done ? '✓' : t.n}</span><span class="map-body"><span class="map-name">${esc(t.name)}</span><span class="map-keys">${t.checkpoint ? 'A chapter passage · a keepsake to remember it' : t.shift ? 'Opposite-hand Shift' : t.newKeys ? esc([...t.newKeys].join(' ').toUpperCase()) : 'Put familiar keys to work'}${!done ? ` · ${state.lessonSteps[t.id] ?? 0}/${lessonExercises(t).length} exercises` : ''}</span></span><span class="lesson-state">${done ? 'Revisit ↗' : cur ? 'Continue →' : unlocked ? 'Begin →' : ''}</span></button>`;
       }).join('')}</div></details>`;
   }).join('');
   const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-trail]')];
