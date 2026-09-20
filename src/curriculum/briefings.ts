@@ -8,7 +8,9 @@ import type { Trail } from './types';
  * hard-coded finger. `keys` are the keycaps to light and the fingers to paint for that tip.
  */
 export type BriefIcon = 'hand' | 'bumps' | 'anchor' | 'feather' | 'eye' | 'space' | 'rhythm' | 'stretch';
+/** One tip: an icon, a short title, one sentence of coaching, and the keys to light while it is read. */
 export interface BriefTip { icon: BriefIcon; title: string; body: string; keys?: string }
+/** A briefing for one exercise: a title, a one-line lead, and exactly three tips. */
 export interface Briefing { title: string; lead: string; tips: readonly [BriefTip, BriefTip, BriefTip] }
 
 const tip = (icon: BriefIcon, title: string, body: string, keys?: string): BriefTip => ({ icon, title, body, ...(keys ? { keys } : {}) });
@@ -112,5 +114,7 @@ export function briefingFor(trail: Trail, exerciseIndex: number): Briefing | nul
 }
 /** Trails that carry briefings, for tests and docs: every exercise must have one, or none. */
 export const briefedTrails = (): string[] => Object.keys(BRIEFINGS);
+/** Number of briefings authored for a trail. */
 export const briefingCount = (trail: Trail): number => BRIEFINGS[trail.id]?.length ?? 0;
+/** Number of exercises a trail has, for pairing against briefingCount. */
 export const exerciseCount = (trail: Trail): number => lessonExercises(trail).length;
