@@ -59,3 +59,28 @@ body:has(.arena.focus-mode) .metrics,body:has(.arena.focus-mode) .controls,body:
 @media(max-width:760px){.finger-picker{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.finger-picker .focus-key{padding:10px 7px;min-height:72px}.finger-picker .focus-key strong{white-space:normal;font-size:12px;line-height:1.35}.finger-picker .focus-key span{font-size:9px}.finger-overview{padding:20px}.finger-overview h3{font-size:28px;margin-bottom:14px}.finger-selected{margin-top:18px;padding-top:18px}.finger-selected p{margin:10px 0 18px}.finger-page-heading{margin-bottom:18px}}
 
 @media(max-width:760px){.finger-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.finger-picker .focus-key{min-height:62px}.finger-picker .focus-key strong{font-size:14px}.finger-picker .focus-key span{font-size:11px}}
+
+/* Briefing: the stage becomes an illustration (hands + keyboard) with a three-tip card beneath it. */
+.arena.brief-mode .textbox,.arena.brief-mode #wordScene,.arena.brief-mode .keycue{display:none}
+.arena.brief-mode .deck{margin:6px 0 22px}
+.arena.brief-mode .keycap.locked{opacity:.55}
+.brief-card{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:28px;padding:26px 30px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.55);box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
+.brief-card[hidden]{display:none}
+.brief-step{display:grid;gap:12px;padding-right:28px;border-right:1px solid var(--line);min-width:96px}
+.brief-count{font:12px var(--mono);letter-spacing:.11em;color:var(--soft)}
+.brief-dots{display:flex;gap:10px}
+.brief-dots i{width:9px;height:9px;border-radius:50%;background:#d7d3cb}
+.brief-dots i.on{background:var(--orange)}
+.brief-icon{width:82px;height:82px;border-radius:50%;background:#fff0e7;display:grid;place-items:center;color:var(--orange)}
+.brief-icon svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.brief-body h3{margin:0;font-size:24px;letter-spacing:-.035em;line-height:1.15;color:var(--ink)}
+.brief-body p{margin:8px 0 0;font-size:16px;line-height:1.55;color:var(--text);max-width:700px}
+.brief-next{height:70px;padding:0 34px;border:0;border-radius:6px;background:var(--orange);color:#fff;font-size:20px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:14px;cursor:pointer;box-shadow:0 8px 20px rgba(255,84,24,.22);transition:transform .08s ease,background .12s ease}
+.brief-next:hover{background:#ef4b12}.brief-next:active{transform:translateY(1px)}.brief-next:focus-visible{outline:3px solid #37749c;outline-offset:3px}
+.brief-fade{animation:brief-in .22s ease}
+@keyframes brief-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.brief-fade{animation:none}}
+.arena.brief-mode .lesson-copy h1{text-transform:none}
+body:has(.arena.brief-mode) .metrics,body:has(.arena.brief-mode) #resetRunBtn{visibility:hidden}
+@media(max-width:1100px){.brief-card{gap:18px;padding:20px}.brief-next{height:56px;padding:0 22px;font-size:16px}.brief-icon{width:64px;height:64px}.brief-body h3{font-size:20px}.brief-body p{font-size:14px}}
+@media(max-width:760px){.brief-card{grid-template-columns:auto 1fr;gap:14px 16px}.brief-step{border:0;padding:0;grid-column:1/-1;grid-template-columns:auto 1fr;align-items:center}.brief-next{grid-column:1/-1;justify-content:center}.arena.brief-mode .deck{display:flex;flex-wrap:wrap;justify-content:space-around;gap:18px 8px}.arena.brief-mode .keymap{order:-1;flex:0 0 100%;margin:0 auto}.arena.brief-mode .hand-col{display:block;flex:0 0 40%}.arena.brief-mode .hand-wrap,.arena.brief-mode .home-letters{width:100%}.arena.brief-mode .hand-letter{min-width:22px;height:22px;font-size:9px}}

@@ -1,9 +1,10 @@
 import { lessonExercises, type LessonExercise } from './curriculum/lesson-flow';
+import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
 import { fingers, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
-import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, isShifted, setMethod } from './curriculum/method';
+import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, fingerOf, isShifted, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
@@ -57,6 +58,9 @@ let runStage: StageName = 'drill';
 let runExercise: LessonExercise = lessonExercises(runTrail)[0]!;
 let runExerciseIndex = 0;
 let beforeMastery: Record<string, number> = {};
+/** The briefing being read before this run, if any; `seenBriefs` keeps each exercise to one briefing per session. */
+let brief: { briefing: Briefing; step: number } | null = null;
+const seenBriefs = new Set<string>();
 const wordScene = new WordScene($('wordScene'));
 const actionable = (d: Decision) => !['rushing', 'fatigue', 'steady', 'reach'].includes(d.kind);
 const courseFrontier = () => MAIN_TRAILS.find(t => !isCleared(state, t.id)) ?? MAIN_TRAILS.at(-1)!;
@@ -103,7 +107,8 @@ function resetRun(): void {
   $('skipPractice').hidden = mode.kind === 'trail';
   $('skipPractice').textContent = 'Back to my course';
   document.body.classList.remove('showing-result');
-  arena().classList.remove('result-mode', 'focus-mode'); render(); $('lessonTitle').focus();
+  arena().classList.remove('result-mode', 'focus-mode'); endBrief(); render(); $('lessonTitle').focus();
+  if (mode.kind === 'trail') openBrief();
 }
 /** Switch into a coach drill (required or accepted offer). */
 function startCoach(d: Decision): void { mode = { kind: 'coach', decision: d }; resetRun(); toast(d.title); }
@@ -187,6 +192,7 @@ function focusGrid(): void {
   $('startFingerLevel').onclick = startFingerLevel;
 }
 function nextVisual(): void {
+  if (brief) { paintBrief(); return; }
   document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
   const c = run.current, f = fingerForKey(c);
   const shifted = isShifted(c);
@@ -233,7 +239,73 @@ function peekFinger(id: string | null): void {
   $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => { if (keys.includes(el.dataset.key!)) el.classList.add('peek'); });
 }
 onFingerHover(peekFinger);
-function render(): void { header(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); }
+function render(): void { header(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); if (brief) renderBrief(); }
+
+// ---- briefing: three tips before an exercise, read one at a time ------------------
+const BRIEF_ICONS: Record<BriefIcon, string> = {
+  hand: '<svg viewBox="0 0 24 24"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-4a1.5 1.5 0 0 1 3 0v4m0-2a1.5 1.5 0 0 1 3 0v6a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-5-2.7L3 14.5a1.6 1.6 0 0 1 2.6-1.8L9 15.5"/></svg>',
+  bumps: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M9 15.5h6"/><path d="M12 9.5v.01"/></svg>',
+  anchor: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M3 13h4M17 13h4"/></svg>',
+  feather: '<svg viewBox="0 0 24 24"><path d="M20 4c-6 0-11 3-13 9l-3 7 7-3c6-2 9-7 9-13Z"/><path d="M4 20 15 9"/></svg>',
+  eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  space: '<svg viewBox="0 0 24 24"><path d="M4 10v4h16v-4"/><path d="M8 17h8"/></svg>',
+  rhythm: '<svg viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg>',
+  stretch: '<svg viewBox="0 0 24 24"><path d="M12 20V6M8 10l4-4 4 4"/><path d="M6 20h12"/></svg>',
+};
+/** Open the briefing for the current exercise, once per exercise per session. */
+function openBrief(): void {
+  const key = `${runTrail.id}/${runExerciseIndex}`;
+  const briefing = briefingFor(runTrail, runExerciseIndex);
+  if (!briefing || seenBriefs.has(key) || run.status !== 'idle') return;
+  brief = { briefing, step: 0 };
+  arena().classList.add('brief-mode');
+  render();
+  $('lessonTitle').focus();
+}
+/** Close the briefing. `read` marks it seen, so only a briefing the learner finished (or skipped) stays away on retries. */
+function endBrief(read = false): void {
+  if (!brief) return;
+  if (read) seenBriefs.add(`${runTrail.id}/${runExerciseIndex}`);
+  brief = null;
+  arena().classList.remove('brief-mode');
+  $('briefCard').hidden = true;
+  $('keymap').querySelectorAll('.keycap.hot').forEach((x) => x.classList.remove('hot'));
+}
+function briefNext(): void {
+  if (!brief) return;
+  if (brief.step + 1 < brief.briefing.tips.length) { brief.step++; renderBrief(); paintBrief(); return; }
+  endBrief(true); render(); $('lessonTitle').focus();
+}
+/** Light the tip's keys and paint its fingers on the shared hand illustrations. */
+function paintBrief(): void {
+  if (!brief) return;
+  const tipKeys = brief.briefing.tips[brief.step]!.keys ?? runTrail.newKeys ?? 'fj';
+  const ks = [...tipKeys];
+  document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
+  $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach((el) => el.classList.toggle('hot', ks.includes(el.dataset.key!)));
+  const perSide = (side: 'left' | 'right') => ks.map((k) => fingerOf(k)).find((f) => f === 'thumb' || f?.startsWith(side[0]!)) ?? null;
+  paintHand('left', perSide('left')); paintHand('right', perSide('right'));
+  for (const k of ks) { const f = fingerOf(k); if (f && f !== 'thumb') document.querySelectorAll('[data-finger-label="' + f + '"]').forEach((x) => x.classList.add('active')); }
+  $('handInstruction').textContent = '';
+}
+function renderBrief(): void {
+  if (!brief) return;
+  const { briefing, step } = brief, t = brief.briefing.tips[step]!, exs = lessonExercises(runTrail), last = step + 1 === briefing.tips.length;
+  $('lessonTitle').textContent = 'Before you begin';
+  $('lessonCopy').textContent = `${briefing.title} — ${briefing.lead}`;
+  $('summaryLabel').textContent = 'This exercise'; $('focusName').textContent = `${runExerciseIndex + 1}/${exs.length} · ${runExercise.name}`;
+  const nextEx = exs[runExerciseIndex + 1];
+  $('gateLabel').textContent = 'Next up'; $('focusInstruction').textContent = nextEx ? `${runExerciseIndex + 2}/${exs.length} · ${nextEx.name}` : 'Lesson complete';
+  $('briefCount').textContent = `${step + 1}/${briefing.tips.length}`;
+  $('briefDots').innerHTML = briefing.tips.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('');
+  $('briefIcon').innerHTML = BRIEF_ICONS[t.icon];
+  $('briefTitle').textContent = t.title; $('briefText').textContent = resolveCopy(t.body);
+  $('briefNextLabel').textContent = last ? 'Start typing' : 'Next';
+  const card = $('briefCard'); card.hidden = false; card.classList.remove('brief-fade'); void card.offsetWidth; card.classList.add('brief-fade');
+  $('nextAction').textContent = last ? 'Start typing' : 'Next tip';
+  $('message').textContent = 'Read each tip, then press Enter or Next.'; $('unlockText').textContent = last ? 'The passage appears after this tip.' : '';
+}
+$('briefNext').onclick = briefNext;
 
 // ---- run lifecycle -----------------------------------------------------------
 function begin(): void { if (run.status === 'playing') return; if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); run.begin(now()); $('nextAction').textContent = 'Typing…'; render(); }
@@ -274,7 +346,7 @@ function continueAfterResult(firstKey?: string): void {
   else if (gate) { const d = gate; gate = null; startCoach(d); return; }
   replayReturn = null;
   resetRun();
-  if (firstKey !== undefined) { begin(); typeKey(firstKey); }
+  if (firstKey !== undefined && !brief) { begin(); typeKey(firstKey); }
 }
 function typeKey(k: string): void {
   const r = run.type(k, now());
@@ -419,6 +491,13 @@ document.addEventListener('keydown', (e) => {
   if (arena().classList.contains('map-mode')) { mapKeys?.(e); return; }
   if (e.target instanceof HTMLElement && e.target.closest('button,a,input,select,textarea,summary,[contenteditable]')) return;
   if (arena().classList.contains('focus-mode')) { handleFocusKey(e); return; }
+  if (brief) {
+    // Only the explicit steps advance: a briefing is meant to be read, so stray typing never skips it.
+    if (e.key === 'Enter' || e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); briefNext(); }
+    else if (e.key === 'Escape') { e.preventDefault(); endBrief(true); render(); }
+    else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+    return;
+  }
   if (run.status === 'playing') {
     if (e.key === 'Escape') { e.preventDefault(); abort(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
@@ -427,7 +506,7 @@ document.addEventListener('keydown', (e) => {
   }
   handleIdleOrResult(e);
 });
-$('prompt').onclick = () => { if (run.status === 'idle') begin(); };
+$('prompt').onclick = () => { if (run.status === 'idle' && !brief) begin(); };
 $('focusBtn').onclick = () => openFocus();
 $('resetRunBtn').onclick = () => { if (run.status === 'playing') abort(); else resetRun(); };
 $('guideBtn').onclick = () => { state.settings.guideStrong = $('handsZone').classList.toggle('guide-strong'); save(); $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide'; };
@@ -435,7 +514,7 @@ $('lessonsNav').onclick = () => { if (arena().classList.contains('map-mode')) cl
 $('statsNav').onclick = () => openMap(true);
 $('closeBook').onclick = closeMap;
 $('skipPractice').onclick = () => { gate = null; mode = { kind: 'trail' }; replayReturn = null; if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else resetRun(); };
-$('startBtn').onclick = () => { if (arena().classList.contains('map-mode')) { closeMap(); return; } if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); };
+$('startBtn').onclick = () => { if (arena().classList.contains('map-mode')) { closeMap(); return; } if (brief) { briefNext(); return; } if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); };
 function showSettings(): void { settingsModal().classList.add('open'); $('closeSettings').focus(); }
 $('settingsTopBtn').onclick = showSettings;
 $('settingsBtn').onclick = showSettings;
@@ -546,7 +625,7 @@ syncSettingsUi(); resetRun(); if (courseComplete(state) && state.trail === 'flow
 if (!state.settings.onboarded) openOnboarding();
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
-    snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, decisions, gate, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
+    snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, decisions, gate, brief: brief ? { title: brief.briefing.title, step: brief.step, tip: brief.briefing.tips[brief.step]!.title } : null, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
     import: (raw: unknown) => applyImport(raw),
     openMap,
     selftest: textflowSelfTest,

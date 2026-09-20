@@ -91,6 +91,10 @@ Counts below are derived from `lessonExercises` across the 36 main lessons. Thes
 
 About 40% movement practice and 60% language/application overall. New-letter lessons split two movement exercises and two application exercises. Later chapters lean further toward readable text. Words are filtered to taught keys. Early vocabulary prioritizes familiar words and names, avoiding unexplained fragments such as `iii`, `diff` and `ref`. Authored phrases are selected whole, never mutilated to fit the alphabet. Lowercase is intentional until Shift is taught; punctuation appears only when taught.
 
+### Briefings: just-in-time coaching
+
+Each Chapter 1 exercise opens with a briefing instead of dropping the learner into text. The heading reads "Before you begin" with the exercise's purpose; the hand illustrations and keyboard light the fingers and keys the tip is about; and a card steps through exactly three tips (`1/3` dots, icon, title, one sentence) with a Next button, the last reading "Start typing". Enter, → or the button advance; Escape skips. Only those keys act: stray typing never dismisses a briefing, so each tip is actually read. Tips are authored per exercise in `src/curriculum/briefings.ts`, name fingers through the same `{f}` placeholders as lesson copy (so they follow the active method), and consistently coach the physical basics: hands still, fingers grounded on F and J, a light touch, reading ahead. A briefing shows once per exercise per session; retries of the same exercise go straight to the passage. Later chapters have no briefings yet; the mechanism supports them by adding entries.
+
 ### Hand and finger load
 
 Movement blocks split evenly between hands by construction, but real words do not: over the original Roots set F J D K E I R U, English vocabulary runs about 83/17 left because E, D, R and F are common while J and K are the rarest letters. Measured over many seeds, Roots word and passage exercises ran 76–89% left-hand and the left middle finger alone pressed more than half of all keys. Two changes correct this:
