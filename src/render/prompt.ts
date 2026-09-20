@@ -1,7 +1,7 @@
 import { Effects } from './effects';
 import { TextFlow, type Flow, type WidthForLine } from './textflow';
 
-export interface PromptState { text: string; pos: number; wrong: boolean }
+export interface PromptState { text: string; pos: number; wrong: boolean; reading?: boolean }
 
 type Palette = { ink: string; done: string; orange: string; wrongBg: string; wrongInk: string; pill: string; pillLine: string; pillInk: string; pillDone: string; pillDoneInk: string };
 const DARK: Palette = { ink: '#e8e6df', done: '#8e8d86', orange: '#ff5418', wrongBg: '#ffb49f', wrongInk: '#201814', pill: '#2b2c29', pillLine: '#5c5e59', pillInk: '#c5c3bc', pillDone: '#222320', pillDoneInk: '#74766f' };
@@ -94,13 +94,13 @@ export class CanvasPrompt {
   private font(): string { return `600 ${this.fontPx}px ${getComputedStyle(this.host).getPropertyValue('--mono') || 'ui-monospace, monospace'}`; }
   private lineHeight(): number { return Math.round(this.fontPx * (this.compact ? 1.9 : 1.75)); }
   /** Gap between glyphs. Must exceed 2× the current-box padding so the box never touches a neighbour. */
-  private letterSpacing(): number { return Math.round(this.fontPx * (this.compact ? 0.5 : 0.32)); }
+  private letterSpacing(): number { return this.state.reading ? 2 : Math.round(this.fontPx * (this.compact ? 0.5 : 0.32)); }
   private boxPad(): number { return Math.round(this.fontPx * 0.2); }
 
   /** Reads host size once per resize (outside the frame loop) and re-lays out. */
   private measureHost(): void {
     const rect = this.host.getBoundingClientRect();
-    const fontPx = this.compact ? Math.max(24, Math.min(33, Math.round(rect.width * 0.03))) : Math.max(22, Math.min(34, Math.round(rect.width * 0.024)));
+    const fontPx = this.state.reading ? Math.max(20, Math.min(28, Math.round(rect.width * 0.033))) : this.compact ? Math.max(24, Math.min(33, Math.round(rect.width * 0.03))) : Math.max(22, Math.min(34, Math.round(rect.width * 0.024)));
     this.width = Math.max(1, Math.floor(rect.width) - this.padding * 2);
     this.dpr = Math.min(3, window.devicePixelRatio || 1);
     if (fontPx !== this.fontPx) { this.fontPx = fontPx; this.flow.setFont(this.font(), this.lineHeight(), this.letterSpacing()); }
@@ -109,8 +109,14 @@ export class CanvasPrompt {
   }
 
   set(s: PromptState): void {
-    if (s.text !== this.state.text) { this.flow.setText(s.text); this.lastFlow = null; this.mirror.textContent = s.text; }
+    const readingChanged = !!s.reading !== !!this.state.reading;
+    const textChanged = s.text !== this.state.text;
     this.state = { ...s };
+    if (readingChanged) {
+      this.flow = new TextFlow(this.font(), this.lineHeight(), this.letterSpacing(), s.reading ? 'left' : 'center', s.reading ? 1 : 3);
+      this.measureHost();
+    }
+    if (textChanged || readingChanged) { this.flow.setText(s.text); this.lastFlow = null; this.mirror.textContent = s.text; }
     this.requestDraw();
   }
 
@@ -138,21 +144,31 @@ export class CanvasPrompt {
   draw(): void {
     const flow = this.layout();
     const lh = this.flow.lineHeight;
-    const cssH = Math.max(lh * (this.compact ? 1 : 2), flow.height) + this.padding * 2;
+    // Keep the current line and its neighbours in view, even for the final long passage.
+    const currentLine = flow.glyphs.find(g => g.index === this.state.pos)?.line ?? Math.max(0, flow.lines.length - 1);
+    const firstLine = Math.max(0, Math.min(currentLine - 1, flow.lines.length - 3));
+    const visibleHeight = Math.min(flow.height, lh * 3);
+    const cssH = Math.max(lh * (this.compact ? 1 : 2), visibleHeight) + this.padding * 2;
     this.sizeCanvas(cssH);
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, this.width + this.padding * 2, cssH);
     ctx.font = this.flow.font;
     ctx.textBaseline = 'middle';
-    const top = this.padding + Math.max(0, (cssH - this.padding * 2 - flow.height) / 2);
+    const top = this.padding - firstLine * lh + Math.max(0, (cssH - this.padding * 2 - visibleHeight) / 2);
     this.top = top;
     const { pos, wrong } = this.state;
     const now = performance.now();
     const shake = this.effects.shakeOffset(now);
     for (const g of flow.glyphs) {
+      if (g.line < firstLine || g.line >= firstLine + 3) continue;
       const x = this.padding + g.x + (g.index === pos ? shake : 0), cy = top + g.y + lh / 2;
       const done = g.index < pos, current = g.index === pos, bad = current && wrong;
+      if (g.ch === ' ' && this.state.reading) {
+        if (current) { ctx.fillStyle = bad ? this.colors.wrongBg : this.colors.orange; ctx.beginPath(); ctx.roundRect(x - 1, cy - this.fontPx * 0.65, g.w + 2, this.fontPx * 1.3, 3); ctx.fill(); }
+        ctx.fillStyle = current ? '#fff' : done ? this.colors.done : '#b8b1a5';
+        ctx.fillText('·', x, cy + 1); continue;
+      }
       if (g.ch === ' ') {
         const h = Math.round(this.fontPx * 1.25), w = g.w;
         ctx.fillStyle = bad ? this.colors.wrongBg : current ? this.colors.orange : done ? this.colors.pillDone : this.colors.pill;

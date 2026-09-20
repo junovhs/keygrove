@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Relaxed QWERTY — learn to type on an ordinary keyboard with a relaxed, stable method: 7 groves, 34 trails, accuracy before speed.">
-<title>Relaxed QWERTY</title>
+<meta name="description" content="Relaxed QWERTY — learn to type on an ordinary keyboard with a relaxed, stable method: 36 guided lessons, accuracy before speed.">
+<title>RQWERTY · Relaxed QWERTY</title>
 <style>
 :root{
   --bg:#f7f5f1;
@@ -344,8 +344,8 @@ kbd{font:inherit}
       <button id="docsOpen" class="brand" type="button" aria-label="About Relaxed QWERTY and documentation" aria-expanded="false">Relaxed QWERTY<span class="brand-hint" aria-hidden="true">ⓘ About &amp; docs</span></button>
     </div>
     <nav class="nav" aria-label="Primary">
-      <button id="lessonsNav" type="button">Map</button>
-      <button id="statsNav" type="button">Stats</button>
+      <button id="lessonsNav" type="button">Course</button>
+      <button id="statsNav" type="button">Keepsakes</button>
       <button id="settingsTopBtn" type="button">Settings</button>
       <span class="nav-divider" aria-hidden="true"></span>
       <!-- Optional. Typing never needs it; it exists to keep you known across
@@ -371,7 +371,7 @@ kbd{font:inherit}
 
         <section class="lesson-intro">
           <div class="lesson-copy">
-            <h1 id="lessonTitle">Anchors</h1>
+            <h1 id="lessonTitle" tabindex="-1">Landmarks</h1>
             <p id="lessonCopy"></p>
           </div>
           <aside class="info-cols">
@@ -382,6 +382,7 @@ kbd{font:inherit}
 
         <section class="stage" id="stage" aria-label="Typing drill">
           <div class="textbox"><div class="prompt" id="prompt"></div><div class="next-cue" id="nextCue"></div></div>
+          <div id="wordScene"></div>
           <div class="keycue" id="handInstruction"></div>
           <div class="deck" id="handsZone">
             <div class="hand-col hand-left-col">
@@ -417,24 +418,24 @@ kbd{font:inherit}
       </div>
 
       <div class="map-panel" id="mapPanel">
-        <div class="map-head"><div><span class="eyebrow">Grove map</span><h2>Seven groves. One path.</h2></div><span class="map-help">↑ ↓ ← → move · Enter select · Esc close</span></div>
+        <div class="map-head"><div><span class="eyebrow">Your course book</span><h2>One small step at a time.</h2><p id="bookProgress"></p></div><button id="closeBook" type="button">Back to typing <kbd>Esc</kbd></button></div>
         <div class="grove-map" id="groveMap"></div>
+        <section class="collection-section"><span class="eyebrow">Things your hands have learned</span><h2 id="collectionTitle">A few things to keep.</h2><div id="keepsakeCollection"></div></section>
       </div>
 
       <div class="result" id="result">
-        <span class="eyebrow">Run complete</span>
-        <div class="result-stars" id="resultStars" aria-label="Stars"></div>
-        <h2 id="resultTitle">Clean run.</h2>
-        <p id="resultCopy"></p>
-        <div class="result-mastery" id="resultMastery"></div>
-        <p class="result-offer" id="resultOffer" hidden></p>
-        <div class="score">
-          <div><small>WPM</small><b id="resultWpm">0</b></div>
-          <div><small>Accuracy</small><b id="resultAcc">0%</b></div>
-          <div><small>XP</small><b id="resultXp">+0</b></div>
-          <div><small>Combo</small><b id="resultCombo">0</b></div>
+        <div class="result-content">
+          <span class="eyebrow" id="resultEyebrow">Passage complete</span>
+          <h2 id="resultTitle" tabindex="-1">A little more familiar.</h2>
+          <p id="resultCopy"></p>
+          <div class="result-mastery" id="resultMastery"></div>
+          <div class="score">
+            <div><small>Accuracy</small><b id="resultAcc">0%</b></div>
+            <div><small>Your pace · WPM</small><b id="resultWpm">0</b></div>
+          </div>
+          <p class="result-offer" id="resultOffer" hidden></p>
         </div>
-        <div class="result-foot" id="resultFoot"><span><strong>Enter</strong> continue</span><span><strong>Tab</strong> trouble spot</span><span>or just start typing</span></div>
+        <aside id="resultObject" class="earned-object" hidden></aside>
       </div>
     </section>
   </main>
@@ -447,14 +448,14 @@ kbd{font:inherit}
             <small>Progress</small>
             <div class="progress-row"><b id="pct">0%</b><div class="progress-meter" aria-hidden="true"><span id="progressFill"></span></div></div>
           </div>
-          <div class="metric"><small>Streak</small><b id="combo">0</b></div>
+          <div class="metric"><small>Clean sequence</small><b id="combo">0</b></div>
         </section>
 
         <section class="controls" aria-label="Controls">
-          <button class="primary-control" id="startBtn" type="button"><span class="play">▶</span><span>Continue</span><kbd>Enter</kbd></button>
-          <div class="control-group">
-            <button class="control-btn" id="focusBtn" type="button"><span class="icon">◎</span><span>Trouble spot</span><kbd>Tab</kbd></button>
-            <button class="control-btn" id="resetRunBtn" type="button"><span class="icon">↻</span><span>Reset</span><kbd>Esc</kbd></button>
+          <button class="primary-control" id="startBtn" type="button"><span class="play">▶</span><span id="nextAction">Begin passage</span><kbd>Enter</kbd></button>
+          <div class="control-group"><button id="skipPractice" class="control-btn" type="button" hidden>Skip warm-up</button>
+            <button class="control-btn" id="focusBtn" type="button"><span class="icon">◎</span><span>Extra practice</span></button>
+            <button class="control-btn" id="resetRunBtn" type="button"><span class="icon">↻</span><span>Restart passage</span><kbd>Esc</kbd></button>
           </div>
         </section>
 
@@ -465,16 +466,16 @@ kbd{font:inherit}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="modal" id="settingsModal">
+<div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="modalbox">
     <span class="eyebrow">Utility</span>
-    <h2>Your progress</h2>
+    <h2 id="settingsTitle">Make yourself comfortable.</h2>
     <p>Progress saves in this browser. A new account keeps your current progress and syncs it across devices. An existing account opens its own course. Export a backup any time; Reset clears everything (and asks twice). <b>Method</b> chooses which finger owns each key — Relaxed QWERTY (Z ring, X middle, C index, B right index) or traditional touch typing.</p>
     <div class="modal-actions">
       <button class="primary" id="exportBtn" type="button">Export</button>
       <button id="importBtn" type="button">Import</button>
       <button id="methodBtn" type="button">Method: Relaxed QWERTY</button>
-      <button id="onboardBtn" type="button">Which method?</button>
+      <button id="onboardBtn" type="button" hidden>Which method?</button>
       <button id="codeBtn" type="button">Code grove: off</button>
       <button class="danger" id="resetBtn" type="button">Reset</button>
       <button id="closeSettings" type="button">Close</button>
@@ -486,24 +487,18 @@ kbd{font:inherit}
      from Settings. Nothing is remapped either way; the choice can be changed. -->
 <div class="modal onboard" id="onboardModal" role="dialog" aria-modal="true" aria-labelledby="onboardTitle">
   <div class="modalbox">
-    <span class="eyebrow">Before you start</span>
-    <h2 id="onboardTitle">How do you type today?</h2>
+    <span class="eyebrow">An ordinary keyboard. A gentler approach.</span>
+    <h2 id="onboardTitle">Make yourself at home.</h2>
     <div id="onboardAsk">
-      <p>This picks which finger owns each key. You can change it any time in Settings.</p>
-      <div class="onboard-options">
-        <button type="button" data-onboard="beginner"><b>I'm a complete beginner</b><span>Learn Relaxed QWERTY from the first key.</span></button>
-        <button type="button" data-onboard="hunt"><b>I type, but without a technique</b><span>Relaxed QWERTY gives your fingers a stable map without forcing rigid columns.</span></button>
-        <button type="button" data-onboard="touch"><b>I already touch type</b><span>Keep what you know, or learn the relaxed variant.</span></button>
-        <button type="button" data-onboard="relearn"><b>I'm relearning after a long break</b><span>Relaxed QWERTY, with a gentle start.</span></button>
-        <button type="button" data-onboard="access"><b>I need an accessibility adaptation</b><span>Start with Relaxed QWERTY; adapted profiles are coming.</span></button>
-      </div>
+      <p>Learn to type without looking down. We’ll guide you from your first two keys to complete passages, one small step at a time.</p>
+      <div class="method-demo" aria-label="Relaxed QWERTY lower-left assignments"><span>Z<small>ring</small></span><span>X<small>middle</small></span><span>C<small>index</small></span><span>B<small>right index</small></span></div>
+      <p><b>Same keys. More natural reaches.</b> Relaxed QWERTY follows the stagger of the keyboard. Your hands can move; F and J are landmarks, not places you must stay glued to.</p>
+      <p class="onboard-note">Find the bumps on F and J with your index fingers. Let your shoulders soften. Accuracy comes first; pace grows with familiarity.</p>
+      <div class="onboard-options"><button type="button" data-onboard="learn"><b>Let’s find F and J</b><span>Learn Relaxed QWERTY · no account needed</span></button><button type="button" data-onboard="touch"><b>I already use traditional touch typing</b><span>Choose the method that fits your hands.</span></button></div>
     </div>
     <div id="onboardTouch" hidden>
-      <p>Relaxed QWERTY is our recommended typing method. It uses normal QWERTY keys and familiar touch-typing principles, but it allows your hands to move naturally instead of forcing them into rigid columns. We slightly change the lower-left finger assignments to better follow the physical angle of a standard keyboard. Nothing is remapped, so the technique works on ordinary computers everywhere.</p>
-      <div class="onboard-options">
-        <button type="button" data-onboard="keep"><b>Keep my existing technique</b><span>Traditional touch typing: Z pinky, X ring, C middle, B left index.</span></button>
-        <button type="button" data-onboard="learn"><b>Learn Relaxed QWERTY</b><span>Z ring, X middle, C index, B right index.</span></button>
-      </div>
+      <p>The course works with either method. Traditional uses Z pinky, X ring, C middle and B left index. Relaxed QWERTY uses Z ring, X middle, C index and B right index. Nothing is remapped.</p>
+      <div class="onboard-options"><button type="button" data-onboard="keep"><b>Keep traditional touch typing</b><span>Keep familiar finger assignments.</span></button><button type="button" data-onboard="learn"><b>Learn Relaxed QWERTY</b><span>Try the stagger-following reaches.</span></button></div>
     </div>
   </div>
 </div>
