@@ -81,13 +81,13 @@ const unlockedLetters = () => [...allowedChars(trail())].filter((k) => k.length 
 const dueNow = () => new Set(keys.dueKeys([...allowedChars(trail())].filter((k) => k.length === 1 && k !== ' ' && k === k.toLowerCase()), Date.now()));
 function makeText(): string {
   const allowed = allowedChars(trail());
-  if (mode.kind === 'remedial') { practice = fingerPractice(mode.pair, mode.level, state.fingerCourses); return practice.text; }
+  if (mode.kind === 'remedial') { practice = fingerPractice(mode.pair, mode.level, state.fingerCourses, { known: new Set(MAIN_TRAILS.filter(t => isCleared(state, t.id)).flatMap(t => [...t.newKeys])) }); return practice.text; }
   if (mode.kind === 'coach') {
     const d = mode.decision;
     if (d.kind === 'remedial') { const f = fingerForKey(d.keys[0] ?? 'f'); return f && 'keys' in f ? remedialText(f, allowed, 30) : generate(trail(), 'drill'); }
     return generateDrill(d.kind === 'confusion' ? 'confusion' : d.kind === 'reach' ? 'reach' : d.kind === 'transition' ? 'transition' : 'review', d.keys, trail());
   }
-  return generate(trail(), stageName(), { heat: keys.heatMap(Date.now(), dueNow()), pairHeat: trans.heatMap(unlockedLetters()), weakPairs: trans.weakest(unlockedLetters()).filter((w) => w.mastery < 0.6).slice(0, 8).map((w) => w.pair) });
+  return generate(trail(), stageName(), { exercise: runExercise, heat: keys.heatMap(Date.now(), dueNow()), pairHeat: trans.heatMap(unlockedLetters()), weakPairs: trans.weakest(unlockedLetters()).filter((w) => w.mastery < 0.6).slice(0, 8).map((w) => w.pair) });
 }
 function resetRun(): void {
   completionHome = false;
@@ -126,7 +126,7 @@ function labels(): void {
   const t = runTrail, g = groveOf(t), f = focusPair();
   const stageCopy = { drill: 'Meet the new keys. Take your time.', mix: 'Now weave them into familiar movements.', words: t.checkpoint ? 'A fresh passage using everything so far.' : 'Put those movements to work.' };
   $('lessonTitle').textContent = f ? f.name + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : t.name;
-  $('lessonCopy').textContent = f ? fingerLevel()!.instruction : mode.kind === 'coach' ? mode.decision.reason : runExercise.instruction;
+  $('lessonCopy').textContent = f ? fingerLevel()!.instruction + (practice?.helperKeys.length ? ` New helper keys: ${practice.helperKeys.join(' ').toUpperCase()}. Try their short introduction first; the hand guide shows which fingers to use.` : '') : mode.kind === 'coach' ? mode.decision.reason : runExercise.instruction;
   $('summaryLabel').textContent = replayReturn ? 'A familiar place' : 'This passage';
   $('focusName').textContent = mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : `${runExerciseIndex + 1}/${lessonExercises(t).length} · ${runExercise.name}` : 'Short practice · then your course';
   $('gateLabel').textContent = mode.kind !== 'trail' ? 'No test here' : t.checkpoint ? 'Chapter passage' : 'Accuracy before speed';
@@ -143,7 +143,7 @@ const useDom = new URLSearchParams(location.search).get('dom') === '1';
 const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true, orb: false });
 function prompt(): void {
   wordScene.update(run.text, run.pos);
-  if (canvasPrompt) { canvasPrompt.set({ text: run.text, pos: run.pos, wrong: run.wrong, reading: runStage === 'words' && run.text.length > 50 }); return; }
+  if (canvasPrompt) { canvasPrompt.set({ text: run.text, pos: run.pos, wrong: run.wrong, reading: (mode.kind === 'remedial' ? mode.level >= 3 : runStage === 'words') && run.text.length > 50 }); return; }
   const p = $('prompt'); p.innerHTML = '';
   [...run.text].forEach((c, i) => {
     const s = document.createElement('span');

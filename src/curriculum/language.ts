@@ -1,0 +1,28 @@
+/** Small, familiar vocabulary for early transfer; no invented words or unexplained abbreviations. */
+export const PRACTICE_WORDS = `a i ed jeff if did kid feed fed fee die died free jeer red due fire refer ride duke reed deer rider fired rid fur reef dude dried led lid lie lied fell feel file fill life leaf safe sail laid said sad lad lads add all dear read real girl held hill had has her he she glad glass grass fish dish shed rush hush gull jar jug rug hug dug big bag bug mug mum my by buy try fry cry run fun turn hurt hunt burn curry hurry furry gruff murmur rhythm church truth thumb gym bunny funny hungry jury ruby cut nut but much high right bright bring low slow sow owl owls wool zoo solo loss wow papa app happy map pop paper it in sit tin ten net tent test tree street time type top pot stop stone note home room door good wood food book look moon soon noon new now how who what when where rain train light night quiet quick queen quiz fox box wax wave zip zebra jump over under the and with you your we our can will this that is are on of to for from be do go get make keep take like write little small green blue brown cup tea cake path garden window`.split(' ');
+
+/** Authored phrases grow naturally as the taught alphabet expands; punctuation is added only when allowed. */
+export const PRACTICE_PHRASES: readonly string[] = [
+  'i did', 'ed fed jeff', 'if i did', 'i fed deer', 'red fur', 'free ride', 'deer feed',
+  'i feel ill', 'i fed red deer', 'a red leaf', 'a girl held a red leaf', 'he had a glass', 'she reads',
+  'the girl held the jar', 'the sky is grey', 'they had tea', 'a little tree', 'the day is still',
+  'a quiet day', 'we had tea', 'our house is quiet', 'please read', 'i read; she reads', 'yes/no', 'yes, we can', 'the quiet room is warm', 'we write a short note', 'the red fox jumps over a log',
+  'bring the blue cup', 'my mum can make tea', 'we can meet by the gate', 'the rain falls on the garden',
+  'the quick brown fox jumps over the lazy dog', 'pack my box with five dozen liquor jugs',
+  'please leave the book by the window', 'write a little every day', 'take your time and let the words come',
+];
+/** Paired finger transfer uses minimal helper letters, explicitly introduced when not already familiar. */
+export const FINGER_PHRASES = {
+  index: ['try my curry', 'run by my hut', 'my mum hurt my thumb'],
+  middle: ['i did it'],
+  ring: ['owls swoop low'],
+  pinky: ['papa has a map'],
+} as const;
+
+/** Keep the entire phrase intelligible; never drop characters to make a passage fit. */
+export function readablePhrases(allowed: ReadonlySet<string>): string[] {
+  return PRACTICE_PHRASES.filter(p => [...p].every(k => allowed.has(k))).map(p => {
+    const first = allowed.has(p[0]!.toUpperCase()) ? p[0]!.toUpperCase() : p[0]!;
+    return first + p.slice(1) + (allowed.has('.') ? '.' : '');
+  });
+}

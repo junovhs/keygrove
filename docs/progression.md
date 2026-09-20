@@ -62,3 +62,39 @@ Save version remains 6. Legacy `stars`, `xp`, `days`, `cleanStreak`, WPM referen
 - Browser checks use real key events and the normal Import interface for isolated late-course fixtures. They cover first use, repair/return, welcome-back practice, chapter reveals, keepsake replay, the final assessment, keyboard navigation and narrow viewports.
 
 These checks establish software behavior. They are not longitudinal evidence of learning outcomes or a guarantee of typing speed.
+
+## Learning loop: the product baseline
+
+The north star is a Duolingo-like typing course with Relaxed QWERTY as its default: small, purposeful learning steps that accumulate into usable writing. The analogy governs lesson design, not streak pressure or reward inflation.
+
+- **Second to second:** one readable target, immediate correction, the appropriate finger/Shift guide, and a short enough exercise to understand its purpose. Space is a skill and a word boundary, not a compulsory separator after every two letters.
+- **Minute to minute:** meet a movement, connect it with familiar movements, use real words, then apply it in a phrase or passage. Each pass gives a visible next step. A failed exercise retries that step, not the whole lesson. New-key movement introductions are roughly 16–28 characters before coverage; word work is around 40 and early transfer around 32–56.
+- **Across a session:** finish a small lesson, reinforce earlier keys in the next lesson, and use a chapter passage to put the accumulated skills together. Course browsing is always available; leaving an unfinished run restarts that passage. There is no required session duration or speed gate.
+- **Across days:** return to the saved exercise, optionally warm up due keys with the existing bounded review, and continue. Completed exercises, lessons and paired-side passes remain earned. Absence never removes progress. Later chapters devote more practice to messages, sentences, numbers and longer writing.
+
+This is an implemented baseline to evaluate with learners, not a claim about an optimal scientific exercise ratio or a promise of learning outcomes. Further changes should address observed learning friction rather than add undirected repetition.
+
+### Planned main-course distribution
+
+Counts below are derived from `lessonExercises` across the 36 main lessons. These count first-pass exercises, not random retries, optional review or character/time percentages. “Passage” includes constrained lowercase phrases early and sentences/practical text later. The two pattern-only opening lessons cannot honestly offer normal words from F/J/D/K; words are required from E/I onward. After those openings, 7 of Roots' remaining 11 exercises are word/phrase work.
+
+| Chapter | Movement | Words / useful context | Phrases / passages | Total |
+|---|---:|---:|---:|---:|
+| Roots | 12 | 3 | 4 | 19 |
+| Home | 6 | 4 | 5 | 15 |
+| Canopy | 6 | 3 | 4 | 13 |
+| Undergrowth | 10 | 5 | 6 | 21 |
+| Bark | 3 | 4 | 5 | 12 |
+| Rings | 3 | 4 | 5 | 12 |
+| Flow | 0 | 4 | 5 | 9 |
+| **Total** | **40** | **27** | **34** | **101** |
+
+About 40% movement practice and 60% language/application overall. New-letter lessons split two movement exercises and two application exercises. Later chapters lean further toward readable text. Words are filtered to taught keys. Early vocabulary prioritizes familiar words and names, avoiding unexplained fragments such as `iii`, `diff` and `ref`. Authored phrases are selected whole, never mutilated to fit the alphabet. Lowercase is intentional until Shift is taught; punctuation appears only when taught.
+
+### Space and paired finger courses
+
+The first three F/J exercises contain no spaces; exercise four explicitly introduces either-thumb Space. Later movement drills use short six-letter blocks instead of one Space per bigram. Normal words, phrases and sentences use natural spaces. The paired finger landmark run also has no Space, with spacing explained in its next reach exercise.
+
+Each finger pair has three short movement levels, then real pair-key words, tricky word movements, short phrases, words with Shift, word/number labels, symbols in context, and a final review plus sentences. Exhaustive Cartesian key-pair lists are gone. Both sides still qualify independently; the next attempt concentrates on whichever side remains unfinished.
+
+Examples for Index fingers without main-course prerequisites include `fur`, `try`, `murmur`, `rhythm`, and `try my curry`. Later words may also use keys from completed main-course lessons. Where a pair cannot make a useful phrase alone, only the needed helper letters are explicitly introduced with a short primer and the hand guide; previously learned helpers need no primer. For example Middle fingers can use `i did it` after meeting helper T. The final transfer introduces any needed full stop explicitly. Existing finger-level credit is preserved when content improves.

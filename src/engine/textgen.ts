@@ -1,3 +1,5 @@
+import { PRACTICE_WORDS, readablePhrases } from '../curriculum/language';
+import type { LessonExercise } from '../curriculum/lesson-flow';
 import { allowedChars, cumulativeKeys, type StageName, type Trail } from '../curriculum';
 import WORDS from '../data/words.json';
 import TOP from '../data/top200.json';
@@ -10,7 +12,7 @@ import { homeOf, mirrorOf } from '../curriculum/method';
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
 /** `pairHeat`: per-bigram heat ('th') from the transition model; `weakPairs`: the player's weakest real transitions for the Bigrams trail. */
-export interface GenOptions { heat?: Heat; pairHeat?: Heat; weakPairs?: string[]; seed?: number }
+export interface GenOptions { exercise?: LessonExercise; heat?: Heat; pairHeat?: Heat; weakPairs?: string[]; seed?: number }
 
 const anchorOf = (k: string) => homeOf(k);
 const BIGRAMS = 'th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ne ea ra ce li ch ll be ma si om ur'.split(' ');
@@ -23,7 +25,7 @@ export function wordBank(trail: Trail): string[] {
   let b = bankCache.get(trail.id);
   if (!b) {
     const set = cumulativeKeys(trail).keys;
-    b = WORDS.filter((w) => [...w].every((c) => set.has(c)));
+    b = [...new Set([...PRACTICE_WORDS, ...WORDS])].filter(w => !['iii', 'diff', 'ref', 'gnu', 'thru', 'thy', 'sol'].includes(w) && [...w].every(c => set.has(c)));
     bankCache.set(trail.id, b);
   }
   return b;
@@ -141,9 +143,37 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
     return s(r) || (pats.length ? pat() : '');
   };
   const topWord = sampler(TOP, heat, opts.pairHeat);
-  const len = trail.length;
-  const short = Math.round(len * 0.8);
+  const len = opts.exercise?.length ?? trail.length;
+  const short = opts.exercise ? len : Math.round(len * 0.8);
   const patternsOr = (fallback: () => string) => (pats.length ? pat : fallback);
+
+  const exercise = opts.exercise;
+  if (exercise?.format === 'movement' && ['rhythm', 'words'].includes(trail.kind)) {
+    const fresh = [...trail.newKeys];
+    const familiar = [...cumulativeKeys(trail).keys].filter(k => k !== ' ');
+    const source = exercise.stage === 'drill' ? fresh : familiar;
+    const patterns = rhythmPatterns(source.join('')).filter(p => fits(p, allowed));
+    const introduction = fresh.map(k => k.repeat(3)).join('');
+    return introduction + ' ' + fill(Math.max(8, len - introduction.length), () => pickOne(patterns, r));
+  }
+  if (exercise?.format === 'passage' && ['words', 'lower-sentences', 'bigrams', 'top'].includes(trail.kind)) {
+    const phrases = readablePhrases(allowed);
+    // Prefer language that actually exercises the new keys, rather than unrelated easy text.
+    const target = phrases.filter(p => [...trail.newKeys].some(k => p.toLowerCase().includes(k)));
+    const pool = shuffle(target.length ? target : phrases, r);
+    if (pool.length) {
+      const richer = pool.filter(p => p.length >= Math.min(16, Math.max(...pool.map(p => p.length)) * 0.65));
+      const use = richer.length ? richer : pool; let i = 0;
+      return fill(trail.id === 'middle-up' ? Math.min(32, len) : len, () => use[i++ % use.length]!);
+    }
+  }
+  if (exercise?.format === 'words' && trail.kind === 'words') {
+    const familiar = PRACTICE_WORDS.filter(w => w.length >= 2 && fits(w, allowed));
+    const pool = familiar.length ? familiar : bank;
+    const pick = sampler(pool, heat, opts.pairHeat);
+    let last = '';
+    return fill(len, () => { let next = pick(r); for (let i = 0; next === last && pool.length > 1 && i < 8; i++) next = pick(r); last = next; return next; });
+  }
 
   switch (trail.kind) {
     case 'rhythm': {
@@ -226,21 +256,35 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
 export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
   const allowed = allowedChars(trail);
   let text = trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts);
+  if (opts.exercise && trail.checkpoint && trail.id !== 'flow-checkpoint') {
+    const pangram = readablePhrases(allowed).find(p => [...LETTERS].every(k => p.toLowerCase().includes(k)));
+    if (pangram) text = pangram + ' ' + text;
+  }
   const r = rng((opts.seed ?? Math.floor(Math.random() * 1e8)) + 17);
   const focus = trail.checkpoint ? [...cumulativeKeys(trail).keys] : [...trail.newKeys];
   const bank = wordBank(trail);
   for (const k of focus) {
     const count = [...text.toLowerCase()].filter(c => c === k).length;
-    const needed = trail.checkpoint ? 1 : 3;
+    const needed = trail.checkpoint || opts.exercise?.format === 'passage' ? 1 : 3;
     if (count >= needed) continue;
-    const words = bank.filter(w => w.includes(k) && w.length <= 6);
+    const familiarWords = PRACTICE_WORDS.filter(w => w.includes(k) && w.length <= 6 && fits(w, allowed));
+    const words = familiarWords.length ? familiarWords : bank.filter(w => w.includes(k) && w.length <= 6);
     for (let n = count; n < needed; n++) {
       const fragment = ({ ';': 'a; a', '/': 'a/b', "'": "'hi'", '"': '"hi"', '?': 'why?', '!': 'yes!', '-': 'a-b', ':': 'a:b', '(': '(a)', ')': '(a)', '@': 'a@b', '#': '#a', '$': '$2', '%': '2%', '&': 'a&b', '*': '2*2', '=': 'a=b', '+': '2+2', '_': 'a_b', '{': '{a}', '}': '{a}', '[': '[a]', ']': '[a]', '<': 'a<b', '>': 'a>b' } as Record<string, string>)[k];
-      const piece = words.length && stage !== 'drill' ? pickOne(words, r) : stage === 'words' && fragment && fits(fragment, allowed) ? fragment : k;
+      const phrase = opts.exercise?.format === 'passage' ? readablePhrases(allowed).filter(p => p.toLowerCase().includes(k)).sort((a,b) => a.length - b.length)[0] : undefined;
+      const piece = phrase ?? (words.length && stage !== 'drill' ? pickOne(words, r) : stage === 'words' && fragment && fits(fragment, allowed) ? fragment : k);
       text += (text ? ' ' : '') + piece;
     }
   }
   if (trail.shift && !/[A-Z]/.test(text)) text += ' Fir Jar';
+  if (opts.exercise?.format === 'movement' && ['rhythm', 'words'].includes(trail.kind)) {
+    // Movement blocks are 6 letters, not a Space after every two presses.
+    // The first three landmark exercises deliberately have no Space at all.
+    const letters = text.replaceAll(' ', '');
+    const noSpace = trail.id === 'anchors' ? opts.exercise.name !== 'Meet Space' : opts.exercise.stage === 'drill';
+    text = noSpace ? letters : letters.match(/.{1,6}/g)!.join(' ');
+  }
+
   if (![...text].every(c => allowed.has(c))) throw new Error(`Invalid curriculum text for ${trail.id}`);
   return text;
 }

@@ -4,7 +4,7 @@ import { MAIN_TRAILS, gateFor, trailsInGrove } from '../curriculum';
 import { METHODS, setMethod, DEFAULT_METHOD_ID } from '../curriculum/method';
 import { fresh } from '../state/save';
 import { KeyModel } from './keymodel';
-import { applyRun, currentStage, trailUnlocked } from './progress';
+import { applyRun, currentStage, exerciseIndex, trailUnlocked } from './progress';
 import { generate } from './textgen';
 import { Run } from './run';
 
@@ -21,7 +21,7 @@ for (const method of METHODS) it(`${method.name}: the complete course and option
       let runs = 0;
       while (!state.trails[trail.id]?.cleared && runs < lessonExercises(trail).length + 1) {
         const stage = currentStage(state, model, now);
-        const text = generate(trail, stage, { seed: ++runs, heat: model.heatMap(now) });
+        const text = generate(trail, stage, { seed: ++runs, heat: model.heatMap(now), exercise: lessonExercises(trail)[exerciseIndex(state)] });
         const run = new Run(text); run.begin(now);
         if (runs === 1 && trail.n % 3 === 0) {
           now += 1200; const miss = text[0] === 'f' ? 'j' : 'f'; run.type(miss, now); model.record(text[0]!, false, null, now, miss);

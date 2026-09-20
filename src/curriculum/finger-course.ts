@@ -16,7 +16,7 @@ export function fingerLevels(f: Finger): FingerLevel[] {
   const letters = owned.filter(k => /[a-z]/.test(k));
   const digits = owned.filter(k => /[0-9]/.test(k));
   const symbols = Array.from({ length: 94 }, (_, i) => String.fromCharCode(33 + i)).filter(k => !/[a-zA-Z0-9]/.test(k) && fingerOf(k) === f.id);
-  const pairs = (ks: string[]) => ks.flatMap(a => ks.map(b => a + b));
+  const changes = (ks: string[]) => ks.map((k,i) => k + ks[(i + 1) % ks.length]! + f.anchor + k);
   const reaches = (ks: string[]) => (ks.length ? ks : home).map(k => f.anchor + k + k + f.anchor);
   const level = (name: string, instruction: string, tokens: string[]): FingerLevel => {
     let text = tokens.join(' ');
@@ -28,15 +28,15 @@ export function fingerLevels(f: Finger): FingerLevel[] {
   const contexts = letters.flatMap(k => vocabulary.filter(w => w.includes(k)).slice(0, 3));
   return [
     level('Find your landmarks', 'Small home-row movements. Let your hand stay comfortable.', reaches(home)),
-    level('Reach up', 'Explore every upper-row reach for these fingers.', reaches(upper)),
-    level('Reach down', 'Explore every lower-row reach for these fingers.', reaches(lower)),
-    level('Across the rows', 'Move directly between keys; the landmark is there to help you orient.', pairs([...home, ...upper, ...lower])),
-    level('Repeated movements', 'Settle repeated keys and changes of direction.', owned.filter(k => /[a-z;,./]/.test(k)).map(k => k + k + f.anchor + k)),
-    level('Words with other fingers', 'Use both hands in words, with extra work for your chosen fingers.', contexts.length ? contexts : reaches(owned)),
-    level('Capital letters', 'Hold the opposite-hand Shift for capitals. Release it for lowercase.', letters.length ? letters.map(k => k + k.toUpperCase() + k.toUpperCase() + k) : reaches(home)),
-    level('Number reaches', 'Meet every number assigned to these fingers, at your own pace.', reaches(digits)),
+    level('Reach up and across', 'Meet the upper row and nearby home-row reaches. Either thumb presses Space between the six-letter groups.', reaches([...home.filter(k => k !== f.anchor), ...upper])),
+    level('Reach down', 'Explore the lower row in short groups. Then use these keys in real words next.', reaches(lower)),
+    level('Words from your keys', 'Real words using the keys you have met. Space separates words.', changes([...home, ...upper, ...lower])),
+    level('Tricky word movements', 'Practice repeated letters and changes of direction inside real words.', owned.filter(k => /[a-z;,./]/.test(k)).map(k => k + k + f.anchor + k)),
+    level('Short phrases', 'Put these movements into a short phrase. Any new helper letters are introduced first.', contexts.length ? contexts : reaches(owned)),
+    level('Words with Shift', 'Type familiar words in lowercase and capitals. Hold the opposite-hand Shift.', letters.length ? letters.map(k => k + k.toUpperCase() + k.toUpperCase() + k) : reaches(home)),
+    level('Words and numbers', 'Practice short labels and numbers, as you would in a note or a list.', reaches(digits)),
     level('Punctuation and symbols', 'Practice every symbol for these fingers. Use opposite-hand Shift when shown.', symbols.map(k => f.anchor + k + baseKey(k) + k)),
-    level('Complete finger passage', 'Bring all reaches together: words, capitals, numbers and symbols.', [...reaches(owned), ...letters.map(k => k.toUpperCase() + k), ...symbols.map(k => f.anchor + k), ...contexts.slice(0, 8)]),
+    level('A complete passage', 'A short key review followed by readable sentences. Bring your reaches together.', [...reaches(owned), ...letters.map(k => k.toUpperCase() + k), ...symbols.map(k => f.anchor + k), ...contexts.slice(0, 8)]),
   ];
 }
 

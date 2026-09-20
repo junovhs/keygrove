@@ -25,7 +25,7 @@ function typePassage(text: string, misses: Record<string, number> = {}): Run {
 it('does not let high overall accuracy carry the weaker side, then targets only that side', () => {
   const progress: Record<string, number> = {};
   const practice = fingerPractice(index, 0, progress);
-  const run = typePassage(practice.text, { li: 3 });
+  const run = typePassage(practice.text, { li: 2 });
   expect(run.metrics(10000).acc).toBeGreaterThanOrEqual(95);
   expect(completeFingerPractice(progress, index, 0, practice, run)).toEqual({ passed: false, newlyPassed: ['ri'] });
   expect(pairCompleted(progress, index)).toBe(0);
@@ -41,7 +41,7 @@ it('qualifies the left independently when the right misses, using wanted rather 
   const progress: Record<string, number> = {};
   const practice = fingerPractice(index, 0, progress);
   // Misses on J are typed F; they must be charged to the right, not the left.
-  const result = completeFingerPractice(progress, index, 0, practice, typePassage(practice.text, { ri: 3 }));
+  const result = completeFingerPractice(progress, index, 0, practice, typePassage(practice.text, { ri: 2 }));
   expect(result).toEqual({ passed: false, newlyPassed: ['li'] });
   expect(fingerPractice(index, 0, progress).sides).toEqual(['ri']);
 });
@@ -49,7 +49,7 @@ it('qualifies the left independently when the right misses, using wanted rather 
 it('requires sufficient evidence and an exact 95% ratio', () => {
   for (const [hits, misses, qualifies] of [[19, 0, false], [20, 0, true], [38, 2, true], [35, 2, false]] as const) {
     const progress: Record<string, number> = {};
-    const practice: FingerPractice = { text: 'f'.repeat(hits), sides: ['li'] };
+    const practice: FingerPractice = { text: 'f'.repeat(hits), sides: ['li'], helperKeys: [] };
     completeFingerPractice(progress, index, 0, practice, typePassage(practice.text, { li: misses }));
     expect(progress[fingerCourseId('li')] === 1).toBe(qualifies);
     expect(progress[fingerCourseId('ri')]).toBeUndefined();
@@ -76,8 +76,10 @@ for (const method of METHODS) it(`all paired levels are passable with enough com
       const practice = fingerPractice(pair, level, progress);
       for (const id of pair.sides) {
         expect([...practice.text].filter(k => fingerOf(k) === id).length).toBeGreaterThanOrEqual(MIN_FINGER_HITS);
-        // No token from either underlying course is dropped by the interleaving.
-        for (const token of fingerLevels(fingerById(id)!)[level]!.text.split(' ')) expect(practice.text).toContain(token);
+        if (level === 9) for (let n = 33; n <= 126; n++) {
+          const key = String.fromCharCode(n);
+          if (fingerOf(key) === id) expect(practice.text).toContain(key);
+        }
       }
       expect(completeFingerPractice(progress, pair, level, practice, typePassage(practice.text)).passed).toBe(true);
       expect(pairCompleted(progress, pair)).toBe(level + 1);
@@ -92,11 +94,11 @@ for (const method of METHODS) it(`all paired levels are passable with enough com
 it('retains partial passes through reload and sync without making progress visible as separate courses', () => {
   const local = fresh(), remote = fresh();
   const practice = fingerPractice(index, 0, local.fingerCourses);
-  completeFingerPractice(local.fingerCourses, index, 0, practice, typePassage(practice.text, { li: 3 }));
+  completeFingerPractice(local.fingerCourses, index, 0, practice, typePassage(practice.text, { li: 2 }));
   const reloaded = sanitize(JSON.parse(JSON.stringify(local)));
   expect(pairCompleted(reloaded.fingerCourses, index)).toBe(0);
   expect(fingerPractice(index, 0, reloaded.fingerCourses).sides).toEqual(['li']);
-  completeFingerPractice(remote.fingerCourses, index, 0, practice, typePassage(practice.text, { ri: 3 }));
+  completeFingerPractice(remote.fingerCourses, index, 0, practice, typePassage(practice.text, { ri: 2 }));
   const merged = mergeProgress(reloaded, remote);
   expect(pairCompleted(merged.fingerCourses, index)).toBe(1);
   expect(merged.trail).toBe('anchors'); expect(merged.trails).toEqual({});
