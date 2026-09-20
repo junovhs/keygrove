@@ -9,7 +9,7 @@ import { applyRun, currentStage, currentTrail, focusKeys, isCleared, pathIndex, 
 import { Run } from './engine/run';
 import { rankFor } from './engine/scoring';
 import { generate, generateDrill } from './engine/textgen';
-import { clear as clearStored, fresh, load, sanitize, save as persist, type SaveV6 } from './state/save';
+import { clear as clearStored, fresh, load, loadGuest, saveGuest, sanitize, save as persist, type SaveV6 } from './state/save';
 import { $, escapeHtml, toast } from './ui/dom';
 import { createAccount } from './ui/account';
 import { createProgressSync, type SyncStatus } from './state/progress-sync';
@@ -25,16 +25,15 @@ import { selfTest as textflowSelfTest } from './render/textflow';
 /** What the current run is for: the trail itself, a finger drill, or a coach drill (confusion / reach / review). */
 type Mode = { kind: 'trail' } | { kind: 'remedial'; finger: Finger } | { kind: 'coach'; decision: Decision };
 
-// Progress belongs to the account. The device only ever holds the signed-in
-// account's copy; a guest's grove lives in memory and is gone with the tab,
-// and the page says so. Until the session is confirmed, a stored token counts.
+// Guests have a separate durable save. Account state never leaks into a
+// signed-out session; first signup carries the current guest course forward.
 const accountService = shippedConfig();
 let signedIn = accountService !== null && hasStoredSession(accountService);
-let state: SaveV6 = signedIn ? load() : fresh();
+let state: SaveV6 = signedIn ? load() : loadGuest();
 if (!signedIn) clearStored();
 setMethod(state.settings.method);
 /** Write the save to the device only while an account is signed in. */
-function store(): void { if (signedIn) persist(state); }
+function store(): void { if (signedIn) persist(state); else saveGuest(state); }
 let keys = KeyModel.fromJSON(state.keys, state.confusions);
 let trans = TransitionModel.fromJSON(state.transitions);
 let mode: Mode = { kind: 'trail' };
@@ -463,7 +462,7 @@ const account = createAccount({
 });
 const syncNote = (s: SyncStatus): string => {
   switch (s.kind) {
-    case 'off': return 'Nothing is saved until you sign in. A free account keeps your progress and works in every Strange Systems app.';
+    case 'off': return 'Saved on this browser. A new account keeps this course progress and syncs it across devices. Signing into an existing account opens its own progress.';
     case 'syncing': return 'Syncing your progress…';
     case 'synced': return `Progress synced · ${s.runs} run${s.runs === 1 ? '' : 's'} on this account. Sign in anywhere to continue.`;
     case 'unavailable': return s.reason === 'not-installed' ? 'Sync is not set up on the server yet; your progress stays on this device for now.'

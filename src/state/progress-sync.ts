@@ -1,19 +1,5 @@
-// Progress, kept with the account.
-//
-// The account is where progress lives. The rules follow CropASAP's size sync
-// (cropasap/src/size-sync.ts) with one deliberate difference: what a guest
-// did on this device is never merged into an account.
-//
-//   - Local storage stays the store the app reads. Sync copies into and out of
-//     it through the `local` port; nothing else in the app knows an account exists.
-//   - Signing in adopts the account's copy, whatever was here before. A brand
-//     new account starts with a fresh grove; only the device's settings
-//     (method, guide, code grove, onboarding) carry over — they are not progress.
-//   - After that a local write pushes, and a push that lost a race against
-//     another device of the same account pulls, merges and pushes again.
-//   - Signing out leaves a fresh grove behind, so the next person at this
-//     keyboard does not inherit yours.
-//   - Every failure is a note on the account card, never a broken app.
+// New accounts inherit the current guest course. Existing accounts retain their
+// own history. Sign-out creates a fresh guest session, isolating account data.
 
 import type { Session } from '@supabase/supabase-js';
 import type { KeyStat } from '../engine/keymodel';
@@ -225,7 +211,7 @@ export function createProgressSync(local: LocalProgress): ProgressSync {
         save = remote.save;
         applyRemote(save);
       } else {
-        save = freshHere();
+        save = sanitize(local.read());
         applyRemote(save);
         await push(save);
       }

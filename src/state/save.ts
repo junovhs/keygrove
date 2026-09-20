@@ -137,3 +137,13 @@ export function save(s: SaveV6, storage: Pick<Storage, 'setItem'> = localStorage
 export function clear(storage: Pick<Storage, 'removeItem'> = localStorage): void {
   try { for (const k of [KEY, PREV_V5, ...PREV]) storage.removeItem(k); } catch { /* unavailable storage holds nothing anyway */ }
 }
+
+/** Guest work is durable but never read as another person's account cache. */
+export const GUEST_KEY = 'keygrove.guest.v6';
+export function loadGuest(storage: Pick<Storage, 'getItem'> = localStorage): SaveV6 {
+  try { const raw = storage.getItem(GUEST_KEY); return raw ? sanitize(JSON.parse(raw)) : fresh(); }
+  catch { return fresh(); }
+}
+export function saveGuest(s: SaveV6, storage: Pick<Storage, 'setItem'> = localStorage): void {
+  try { storage.setItem(GUEST_KEY, JSON.stringify(s)); } catch { /* export remains available */ }
+}

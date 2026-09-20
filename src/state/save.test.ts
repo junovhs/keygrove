@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KEY, fresh, load, migrateV4, sanitize, save } from './save';
+import { KEY, fresh, load, loadGuest, saveGuest, migrateV4, sanitize, save } from './save';
 
 const V4 = {
   selected: 'top', completed: ['home', 'reach'], focus: 'all',
@@ -64,4 +64,14 @@ describe('save v6', () => {
     expect(sanitize({ v: 6, settings: { onboarded: false } }).settings.onboarded).toBe(false);
     expect(migrateV4(V4).settings.onboarded).toBe(true);
   });
+});
+
+it('guest reload retains course work independently of account saves', () => {
+  const mem = new Map<string, string>();
+  const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => { mem.set(k, v); } };
+  const guest = fresh(); guest.stats.runs = 3;
+  saveGuest(guest, storage);
+  const account = fresh(); account.stats.runs = 20; save(account, storage);
+  expect(loadGuest(storage).stats.runs).toBe(3);
+  expect(load(storage).stats.runs).toBe(20);
 });

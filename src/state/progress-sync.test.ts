@@ -87,7 +87,7 @@ describe('createProgressSync', () => {
     local = { read: () => held, write: (s) => { held = s; } };
   });
 
-  it('a new account starts with a fresh grove that keeps only the device settings — the guest runs are not inherited', async () => {
+  it('a new account preserves guest learning and settings', async () => {
     held = { ...held, settings: { ...held.settings, method: 'traditional@1.0', guideStrong: true } };
     const fake = fakeClient();
     const sync = createProgressSync(local);
@@ -96,12 +96,12 @@ describe('createProgressSync', () => {
     expect(fake.calls).toEqual(['pull', 'push@0']);
     expect(fake.row()?.revision).toBe(1);
     const landed = readProgressState(fake.row()?.state).save;
-    expect(landed.trails[T0]).toBeUndefined();
-    expect(landed.stats.runs).toBe(0);
+    expect(landed.trails[T0]!.runs).toBe(2);
+    expect(landed.stats.runs).toBe(2);
     expect(landed.settings.method).toBe('traditional@1.0');
     expect(landed.settings.guideStrong).toBe(true);
-    expect(held.stats.runs).toBe(0);
-    expect(sync.status()).toEqual({ kind: 'synced', runs: 0 });
+    expect(held.stats.runs).toBe(2);
+    expect(sync.status()).toEqual({ kind: 'synced', runs: 2 });
   });
 
   it('sign-in adopts the account copy as is; sign-out leaves a fresh grove, not the account and not the old guest runs', async () => {
@@ -124,7 +124,7 @@ describe('createProgressSync', () => {
     const sync = createProgressSync(local);
     sync.session(session('u1'), fake.client);
     await vi.runAllTimersAsync();
-    expect(held.stats.runs).toBe(0); // a new account: the guest's 2 runs were not inherited
+    expect(held.stats.runs).toBe(2); // guest learning follows a new account
     // Another device advanced the row meanwhile.
     const other = saveWith({ trails: { [T1]: { ...freshProgress(), runs: 1 } }, stats: { ...fresh().stats, runs: 3 } });
     fake.setRow({ state: toProgressState(other), revision: 2 });
