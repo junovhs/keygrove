@@ -10,7 +10,7 @@
 .stage{padding:0}.textbox{min-height:168px;border-color:var(--line);padding:26px 24px;background:rgba(255,255,255,.4)}.textbox .prompt{max-width:920px}#wordScene{width:100%}.keycue{font-size:10px;letter-spacing:.11em;margin:12px 0 6px;text-align:center}.deck{margin:8px 0 16px;gap:14px;grid-template-columns:1fr auto 1fr}.hand-wrap,.home-letters{width:min(20vw,220px)}.hand-left-col{padding-left:0}.hand-right-col{padding-right:0}.hand-letter{min-width:29px;height:29px;font-size:11px}.keymap{margin-top:30px;gap:5px}.keyrow{gap:5px}.keyrow:nth-child(2){transform:translateX(7px)}.keyrow:nth-child(3){transform:translateX(17px)}.keycap{min-width:min(42px,3.65vw);height:min(38px,3.3vw);font-size:10px;border-radius:5px}.keycap.spacebar{height:29px;width:180px}.home-letters{height:30px}
 .metrics{height:60px;grid-template-columns:1fr 1fr 1.5fr 1fr;border-color:var(--line)}.metric{padding:0 20px}.metric b{font-size:23px;margin-top:3px}.metric small{font-size:9px;color:#777169}.progress-row{gap:16px}.progress-meter{height:5px}.metric:first-child{order:2}.metric:nth-child(2){order:0}.metric:nth-child(3){order:1}.metric:nth-child(4){order:3}
 .controls{grid-template-columns:minmax(260px,400px) 1fr;gap:20px;padding-top:14px}.primary-control{height:48px;font-size:11px;letter-spacing:.06em}.control-group{gap:18px;flex-wrap:wrap}.control-btn{font-size:10px;letter-spacing:.04em;gap:7px}.control-btn .icon{font-size:15px}.utility{justify-content:flex-end;padding-top:10px;gap:18px}.utility button{font-size:9px}.message{display:flex;justify-content:space-between;gap:20px;font-size:11px;color:#817a70;margin:14px 0 0}.message span:last-child{text-align:right}
-.showing-result .metrics,.showing-book .metrics,.showing-book #focusBtn,.showing-book #resetRunBtn,.showing-book #skipPractice,.showing-book .message{display:none}.showing-book #startBtn{visibility:hidden}.showing-book .controls{min-height:0;height:0;padding:0}
+.showing-result .metrics,.showing-book .metrics{display:none}
 .result{min-height:430px;padding:42px 0 50px}.arena.result-mode .result.with-object{display:grid;grid-template-columns:1fr 250px;align-items:center;gap:70px}.result h2{font-size:clamp(36px,4.5vw,64px);line-height:1.03;text-transform:none;letter-spacing:-.05em;max-width:700px}.result p{font-size:16px;line-height:1.7;max-width:630px;margin:20px 0}.result .eyebrow{font-size:10px;letter-spacing:.08em;margin-bottom:18px}.result-mastery{border:0;padding:0;font:12px var(--mono);color:#646c57;margin:18px 0 26px;display:block}.score{grid-template-columns:1fr 1fr;max-width:380px;border:0;background:none;gap:24px;border-top:1px solid var(--line)}.score div{background:none;padding:18px 0}.score b{font-size:27px}.score small{font-size:9px;color:#777169}.result .result-offer{padding:16px 20px;border:1px solid #d8dfd1;background:#f0f2e9;border-radius:6px;font-size:13px;margin-top:16px}.earned-object{text-align:center;background:#f0ece3;border:1px solid #e5dfd3;border-radius:110px 110px 8px 8px;padding:30px 24px}.earned-object .keepsake-art{width:170px;height:156px}.earned-object h3{font-size:19px;letter-spacing:-.5px;margin:8px 0}.earned-object p{font-size:13px;line-height:1.6;margin:12px 0}.earned-object .eyebrow{color:#887d6b;margin:18px 0 8px}.resultTitle:focus,h1:focus,h2:focus{outline:none}
 .map-panel{padding:12px 0 30px}.map-head{align-items:center;margin:0 0 24px;padding:0;border:0;gap:24px}.map-head h2,.collection-section h2{font-size:clamp(28px,3vw,42px);line-height:1.1;letter-spacing:-.045em;margin:10px 0}.map-head p{font:11px var(--mono);color:#777169;margin:14px 0}.map-head button{border:1px solid var(--line);border-radius:5px;padding:12px 16px;font:11px var(--mono);white-space:nowrap}.map-head kbd{color:#8c8174;padding-left:10px}.grove-map{display:block}.chapter{border-top:1px solid var(--line)}.chapter:last-child{border-bottom:1px solid var(--line)}.chapter summary{list-style:none;display:grid;grid-template-columns:68px 1fr auto;gap:20px;align-items:center;cursor:pointer;padding:20px 12px}.chapter summary::-webkit-details-marker{display:none}.chapter summary:hover{background:#f1eee7}.chapter-number{font:24px var(--mono);color:#a59c8e;display:grid;place-items:center}.chapter-number .keepsake-art{width:62px;height:58px;filter:none;opacity:1}.chapter summary strong{display:block;font-size:24px;line-height:1.3;letter-spacing:-.6px;margin-top:3px}.chapter summary small{display:block;color:#7d756c;font-size:13px;margin-top:5px;max-width:700px}.chapter summary .eyebrow{font-size:9px;letter-spacing:.08em;color:#8b8175}.chapter-status{font:10px var(--mono);color:#837b70}.chapter-locked summary strong{color:#827a70}.chapter-lessons{margin:0 20px 22px 100px;display:grid;grid-template-columns:1fr 1fr;gap:6px}.map-trail{display:flex;gap:14px;align-items:center;min-width:0;text-align:left;padding:14px 16px;border:1px solid transparent;border-radius:5px;background:transparent}.map-trail.current{border-color:#eecab8;background:#fff2e9}.map-trail:hover:not(:disabled){background:#ede9e1}.map-trail:disabled{color:#a39b8f;opacity:1;cursor:default}.map-n{font:11px var(--mono);color:#948b7d;width:20px;position:static;flex-shrink:0}.map-body{flex:1;min-width:0;display:block}.map-name{display:block;font-size:14px;font-weight:600}.map-keys{display:block;font:10px/1.5 var(--mono);margin-top:5px;color:#81786b}.lesson-state{font:9px var(--mono);color:#887969;white-space:nowrap}.map-trail.current .map-name,.map-trail.current .lesson-state{color:#d54d1e}.collection-section{margin-top:60px;scroll-margin-top:24px}.collection-section h2{margin-bottom:24px}.collection-section .eyebrow{font-size:10px}
 .focus-panel{min-height:350px;padding:24px 0}.focus-panel h2{text-transform:none;font-size:44px;line-height:1.1}.focus-panel p{line-height:1.6}.focus-key{min-height:88px}.focus-key b{font-size:24px}
@@ -25,7 +25,7 @@
 .workspace{flex:none}.footer{margin-top:0}.showing-result .message span:first-child{visibility:hidden}.showing-result #focusBtn{display:none}.modalbox h2{text-transform:none}
 .nav button:nth-child(-n+2){display:block}.topbar{height:auto}.keymap{width:max-content}.metric{min-height:0}.textbox{overflow:hidden}
 @media(min-width:761px) and (max-height:850px){.workspace{padding:20px 0 12px}.lesson-track{margin-bottom:18px}.lesson-intro{padding-bottom:16px}.lesson-copy h1{font-size:42px}.lesson-copy p{font-size:14px;margin-top:8px}.textbox{min-height:140px;padding:16px 22px}.word-scene{padding:12px 3px}.keycue{margin-top:4px}.deck{margin:4px 0 10px}.hand-wrap{height:125px;width:170px}.keymap{margin-top:18px}.keycap{height:31px}.metrics{height:50px}.controls{padding-top:10px;min-height:58px}.message{margin-top:8px}.utility{padding-top:6px}}
-.showing-result #resetRunBtn,body:has(.arena.focus-mode) #startBtn{display:none}
+
 .textbox:has(.prompt:not(.prompt-canvas)){max-height:230px;overflow:auto;align-items:flex-start}
 
 /* Finger courses are a course browser with a local primary action. */
@@ -81,6 +81,40 @@ body:has(.arena.focus-mode) .metrics,body:has(.arena.focus-mode) .controls,body:
 @keyframes brief-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.brief-fade{animation:none}}
 .arena.brief-mode .lesson-copy h1{text-transform:none}
-body:has(.arena.brief-mode) .metrics,body:has(.arena.brief-mode) #resetRunBtn{visibility:hidden}
+body:has(.arena.brief-mode) .metrics{visibility:hidden}
 @media(max-width:1100px){.brief-card{gap:18px;padding:20px}.brief-next{height:56px;padding:0 22px;font-size:16px}.brief-icon{width:64px;height:64px}.brief-body h3{font-size:20px}.brief-body p{font-size:14px}}
 @media(max-width:760px){.brief-card{grid-template-columns:auto 1fr;gap:14px 16px}.brief-step{border:0;padding:0;grid-column:1/-1;grid-template-columns:auto 1fr;align-items:center}.brief-next{grid-column:1/-1;justify-content:center}.arena.brief-mode .deck{display:flex;flex-wrap:wrap;justify-content:space-around;gap:18px 8px}.arena.brief-mode .keymap{order:-1;flex:0 0 100%;margin:0 auto}.arena.brief-mode .hand-col{display:block;flex:0 0 40%}.arena.brief-mode .hand-wrap,.arena.brief-mode .home-letters{width:100%}.arena.brief-mode .hand-letter{min-width:22px;height:22px;font-size:9px}}
+
+/* Streamlined shell: no footer controls; the text box carries its own restart and begin cue. */
+.nav-cta{background:var(--orange)!important;color:#fff!important;padding:9px 16px!important;border-radius:5px;font-weight:750!important}
+.nav-cta:hover{background:#ef4b12!important;color:#fff!important}
+.textbox{position:relative;flex-direction:column}.textbox .prompt{width:100%}
+.restart-btn{position:absolute;top:12px;right:12px;width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:rgba(255,255,255,.7);color:#5f5b55;cursor:pointer;z-index:2;transition:color .1s,border-color .1s}
+.restart-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.restart-btn:hover{color:var(--orange);border-color:var(--orange)}
+.restart-btn:focus-visible{outline:3px solid #37749c;outline-offset:2px}
+.begin-cue{text-align:center;font:700 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin:0 0 14px;animation:cue-pulse 2.2s ease-in-out infinite}
+.begin-cue[hidden]{display:none}
+@keyframes cue-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.result-actions{display:flex;align-items:center;gap:28px;margin-top:28px}
+.result-actions .primary-control{min-width:280px;height:52px;font-size:12px;letter-spacing:.06em}
+.result-actions .control-btn{font-size:11px;color:#5f5b55;background:none;border:0;cursor:pointer;letter-spacing:.06em}
+.result-actions .control-btn:hover{color:var(--orange)}
+.arena.brief-mode .hand-letter:not(.active){visibility:hidden}
+/* Interactive briefing step: empty key tiles that fill as the right finger presses them, then a check. */
+.brief-keys{display:flex;align-items:center;gap:14px}
+.brief-keys[hidden]{display:none}
+.brief-key{width:92px;height:74px;display:grid;place-items:center;border:2px dashed var(--orange);border-radius:10px;font:700 26px var(--mono);color:var(--orange);background:transparent;animation:key-pulse 1.4s ease-in-out infinite;transition:background .18s,border-color .18s,color .18s,transform .18s}
+.brief-key small{display:block;font:8px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-top:2px;white-space:nowrap}
+.brief-key.filled{border-style:solid;background:var(--orange);color:#fff;animation:none;transform:scale(1.04)}
+.brief-key.filled small{color:#ffd8c9}
+.brief-key.filled.miss{animation:key-shake .25s ease}
+@keyframes key-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,84,24,.35)}50%{box-shadow:0 0 0 8px rgba(255,84,24,0)}}
+@keyframes key-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.brief-check{width:70px;height:70px;border-radius:50%;background:#3f8d5c;display:grid;place-items:center;color:#fff;animation:check-in .35s cubic-bezier(.2,1.4,.4,1)}
+.brief-check svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40;animation:check-draw .4s .1s ease forwards}
+@keyframes check-in{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes check-draw{to{stroke-dashoffset:0}}
+.brief-next kbd{font:600 12px var(--mono);letter-spacing:.06em;padding:4px 8px;border:1px solid rgba(255,255,255,.55);border-radius:4px;color:#fff}
+@media(prefers-reduced-motion:reduce){.begin-cue,.brief-key,.brief-check,.brief-check svg{animation:none}.brief-check svg{stroke-dashoffset:0}}
+@media(max-width:760px){.nav-cta{padding:7px 10px!important}.result-actions{flex-direction:column;align-items:stretch}.brief-keys{grid-column:1/-1;justify-content:center}.restart-btn{top:8px;right:8px;width:32px;height:32px}}

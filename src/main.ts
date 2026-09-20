@@ -59,7 +59,7 @@ let runExercise: LessonExercise = lessonExercises(runTrail)[0]!;
 let runExerciseIndex = 0;
 let beforeMastery: Record<string, number> = {};
 /** The briefing being read before this run, if any; `seenBriefs` keeps each exercise to one briefing per session. */
-let brief: { briefing: Briefing; step: number } | null = null;
+let brief: { briefing: Briefing; step: number; pressed: Set<string> } | null = null;
 const seenBriefs = new Set<string>();
 const wordScene = new WordScene($('wordScene'));
 const actionable = (d: Decision) => !['rushing', 'fatigue', 'steady', 'reach'].includes(d.kind);
@@ -103,7 +103,7 @@ function resetRun(): void {
   run = new Run(makeText()); outcome = null; decisions = [];
   wordScene.reset(keepsakeFor(runTrail.grove));
   if (mode.kind !== 'trail' && courseComplete(state)) $('wordScene').querySelector('.scene-caption')!.textContent = 'Familiar movements. A little room to play.';
-  $('nextAction').textContent = mode.kind === 'trail' ? 'Begin passage' : 'Begin practice';
+  $('nextAction').textContent = 'Continue';
   $('skipPractice').hidden = mode.kind === 'trail';
   $('skipPractice').textContent = 'Back to my course';
   document.body.classList.remove('showing-result');
@@ -141,8 +141,8 @@ function labels(): void {
     $('gateLabel').textContent = 'Accuracy before speed';
     $('focusInstruction').textContent = `${FINGER_PASS_ACC}% for each finger · at your pace`;
   }
-  $('message').textContent = run.status === 'playing' ? 'Take your time. You can pause between words.' : 'Just type to begin. Use a physical QWERTY keyboard.';
-  $('unlockText').textContent = 'Your progress stays. Come back whenever you like.';
+  $('beginCue').hidden = run.status !== 'idle' || !!brief;
+  $('beginCue').textContent = mode.kind === 'trail' ? 'Begin typing when you\'re ready' : 'Begin typing when you\'re ready · a short practice';
 }
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
 const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true, orb: false });
@@ -241,7 +241,7 @@ function peekFinger(id: string | null): void {
 onFingerHover(peekFinger);
 function render(): void { header(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); if (brief) renderBrief(); }
 
-// ---- briefing: three tips before an exercise, read one at a time ------------------
+// ---- briefing: a few steps before a lesson, read one at a time ------------------
 const BRIEF_ICONS: Record<BriefIcon, string> = {
   hand: '<svg viewBox="0 0 24 24"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11m0-4a1.5 1.5 0 0 1 3 0v4m0-2a1.5 1.5 0 0 1 3 0v6a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-5-2.7L3 14.5a1.6 1.6 0 0 1 2.6-1.8L9 15.5"/></svg>',
   bumps: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M9 15.5h6"/><path d="M12 9.5v.01"/></svg>',
@@ -252,12 +252,11 @@ const BRIEF_ICONS: Record<BriefIcon, string> = {
   rhythm: '<svg viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg>',
   stretch: '<svg viewBox="0 0 24 24"><path d="M12 20V6M8 10l4-4 4 4"/><path d="M6 20h12"/></svg>',
 };
-/** Open the briefing for the current exercise, once per exercise per session. */
+/** Open the lesson's briefing before its first exercise, once per lesson per session. */
 function openBrief(): void {
-  const key = `${runTrail.id}/${runExerciseIndex}`;
-  const briefing = briefingFor(runTrail, runExerciseIndex);
-  if (!briefing || seenBriefs.has(key) || run.status !== 'idle') return;
-  brief = { briefing, step: 0 };
+  const briefing = briefingFor(runTrail);
+  if (!briefing || runExerciseIndex !== 0 || seenBriefs.has(runTrail.id) || run.status !== 'idle') return;
+  brief = { briefing, step: 0, pressed: new Set() };
   arena().classList.add('brief-mode');
   render();
   $('lessonTitle').focus();
@@ -265,32 +264,54 @@ function openBrief(): void {
 /** Close the briefing. `read` marks it seen, so only a briefing the learner finished (or skipped) stays away on retries. */
 function endBrief(read = false): void {
   if (!brief) return;
-  if (read) seenBriefs.add(`${runTrail.id}/${runExerciseIndex}`);
+  if (read) seenBriefs.add(runTrail.id);
+  if (briefTimer) { clearTimeout(briefTimer); briefTimer = null; }
   brief = null;
   arena().classList.remove('brief-mode');
   $('briefCard').hidden = true;
   $('keymap').querySelectorAll('.keycap.hot').forEach((x) => x.classList.remove('hot'));
 }
+let briefTimer: ReturnType<typeof setTimeout> | null = null;
+const briefTip = () => brief?.briefing.tips[brief.step] ?? null;
+/** A press step is waiting for keys the learner has not pressed yet. */
+const briefWaiting = (): boolean => { const t = briefTip(); return !!t?.press && [...t.press].some((k) => !brief!.pressed.has(k)); };
 function briefNext(): void {
-  if (!brief) return;
-  if (brief.step + 1 < brief.briefing.tips.length) { brief.step++; renderBrief(); paintBrief(); return; }
+  if (!brief || briefWaiting()) return;
+  if (brief.step + 1 < brief.briefing.tips.length) { brief.step++; brief.pressed = new Set(); renderBrief(); paintBrief(); return; }
   endBrief(true); render(); $('lessonTitle').focus();
 }
-/** Light the tip's keys and paint its fingers on the shared hand illustrations. */
+/** A key pressed during a press step: fill its tile; when all are filled, show the check, wait a beat, move on. */
+function briefPress(k: string): void {
+  const t = briefTip();
+  if (!brief || !t?.press || briefTimer) return;
+  const key = k.toLowerCase();
+  const tile = $('briefKeys').querySelector<HTMLElement>(`[data-brief-key="${key}"]`);
+  if (!t.press.includes(key) || brief.pressed.has(key)) { const any = $('briefKeys').querySelector<HTMLElement>('.brief-key:not(.filled)'); any?.classList.remove('miss'); void any?.offsetWidth; any?.classList.add('miss'); return; }
+  brief.pressed.add(key);
+  tile?.classList.add('filled');
+  paintHand('left', null); paintHand('right', null); paintBrief();
+  if (!briefWaiting()) {
+    $('briefKeys').insertAdjacentHTML('beforeend', '<span class="brief-check" role="img" aria-label="Done"><svg viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></svg></span>');
+    briefTimer = setTimeout(() => { briefTimer = null; briefNext(); }, 900);
+  }
+}
+/** Light the step's keys and paint its fingers on the shared hand illustrations. */
 function paintBrief(): void {
   if (!brief) return;
-  const tipKeys = brief.briefing.tips[brief.step]!.keys ?? runTrail.newKeys ?? 'fj';
-  const ks = [...tipKeys];
+  const t = briefTip()!;
+  const ks = [...(t.keys ?? runTrail.newKeys ?? 'fj')];
+  // During a press step, only the keys still to press stay lit.
+  const lit = t.press ? ks.filter((k) => !brief!.pressed.has(k)) : ks;
   document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
-  $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach((el) => el.classList.toggle('hot', ks.includes(el.dataset.key!)));
-  const perSide = (side: 'left' | 'right') => ks.map((k) => fingerOf(k)).find((f) => f === 'thumb' || f?.startsWith(side[0]!)) ?? null;
+  $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach((el) => el.classList.toggle('hot', lit.includes(el.dataset.key!)));
+  const perSide = (side: 'left' | 'right') => lit.map((k) => fingerOf(k)).find((f) => f === 'thumb' || f?.startsWith(side[0]!)) ?? null;
   paintHand('left', perSide('left')); paintHand('right', perSide('right'));
-  for (const k of ks) { const f = fingerOf(k); if (f && f !== 'thumb') document.querySelectorAll('[data-finger-label="' + f + '"]').forEach((x) => x.classList.add('active')); }
+  for (const k of lit) { const f = fingerOf(k); if (f && f !== 'thumb') document.querySelectorAll('[data-finger-label="' + f + '"]').forEach((x) => x.classList.add('active')); }
   $('handInstruction').textContent = '';
 }
 function renderBrief(): void {
   if (!brief) return;
-  const { briefing, step } = brief, t = brief.briefing.tips[step]!, exs = lessonExercises(runTrail), last = step + 1 === briefing.tips.length;
+  const { briefing, step } = brief, t = briefTip()!, exs = lessonExercises(runTrail), last = step + 1 === briefing.tips.length;
   $('lessonTitle').textContent = 'Before you begin';
   $('lessonCopy').textContent = `${briefing.title} — ${briefing.lead}`;
   $('summaryLabel').textContent = 'This exercise'; $('focusName').textContent = `${runExerciseIndex + 1}/${exs.length} · ${runExercise.name}`;
@@ -300,15 +321,21 @@ function renderBrief(): void {
   $('briefDots').innerHTML = briefing.tips.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('');
   $('briefIcon').innerHTML = BRIEF_ICONS[t.icon];
   $('briefTitle').textContent = t.title; $('briefText').textContent = resolveCopy(t.body);
-  $('briefNextLabel').textContent = last ? 'Start typing' : 'Next';
+  const keysEl = $('briefKeys'), next = $<HTMLButtonElement>('briefNext');
+  if (t.press) {
+    keysEl.hidden = false; next.hidden = true;
+    keysEl.innerHTML = [...t.press].map((k) => `<span class="brief-key" data-brief-key="${escapeHtml(k)}">${escapeHtml(k === ' ' ? 'Space' : k.toUpperCase())}<small>${escapeHtml(resolveCopy(`{${k}}`))}</small></span>`).join('');
+  } else {
+    keysEl.hidden = true; keysEl.innerHTML = ''; next.hidden = false;
+    $('briefNextLabel').textContent = last ? 'Start typing' : 'Next';
+    $('briefNextHint').innerHTML = last ? '<kbd>Enter</kbd>' : '→';
+  }
   const card = $('briefCard'); card.hidden = false; card.classList.remove('brief-fade'); void card.offsetWidth; card.classList.add('brief-fade');
-  $('nextAction').textContent = last ? 'Start typing' : 'Next tip';
-  $('message').textContent = 'Read each tip, then press Enter or Next.'; $('unlockText').textContent = last ? 'The passage appears after this tip.' : '';
 }
 $('briefNext').onclick = briefNext;
 
 // ---- run lifecycle -----------------------------------------------------------
-function begin(): void { if (run.status === 'playing') return; if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); run.begin(now()); $('nextAction').textContent = 'Typing…'; render(); }
+function begin(): void { if (run.status === 'playing') return; if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); run.begin(now()); render(); }
 function startMaintenance(): void {
   replayReturn = null;
   const focus = keys.weakest(unlockedLetters()).slice(0, 6).map(k => k.key);
@@ -461,7 +488,7 @@ function chooseFocus(id: string): void {
 }
 $('closeFingerCourses').onclick = closeFocus;
 function sessionCheck(): void {
-  if (!state.settings.reviewOn || !state.settings.onboarded) return;
+  if (!state.settings.reviewOn) return;
   const d = sessionReview(keys, unlockedLetters(), Date.now());
   if (d) startCoach(d);
 }
@@ -486,16 +513,18 @@ function trapDialog(e: KeyboardEvent, dialog: HTMLElement): void {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
 }
 document.addEventListener('keydown', (e) => {
-  if (onboardModal().classList.contains('open')) { trapDialog(e, onboardModal()); if (e.key === 'Escape') { e.preventDefault(); finishOnboarding(state.settings.method); } return; }
   if (settingsModal().classList.contains('open')) { trapDialog(e, settingsModal()); if (e.key === 'Escape') { settingsModal().classList.remove('open'); $('settingsTopBtn').focus(); e.preventDefault(); } return; }
   if (arena().classList.contains('map-mode')) { mapKeys?.(e); return; }
   if (e.target instanceof HTMLElement && e.target.closest('button,a,input,select,textarea,summary,[contenteditable]')) return;
   if (arena().classList.contains('focus-mode')) { handleFocusKey(e); return; }
   if (brief) {
     // Only the explicit steps advance: a briefing is meant to be read, so stray typing never skips it.
-    if (e.key === 'Enter' || e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); briefNext(); }
+    // A press step listens for its own keys instead.
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (briefTip()?.press && e.key.length === 1) { e.preventDefault(); briefPress(e.key); }
+    else if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); briefNext(); }
     else if (e.key === 'Escape') { e.preventDefault(); endBrief(true); render(); }
-    else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+    else if (e.key.length === 1) e.preventDefault();
     return;
   }
   if (run.status === 'playing') {
@@ -507,9 +536,8 @@ document.addEventListener('keydown', (e) => {
   handleIdleOrResult(e);
 });
 $('prompt').onclick = () => { if (run.status === 'idle' && !brief) begin(); };
-$('focusBtn').onclick = () => openFocus();
+$('focusNav').onclick = () => { if (arena().classList.contains('focus-mode')) closeFocus(); else openFocus(); };
 $('resetRunBtn').onclick = () => { if (run.status === 'playing') abort(); else resetRun(); };
-$('guideBtn').onclick = () => { state.settings.guideStrong = $('handsZone').classList.toggle('guide-strong'); save(); $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide'; };
 $('lessonsNav').onclick = () => { if (arena().classList.contains('map-mode')) closeMap(); else openMap(); };
 $('statsNav').onclick = () => openMap(true);
 $('closeBook').onclick = closeMap;
@@ -517,17 +545,10 @@ $('skipPractice').onclick = () => { gate = null; mode = { kind: 'trail' }; repla
 $('startBtn').onclick = () => { if (arena().classList.contains('map-mode')) { closeMap(); return; } if (brief) { briefNext(); return; } if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); };
 function showSettings(): void { settingsModal().classList.add('open'); $('closeSettings').focus(); }
 $('settingsTopBtn').onclick = showSettings;
-$('settingsBtn').onclick = showSettings;
 $('closeSettings').onclick = () => settingsModal().classList.remove('open');
 settingsModal().onclick = (e) => { if (e.target === settingsModal()) settingsModal().classList.remove('open'); };
-// ---- A concrete introduction, with a real technique choice -----------------
-const onboardModal = () => $('onboardModal');
-function openOnboarding(): void {
-  $('onboardAsk').hidden = false; $('onboardTouch').hidden = true;
-  settingsModal().classList.remove('open'); onboardModal().classList.add('open');
-  onboardModal().querySelector<HTMLButtonElement>('button')?.focus();
-}
-function finishOnboarding(methodId: string): void {
+// ---- Method: Relaxed QWERTY by default; Settings toggles to traditional and back --------
+function switchMethod(methodId: string): void {
   if (state.settings.method !== methodId) {
     // Only the four reassigned keys need fresh evidence. Earned chapters stay earned.
     const j = keys.toJSON();
@@ -536,15 +557,9 @@ function finishOnboarding(methodId: string): void {
     keys = KeyModel.fromJSON(j.keys, j.confusions); trans = TransitionModel.fromJSON(state.transitions);
   }
   state.settings.method = methodId; state.settings.onboarded = true; setMethod(methodId); save(); syncSettingsUi();
-  onboardModal().classList.remove('open'); mode = { kind: 'trail' }; resetRun();
-  $('lessonTitle').focus();
+  mode = { kind: 'trail' }; resetRun(); toast(`Method: ${activeMethod().name}`);
 }
-for (const b of onboardModal().querySelectorAll<HTMLButtonElement>('[data-onboard]')) b.onclick = () => {
-  if (b.dataset.onboard === 'touch') { $('onboardAsk').hidden = true; $('onboardTouch').hidden = false; $('onboardTouch').querySelector<HTMLButtonElement>('button')?.focus(); }
-  else finishOnboarding(b.dataset.onboard === 'keep' ? TRADITIONAL.id : RELAXED_QWERTY.id);
-};
-$('methodBtn').onclick = openOnboarding;
-$('onboardBtn').onclick = openOnboarding;
+$('methodBtn').onclick = () => switchMethod(activeMethod().id === RELAXED_QWERTY.id ? TRADITIONAL.id : RELAXED_QWERTY.id);
 
 $('codeBtn').onclick = () => { state.settings.codeGrove = !state.settings.codeGrove; save(); $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off'); toast(state.settings.codeGrove ? 'Code grove will appear after the Bark checkpoint.' : 'Code grove hidden.'); };
 $('exportBtn').onclick = () => {
@@ -569,8 +584,6 @@ $('resetBtn').onclick = () => {
   if (!confirm('Are you really, really sure? There is no undo.')) return;
   { state = fresh(); keys = new KeyModel(); trans = new TransitionModel(); mode = { kind: 'trail' }; gate = null; replayReturn = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
 function syncSettingsUi(): void {
-  $('handsZone').classList.toggle('guide-strong', state.settings.guideStrong);
-  $('guideBtn').textContent = state.settings.guideStrong ? 'Use normal guide' : 'Show stronger guide';
   $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off');
   $('methodBtn').textContent = 'Method: ' + activeMethod().name;
   setMethod(state.settings.method);
@@ -622,7 +635,7 @@ docsOpen.addEventListener('click', () => ensureDocs().open());
 document.addEventListener('keydown', (e) => { if (docsPanel?.isOpen && e.key !== 'Escape') e.stopImmediatePropagation(); }, { capture: true });
 
 syncSettingsUi(); resetRun(); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else sessionCheck(); save(); showGuestHint(); void loadHands(nextVisual);
-if (!state.settings.onboarded) openOnboarding();
+state.settings.onboarded = true;
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
     snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, decisions, gate, brief: brief ? { title: brief.briefing.title, step: brief.step, tip: brief.briefing.tips[brief.step]!.title } : null, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
