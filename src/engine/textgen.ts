@@ -54,7 +54,9 @@ function sampler(words: readonly string[], heat: Heat, pairHeat: Heat = {}): (r:
 
 /** Running hand and finger load of a text under construction; Space (thumb) is not counted. */
 export interface Load { left: number; right: number; fingers: Partial<Record<FingerId, number>> }
+/** A load with nothing typed yet. */
 export const emptyLoad = (): Load => ({ left: 0, right: 0, fingers: {} });
+/** The load after `piece` is typed under the active method (pure; returns a new Load). */
 export function addLoad(load: Load, piece: string): Load {
   const next: Load = { left: load.left, right: load.right, fingers: { ...load.fingers } };
   for (const c of piece) {
