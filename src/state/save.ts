@@ -15,6 +15,7 @@ export interface Stats { runs: number; chars: number; attempts: number; bestWpm:
 export interface Settings { guideStrong: boolean; reviewOn: boolean; codeGrove: boolean; method: string; onboarded: boolean }
 export interface SaveV6 {
   v: 6;
+  fingerCourses: Record<string, number>;
   trail: string;
   trails: Record<string, TrailProgress>;
   keys: KeyStats;
@@ -31,7 +32,7 @@ export type SaveV5 = SaveV6;
 
 export const freshProgress = (): TrailProgress => ({ runs: 0, cleared: false, stars: 0, bestWpm: 0, bestAcc: 0, fails: 0, recent: [], cleanStreak: 0 });
 export const fresh = (): SaveV6 => ({
-  v: 6, trail: MAIN_TRAILS[0]!.id, trails: {}, keys: {}, confusions: {},
+  v: 6, fingerCourses: {}, trail: MAIN_TRAILS[0]!.id, trails: {}, keys: {}, confusions: {},
   stats: { runs: 0, chars: 0, attempts: 0, bestWpm: 0, bestAcc: 0, xp: 0, days: 0, lastDay: '', bestCombo: 0 },
   settings: { guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID, onboarded: false },
   errors: emptyTally(),
@@ -70,6 +71,14 @@ export function sanitize(x: unknown): SaveV6 {
       const next = nextTrail(trailById(s.trail));
       if (!next) break;
       s.trail = next.id;
+    }
+  }
+  if (o.fingerCourses && typeof o.fingerCourses === 'object') {
+    for (const method of METHODS) for (const finger of new Set(Object.values(method.assignments))) {
+      if (finger === 'thumb') continue;
+      const id = `${method.id}/${finger}`;
+      const value = (o.fingerCourses as Record<string, unknown>)[id];
+      if (typeof value === 'number' && Number.isFinite(value)) s.fingerCourses[id] = int(value, 10);
     }
   }
   const km = KeyModel.fromJSON(o.keys, o.confusions).toJSON();

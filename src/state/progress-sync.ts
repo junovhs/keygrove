@@ -59,6 +59,9 @@ const mergeKey = (a: KeyStat, b: KeyStat): KeyStat => ({ ...(a.seen >= b.seen ? 
  */
 export function mergeProgress(local: SaveV6, remote: SaveV6): SaveV6 {
   const out = fresh();
+  for (const id of new Set([...Object.keys(local.fingerCourses), ...Object.keys(remote.fingerCourses)])) {
+    out.fingerCourses[id] = Math.max(local.fingerCourses[id] ?? 0, remote.fingerCourses[id] ?? 0);
+  }
   const remoteLeads = totalRuns(remote) > totalRuns(local);
   out.trail = remoteLeads ? remote.trail : local.trail;
   for (const id of new Set([...Object.keys(local.trails), ...Object.keys(remote.trails)])) {
