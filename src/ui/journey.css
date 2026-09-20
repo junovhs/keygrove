@@ -28,6 +28,32 @@
 .showing-result #resetRunBtn,body:has(.arena.focus-mode) #startBtn{display:none}
 .textbox:has(.prompt:not(.prompt-canvas)){max-height:230px;overflow:auto;align-items:flex-start}
 
-.finger-levels { grid-column: 1 / -1; display: grid; gap: 8px; }
-.finger-levels button { padding: 10px; text-align: left; }
-.finger-levels button:disabled { opacity: .45; }
+/* Finger courses are a course browser with a local primary action. */
+body:has(.arena.focus-mode) .metrics,body:has(.arena.focus-mode) .controls,body:has(.arena.focus-mode) .message,body:has(.arena.focus-mode) .utility{display:none}
+.focus-panel{padding:8px 0 24px;min-height:0}
+.finger-page-heading{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:24px}
+.finger-page-heading .eyebrow{margin-bottom:10px;font-size:10px}
+.finger-page-heading h2{font-size:36px;letter-spacing:-1.4px}
+.finger-page-heading p{margin:10px 0 0;font-size:14px;max-width:none}
+.finger-back{padding:12px 16px;border:1px solid var(--line);border-radius:6px;white-space:nowrap;font-size:13px}
+.finger-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin-bottom:28px}
+.finger-picker .focus-key{min-height:68px;padding:12px 10px;text-align:left;border:1px solid var(--line);border-radius:7px;letter-spacing:0;text-transform:none;background:transparent}
+.finger-picker .focus-key strong{display:block;font-size:13px;white-space:nowrap}
+.finger-picker .focus-key span{display:block;font-size:11px;margin-top:7px;color:var(--soft)}
+.finger-picker .focus-key.active{background:#262923;color:#fff;border-color:#262923}
+.finger-picker .focus-key.active span{color:#d9ddd4}
+.finger-course-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:28px;align-items:start}
+.finger-overview{border:1px solid #ded7c8;border-radius:12px;background:#eeeae1;padding:26px;position:sticky;top:20px}
+.finger-overview .eyebrow{font-size:10px;letter-spacing:.08em;color:#766b59;margin-bottom:10px;display:block}
+.finger-overview h3{font-size:32px;letter-spacing:-1px;margin:0 0 20px}
+.finger-progress{height:6px;background:#d8d2c6;border-radius:6px;overflow:hidden}.finger-progress span{display:block;background:#617350;height:100%}
+.finger-progress-label{font-size:12px;margin-top:9px;color:#665f52}
+.finger-selected{margin-top:28px;border-top:1px solid #d8d2c6;padding-top:24px}.finger-selected h4{font-size:23px;line-height:1.2;margin:0;letter-spacing:-.5px}.finger-selected p{font-size:14px;line-height:1.6;margin:12px 0 24px}
+.finger-start{display:flex;width:100%;justify-content:space-between;align-items:center;background:#e74612;color:#fff;border:1px solid #e74612;border-radius:7px;min-height:56px;padding:14px 18px;font-size:17px;font-weight:700}.finger-start:hover{background:#c73b0d}.finger-target{display:block;font-size:11px;line-height:1.6;color:#665f52;margin-top:12px}
+.finger-level-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 14px}.finger-level-heading h3{margin:0;font-size:20px}.finger-level-heading>span{font-size:12px;color:var(--soft)}
+.finger-levels{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.finger-level{position:relative;display:flex;align-items:flex-start;gap:12px;min-height:94px;padding:17px 14px;border:1px solid #d9d5cd;border-radius:8px;text-align:left;background:#fffdf9}
+.finger-level-number{font:16px var(--mono);color:#857c6d;padding-top:2px}.finger-level-body{display:block}.finger-level-body strong{display:block;font-size:14px;line-height:1.35}.finger-level-body small{display:block;font-size:11px;margin-top:9px;color:#6d735f}.finger-level.selected{border:2px solid #df4b1c;padding:16px 13px;background:#fff0e7}.finger-level.selected .finger-level-body{padding-bottom:15px}.finger-selected-mark{position:absolute;bottom:10px;right:12px;font-size:10px;font-weight:700;color:#b7340d}.finger-level:disabled{opacity:1;background:#f0eeea;border-color:#e2ded7;color:#79756e;cursor:not-allowed}.finger-level:disabled small{color:#79756e}.finger-level:not(:disabled):hover{border-color:#df4b1c}.focus-panel button:focus-visible{outline:3px solid #37749c;outline-offset:3px}
+@media(max-width:1050px){.finger-picker{grid-template-columns:repeat(4,1fr)}.finger-course-layout{grid-template-columns:280px 1fr;gap:18px}.finger-levels{grid-template-columns:1fr}.finger-overview{padding:22px}}
+@media(max-width:760px){.finger-page-heading{align-items:flex-start;flex-direction:column;gap:14px}.finger-page-heading h2{font-size:32px}.finger-page-heading p{font-size:13px}.finger-picker{grid-template-columns:repeat(2,1fr);margin-bottom:20px}.finger-course-layout{grid-template-columns:1fr}.finger-overview{position:static}.finger-level-heading>span{font-size:11px}.finger-levels{grid-template-columns:1fr}.finger-level{min-height:82px}.finger-start{min-height:56px}.finger-picker .focus-key strong{font-size:14px}}
+@media(max-width:760px){.finger-picker{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.finger-picker .focus-key{padding:10px 7px;min-height:72px}.finger-picker .focus-key strong{white-space:normal;font-size:12px;line-height:1.35}.finger-picker .focus-key span{font-size:9px}.finger-overview{padding:20px}.finger-overview h3{font-size:28px;margin-bottom:14px}.finger-selected{margin-top:18px;padding-top:18px}.finger-selected p{margin:10px 0 18px}.finger-page-heading{margin-bottom:18px}}

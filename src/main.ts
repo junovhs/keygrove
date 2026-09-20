@@ -151,19 +151,31 @@ function metrics(): { wpm: number; acc: number; pct: number } {
   const fill = document.getElementById('progressFill'); if (fill) fill.style.width = m.pct + '%';
   return m;
 }
+let browseFinger = 'li';
+let browseLevel = 0;
+function startFingerLevel(): void {
+  const f = fingerById(browseFinger);
+  if (!f) return;
+  if (replayReturn) { state.trail = replayReturn; replayReturn = null; }
+  mode = { kind: 'remedial', finger: f, level: browseLevel };
+  resetRun();
+}
 function focusGrid(): void {
   const grid = $('focusGrid');
-  const allowed = allowedChars(trail());
-  const weak = keys.weakest([...allowed].filter((k) => k.length === 1 && k !== ' ')).filter((w) => w.mastery < 0.5)[0];
-  const hotFinger = weak ? fingerForKey(weak.key)?.id : null;
-  grid.innerHTML = fingers().map((f) => {
-    const completed = state.fingerCourses[fingerCourseId(f.id)] ?? 0;
-    return '<button class="focus-key ' + (focusFinger()?.id === f.id ? 'active' : '') + '" data-focus="' + f.id + '"><b>' + escapeHtml(f.anchor.toUpperCase()) + '</b>' + escapeHtml(f.name) + ` · ${completed}/10 complete` + (hotFinger === f.id ? ' · worth a little practice' : '') + '</button>';
-  }).join('');
-  const f = focusFinger();
-  if (f) grid.innerHTML += '<div class="finger-levels"><h3>' + escapeHtml(f.full) + ' levels</h3>' + fingerLevels(f).map((l, i) => '<button data-level="' + i + '" ' + (i > (state.fingerCourses[fingerCourseId(f.id)] ?? 0) ? 'disabled' : '') + '>' + (i + 1) + '. ' + escapeHtml(l.name) + '</button>').join('') + '</div>';
-  grid.querySelectorAll<HTMLButtonElement>('[data-level]').forEach(b => b.onclick = () => { if (f) { mode = { kind: 'remedial', finger: f, level: Number(b.dataset.level) }; resetRun(); } });
-  grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach((b) => (b.onclick = () => chooseFocus(b.dataset.focus!)));
+  const f = fingerById(browseFinger)!;
+  const completed = state.fingerCourses[fingerCourseId(f.id)] ?? 0;
+  const levels = fingerLevels(f), selected = levels[browseLevel]!;
+  grid.innerHTML = '<div class="finger-picker" aria-label="Choose a finger">' + fingers().map(x => {
+    const count = state.fingerCourses[fingerCourseId(x.id)] ?? 0;
+    return `<button class="focus-key ${x.id === f.id ? 'active' : ''}" data-focus="${x.id}" aria-pressed="${x.id === f.id}"><strong>${escapeHtml(x.full)}</strong><span>${count}/10 complete</span></button>`;
+  }).join('') + '</div>'
+    + `<div class="finger-course-layout"><section class="finger-overview" aria-labelledby="fingerCourseTitle"><span class="eyebrow">${completed === 10 ? 'Course complete' : 'Your finger course'}</span><h3 id="fingerCourseTitle">${escapeHtml(f.full)}</h3><div class="finger-progress"><span style="width:${completed * 10}%"></span></div><div class="finger-progress-label">${completed} of 10 levels complete</div><div class="finger-selected"><span class="eyebrow">Selected · Level ${browseLevel + 1}</span><h4>${escapeHtml(selected.name)}</h4><p>${escapeHtml(selected.instruction)}</p></div><button class="finger-start" id="startFingerLevel">${browseLevel < completed ? 'Replay' : completed ? 'Continue' : 'Start'} level ${browseLevel + 1} <span aria-hidden="true">→</span></button><small class="finger-target">95% accuracy to advance · No speed target</small></section>`
+    + '<section class="finger-level-section" aria-labelledby="fingerLevelsTitle"><div class="finger-level-heading"><h3 id="fingerLevelsTitle">Your 10 levels</h3><span>Choose a level to practice</span></div><div class="finger-levels">'
+    + levels.map((l,i) => `<button class="finger-level ${i === browseLevel ? 'selected' : ''} ${i < completed ? 'completed' : ''}" data-level="${i}" aria-pressed="${i === browseLevel}" ${i > completed ? 'disabled' : ''}><span class="finger-level-number">${String(i+1).padStart(2,'0')}</span><span class="finger-level-body"><strong>${escapeHtml(l.name)}</strong><small>${i < completed ? '✓ Complete · Replay available' : i === completed ? 'Ready to start' : 'Locked · Complete level ' + i}</small></span>${i === browseLevel ? '<span class="finger-selected-mark">Selected</span>' : ''}</button>`).join('')
+    + '</div></section></div>';
+  grid.querySelectorAll<HTMLButtonElement>('[data-level]').forEach(b => b.onclick = () => { browseLevel = Number(b.dataset.level); focusGrid(); grid.querySelector<HTMLButtonElement>(`[data-level="${browseLevel}"]`)?.focus(); });
+  grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach(b => b.onclick = () => chooseFocus(b.dataset.focus!));
+  $('startFingerLevel').onclick = startFingerLevel;
 }
 function nextVisual(): void {
   document.querySelectorAll('[data-finger-label]').forEach((x) => x.classList.remove('active'));
@@ -352,15 +364,20 @@ function closeMap(): void { arena().classList.remove('map-mode'); document.body.
 // ---- focus / remedial ----------------------------------------------------------
 function openFocus(): void {
   if (run.status === 'playing') { toast('Finish or reset before opening trouble-spot practice.'); return; }
-  arena().classList.remove('result-mode'); document.body.classList.remove('showing-result'); arena().classList.add('focus-mode'); focusGrid();
+  if (mode.kind === 'remedial') { browseFinger = mode.finger.id; browseLevel = Math.min(9, state.fingerCourses[fingerCourseId(browseFinger as Finger['id'])] ?? 0); }
+  else browseLevel = Math.min(9, state.fingerCourses[fingerCourseId(browseFinger as Finger['id'])] ?? 0);
+  arena().classList.remove('result-mode'); document.body.classList.remove('showing-result'); arena().classList.add('focus-mode'); focusGrid(); $('focusTitle').focus();
 }
 function closeFocus(): void { arena().classList.remove('focus-mode'); if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); }
 function chooseFocus(id: string): void {
-  if (replayReturn) { state.trail = replayReturn; replayReturn = null; }
   const f = fingerById(id);
-  mode = f ? { kind: 'remedial', finger: f, level: Math.min(9, state.fingerCourses[fingerCourseId(f.id)] ?? 0) } : { kind: 'trail' };
-  resetRun(); toast(f ? 'Finger course: ' + f.full : 'Back to the trail');
+  if (!f) { closeFocus(); return; }
+  browseFinger = f.id;
+  browseLevel = Math.min(9, state.fingerCourses[fingerCourseId(f.id)] ?? 0);
+  focusGrid();
+  $('focusGrid').querySelector<HTMLButtonElement>(`[data-focus="${f.id}"]`)?.focus();
 }
+$('closeFingerCourses').onclick = closeFocus;
 function sessionCheck(): void {
   if (!state.settings.reviewOn || !state.settings.onboarded) return;
   const d = sessionReview(keys, unlockedLetters(), Date.now());
