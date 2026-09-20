@@ -352,7 +352,7 @@ function finish(): void {
 // ---- grove map ---------------------------------------------------------------------
 let mapKeys: ((e: KeyboardEvent) => void) | null = null;
 function openMap(showObjects = false): void {
-  if (run.status === 'playing') { toast('Finish or reset the current run first.'); return; }
+  if (run.status === 'playing') resetRun();
   arena().classList.remove('result-mode', 'focus-mode'); arena().classList.add('map-mode');
   document.body.classList.remove('showing-result'); document.body.classList.add('showing-book');
   mapKeys = renderMap($('groveMap'), state, keys, {
