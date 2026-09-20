@@ -14,14 +14,14 @@ const ALPHA = 0.15;
 const DAY = 86_400_000;
 export const SPIKE_RATIO = 1.8;
 /** Correct presses needed before a key can reach full mastery. */
-export const VOLUME = 30;
+export const VOLUME = 24;
 export const MASTERED = 0.8;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 /**
- * Adaptive per-key model. Mastery = volume × (0.55·accuracy + 0.45·rhythm), decaying past its review date.
- * Speed is deliberately not a factor: accuracy and a steady rhythm are what we train; WPM only earns stars.
+ * Adaptive per-key model. Mastery = volume × (0.9·accuracy + 0.1·rhythm), retained past its review date.
+ * Speed is deliberately not a factor: accuracy and a steady rhythm are what we train; timing is supporting evidence only.
  */
 export class KeyModel {
   constructor(private stats: KeyStats = {}, private conf: Confusions = {}) {}
@@ -82,10 +82,10 @@ export class KeyModel {
     const acc = clamp01((1 - s.err - 0.8) / 0.15); // 80% → 0, 95% → 1
     // Space ends words, so its timing is naturally uneven: judge it on accuracy and volume only.
     const rhythm = key === ' ' ? 1 : this.rhythm(key);
-    const raw = volume * (0.55 * acc + 0.45 * rhythm);
-    if (now <= s.due) return raw;
-    const overdue = (now - s.due) / Math.max(DAY, s.interval);
-    return raw * Math.max(0.4, 1 - 0.25 * overdue);
+    // Timing is feedback, not a reason to withhold accurate key control.
+    // Review dates express uncertainty; demonstrated capability never expires.
+    void now;
+    return volume * (0.9 * acc + 0.1 * rhythm);
   }
 
   /** Heat for textgen: weak, rusty, and confused keys pull their words in. */

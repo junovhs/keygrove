@@ -7,14 +7,14 @@ export const STAGE_NAMES: readonly StageName[] = ['drill', 'mix', 'words'];
 export const progressOf = (s: SaveV6, id: string): TrailProgress => s.trails[id] ?? (s.trails[id] = freshProgress());
 export const isCleared = (s: SaveV6, id: string): boolean => !!s.trails[id]?.cleared;
 
-/** Whether a grove's first trail may be played. Checkpoints need ★★; optional groves also need the setting. */
+/** Chapter clears are permanent; optional chapters also need the setting. */
 export function groveOpen(s: SaveV6, groveId: string): boolean {
   const g = GROVES.find((x) => x.id === groveId)!;
-  if (g.optional) { if (!s.settings.codeGrove) return false; const cp = s.trails[g.opensAfter!]; return !!cp && cp.cleared && cp.stars >= 2; }
+  if (g.optional) { if (!s.settings.codeGrove) return false; const cp = s.trails[g.opensAfter!]; return !!cp && cp.cleared; }
   if (g.n === 1) return true;
   const prev = GROVES.find((x) => !x.optional && x.n === g.n - 1)!;
   const cp = s.trails[checkpointOf(prev.id).id];
-  return !!cp && cp.cleared && cp.stars >= 2;
+  return !!cp && cp.cleared;
 }
 
 export function trailUnlocked(s: SaveV6, trail: Trail): boolean {
@@ -41,7 +41,7 @@ export function stageFor(trail: Trail, model: KeyModel, now = Date.now()): Stage
 }
 export const currentStage = (s: SaveV6, model: KeyModel, now = Date.now()): StageName => stageFor(currentTrail(s), model, now);
 
-export interface RunInput { hits: number; attempts: number; maxCombo: number; wpm: number; acc: number; rhythm: number; now: number }
+export interface RunInput { hits: number; attempts: number; maxCombo: number; wpm: number; acc: number; rhythm: number; now: number; stage?: StageName }
 export interface Outcome {
   passed: boolean; stars: Stars; xp: number; firstClear: boolean;
   /** What this run unlocked: the trail cleared, the next grove opened, or nothing new yet. */
@@ -56,14 +56,7 @@ export interface Outcome {
   swift: number;
 }
 
-export const MIN_RUNS = 5;
-/** Escape hatch for noisy per-key stats on tiny key sets: this many consecutive clean, steady runs clear a trail. */
-export const CLEAN_STREAK = 3;
-
-/**
- * Apply a finished run of the current trail to the save. Mutates `s`; caller persists.
- * Clearing is mastery-gated: ≥ MIN_RUNS runs, the last two passed, every focus key ≥ MASTERED.
- */
+/** Apply an observation. Accurate repeated evidence plus a transfer passage opens the next lesson. */
 export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   const trail = currentTrail(s);
   const p = progressOf(s, trail.id);
@@ -81,12 +74,12 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   const focus = focusKeys(trail, model, r.now);
   const mastery = focus.map((k) => ({ key: k, mastery: model.mastery(k, r.now) }));
   const blockers: string[] = [];
-  if (p.runs < MIN_RUNS) blockers.push(`${MIN_RUNS - p.runs} more run${MIN_RUNS - p.runs === 1 ? '' : 's'}`);
+  
   const lastTwo = p.recent.slice(-2);
-  if (lastTwo.length < 2 || lastTwo.some((a) => a < gate.passAcc)) blockers.push('two passed runs in a row');
+  if (lastTwo.length < 2 || lastTwo.some((a) => a < gate.passAcc)) blockers.push('another accurate sample');
   for (const m of mastery) if (m.mastery < MASTERED) blockers.push(`${m.key === ' ' ? 'Space' : m.key.toUpperCase()} ${Math.round(m.mastery * 100)}%`);
-  // Three clean, steady runs in a row prove it even if a key's stats lag behind.
-  if (p.runs >= MIN_RUNS && p.cleanStreak >= CLEAN_STREAK) blockers.length = 0;
+  if ((r.stage ?? stageFor(trail, model, r.now)) !== 'words') blockers.push('use these keys in a fresh context');
+  if (trail.checkpoint && r.acc < 97) blockers.push('97% accuracy on the chapter passage');
 
   if (passed) {
     p.fails = 0;
@@ -95,7 +88,7 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
     if (p.cleared) {
       const n = nextTrail(trail);
       if (n) {
-        const opens = !trail.checkpoint || p.stars >= 2;
+        const opens = true;
         if (opens) {
           next = n;
           if (s.trail !== n.id) { s.trail = n.id; advance = trail.checkpoint ? 'grove' : 'trail'; }

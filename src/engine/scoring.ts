@@ -13,12 +13,13 @@ export function starsFor(gate: Gate, acc: number, rhythm: number): Stars {
   return 1;
 }
 
-/** Speed is a bonus: 0 at rest, 1.0 (double XP) at 2× the grove's reference pace. */
-export const swiftBonus = (wpm: number, swiftWpm: number): number => Math.max(0, Math.min(1, wpm / (2 * Math.max(1, swiftWpm))));
+/** Legacy save compatibility: speed no longer changes learning rewards. */
+export const swiftBonus = (_wpm: number, _swiftWpm: number): number => 0;
 
 /** hits·(acc/100)² + 2·⌊maxCombo/8⌋, ×(1 + swift), ×1.5 on a first clear; never below 5. */
 export function xpFor(hits: number, acc: number, maxCombo: number, firstClear: boolean, swift = 0): number {
-  const base = (hits * Math.pow(acc / 100, 2) + 2 * Math.floor(maxCombo / 8)) * (1 + swift);
+  const base = (hits * Math.pow(acc / 100, 2) + 2 * Math.floor(maxCombo / 8));
+  void swift;
   return Math.max(5, Math.round(firstClear ? base * 1.5 : base));
 }
 

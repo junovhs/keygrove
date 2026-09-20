@@ -14,7 +14,7 @@ describe('coach', () => {
   it('a weak focus key after 3+ runs is a required remedial', () => {
     const m = new KeyModel(); press(m, 'f', 30, true); press(m, 'j', 20, true); press(m, 'j', 10, false, 300, 'f');
     const d = decide(m, base(), T0 + 60_000);
-    expect(d[0]).toMatchObject({ kind: 'remedial', required: true, keys: ['j'] });
+    expect(d[0]).toMatchObject({ kind: 'remedial', required: false, keys: ['j'] });
     expect(d[0]!.reason).toMatch(/J is at \d+% accuracy over 30 presses/);
     expect(decide(m, base({ runsOnTrail: 2 }), T0 + 60_000).some((x) => x.kind === 'remedial')).toBe(false);
   });
@@ -23,7 +23,7 @@ describe('coach', () => {
     for (let i = 0; i < 4; i++) m.record('k', false, 300, T0, 'd');
     const d = decide(m, base({ focusKeys: ['k', 'd'], unlocked: ['k', 'd', 'f', 'j', ' '] }), T0 + 60_000);
     const c = d.find((x) => x.kind === 'confusion');
-    expect(c).toMatchObject({ required: true, keys: ['k', 'd'] });
+    expect(c).toMatchObject({ required: false, keys: ['k', 'd'] });
     expect(c!.reason).toContain('You typed D for K 4 times');
   });
   it('a key you pause before → reach offer (not required)', () => {
@@ -48,7 +48,7 @@ describe('coach', () => {
     const day = 86_400_000;
     expect(sessionReview(m, [...'fjdk '], T0 + 60_000)).toBeNull();
     const r = sessionReview(m, [...'fjdk '], T0 + 3 * day);
-    expect(r).toMatchObject({ kind: 'review', required: true });
+    expect(r).toMatchObject({ kind: 'review', required: false });
     expect(r!.keys.sort()).toEqual(['d', 'f', 'j', 'k']);
     const one = new KeyModel(); press(one, 'f', 60, true);
     expect(sessionReview(one, ['f', 'j'], T0 + 3 * day)).toMatchObject({ required: false, keys: ['f'] });

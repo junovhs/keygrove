@@ -34,21 +34,21 @@ export function decide(model: KeyModel, r: RunSummary, now = Date.now()): Decisi
     const w = weak[0];
     if (w) {
       const s = model.stat(w.key)!;
-      out.push({ kind: 'remedial', required: true, keys: [w.key], title: `${up(w.key)} is holding you back`, reason: `${up(w.key)} is at ${pct(1 - s.err)} accuracy over ${s.seen} presses (mastery ${pct(w.mastery)}). A short ${up(w.key)} drill before the next run.` });
+      out.push({ kind: 'remedial', required: false, keys: [w.key], title: `Let’s settle ${up(w.key)}`, reason: `${up(w.key)} is at ${pct(1 - s.err)} accuracy over ${s.seen} presses (mastery ${pct(w.mastery)}). A short ${up(w.key)} practice will help.` });
     }
   }
   // Confusion pair: you keep typing X when it wants Y.
   const c = model.confusions(4).find((x) => letters.includes(x.wanted));
-  if (c) out.push({ kind: 'confusion', required: true, keys: [c.wanted, c.typed], title: `${up(c.wanted)} and ${up(c.typed)} are getting mixed up`, reason: `You typed ${up(c.typed)} for ${up(c.wanted)} ${Math.round(c.count)} times recently. Alternate them until it settles.` });
+  if (c) out.push({ kind: 'confusion', required: false, keys: [c.wanted, c.typed], title: `${up(c.wanted)} and ${up(c.typed)} are getting mixed up`, reason: `You typed ${up(c.typed)} for ${up(c.wanted)} ${Math.round(c.count)} times recently. Alternate them until it settles.` });
   // Searching: pauses before a key.
   const srch = model.searching(letters)[0];
-  if (srch && !out.some((d) => d.keys.includes(srch.key))) out.push({ kind: 'reach', required: false, keys: [srch.key], title: `You pause before ${up(srch.key)}`, reason: `${pct(srch.spikes)} of ${up(srch.key)} presses come after a search pause. A reach drill builds the reflex.` });
+  if (srch && !out.some((d) => d.keys.includes(srch.key))) out.push({ kind: 'reach', required: false, keys: [srch.key], title: `You pause before ${up(srch.key)}`, reason: `${pct(srch.spikes)} of ${up(srch.key)} presses come after a longer pause. A reach drill builds the reflex.` });
   // Error class (§29): when one kind explains most misses, the drill matches the cause.
   const dom = r.errors ? dominant(r.errors, 3, 0.4) : null;
   if (dom && !out.some((d) => d.required)) {
     const missed = (r.missedKeys ?? []).filter((k) => letters.includes(k));
     const drill = missed.length ? missed.slice(0, 4) : letters.slice(0, 4);
-    if (dom.cls === 'anticipation') out.push({ kind: 'anticipation', required: false, keys: drill, title: 'You are reading ahead of your hands', reason: `${dom.count} of ${dom.total} misses were a later letter typed early. A steady drill on ${drill.map(up).join(' ')}: one key, then the next, at one pace.` });
+    if (dom.cls === 'anticipation') out.push({ kind: 'anticipation', required: false, keys: drill, title: 'A later letter arrived early', reason: `${dom.count} of ${dom.total} misses were a later letter typed early. A steady drill on ${drill.map(up).join(' ')}: one key, then the next, at one pace.` });
     else if (dom.cls === 'neighbour') out.push({ kind: 'precision', required: false, keys: drill, title: 'Landing a key over', reason: `${dom.count} of ${dom.total} misses hit a neighbouring key. A precision drill on ${drill.map(up).join(' ')}: slower, and let the finger settle before it presses.` });
   }
   // Sequence (§25): a transition that flows badly against the typist's own pace.
@@ -65,7 +65,7 @@ export function decide(model: KeyModel, r: RunSummary, now = Date.now()): Decisi
   }
   // Fatigue: three declining runs.
   const ra = r.recentAcc;
-  if (ra.length >= 3 && ra[ra.length - 1]! < ra[ra.length - 2]! && ra[ra.length - 2]! < ra[ra.length - 3]!) out.push({ kind: 'fatigue', required: false, keys: [], title: 'Three runs, each a little worse', reason: 'That usually means tired hands. A short break beats grinding it in.' });
+  if (ra.length >= 3 && ra[ra.length - 1]! < ra[ra.length - 2]! && ra[ra.length - 2]! < ra[ra.length - 3]!) out.push({ kind: 'fatigue', required: false, keys: [], title: 'A good moment to pause', reason: 'Accuracy dipped across three runs. Take a break, or try a shorter practice.' });
   return out.sort((a, b) => Number(b.required) - Number(a.required));
 }
 
@@ -73,10 +73,8 @@ export function decide(model: KeyModel, r: RunSummary, now = Date.now()): Decisi
 export function sessionReview(model: KeyModel, unlocked: string[], now = Date.now()): Decision | null {
   const due = model.dueKeys(unlocked.filter((k) => k !== ' '), now);
   if (!due.length) return null;
-  const slipped = due.filter((k) => model.mastery(k, now) < 0.5);
-  const required = due.length >= 3 || slipped.length > 0;
   const shown = due.slice(0, 6).map(up).join(' ');
-  return { kind: 'review', required, keys: due.slice(0, 6), title: required ? 'Review before you continue' : 'A few keys are rusty', reason: `${shown} ${due.length > 1 ? 'have' : 'has'} slipped since you last practised. ${required ? 'One review pass first.' : 'Optional warm-up.'}` };
+  return { kind: 'review', required: false, keys: due.slice(0, 6), title: 'Find your rhythm again', reason: `A short warm-up with ${shown}, then back to your course. Everything you have earned is still here.` };
 }
 
 /** Mastery readout for a set of keys, for the result card and the map. */

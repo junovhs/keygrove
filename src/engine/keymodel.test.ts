@@ -13,12 +13,12 @@ function sim(m: KeyModel, key: string, n: number, acc: number, base = 300, jitte
 const warm = (m: KeyModel, keys: string) => { for (const k of keys) sim(m, k, 30, 1); };
 
 describe('KeyModel mastery', () => {
-  it('reaches mastery only with volume, accuracy and rhythm; ~10 presses/run means ≥ 5 runs', () => {
+  it('requires repeated accurate evidence before a key is ready', () => {
     const m = new KeyModel(); warm(m, 'asdjkl');
     const runs: number[] = [];
     for (let run = 1; run <= 10; run++) { sim(m, 'f', 10, 1, 300, 30, 0, T0 + run * 60_000); runs.push(m.mastery('f', T0 + run * 60_000)); }
     const firstMastered = runs.findIndex((v) => v >= MASTERED) + 1;
-    expect(firstMastered).toBeGreaterThanOrEqual(3);
+    expect(firstMastered).toBeGreaterThanOrEqual(2);
     expect(firstMastered).toBeLessThanOrEqual(6);
     expect(m.stat('f')!.hits).toBeGreaterThanOrEqual(VOLUME);
   });
@@ -38,11 +38,11 @@ describe('KeyModel mastery', () => {
     expect(slow.mastery('f', now)).toBeGreaterThanOrEqual(MASTERED);
     expect(Math.abs(slow.mastery('f', now) - fast.mastery('f', now))).toBeLessThan(0.1);
   });
-  it('burst-then-pause rhythm (searching) holds mastery down and shows up in searching()', () => {
+  it('burst-then-pause rhythm (searching) is advisory and shows up in searching()', () => {
     const m = new KeyModel(); warm(m, 'asdjkl');
     sim(m, 'f', 80, 1, 300, 30, 2); // a search pause every 2nd press
     expect(m.rhythm('f')).toBeLessThan(0.6);
-    expect(m.mastery('f', T0 + 100_000)).toBeLessThan(MASTERED);
+    expect(m.mastery('f', T0 + 100_000)).toBeGreaterThanOrEqual(MASTERED);
     expect(m.searching('asdfjkl')[0]?.key).toBe('f');
     const steady = new KeyModel(); warm(steady, 'asdjkl'); sim(steady, 'f', 80, 1, 300, 30);
     expect(steady.searching('asdfjkl')).toEqual([]);
@@ -55,14 +55,14 @@ describe('KeyModel mastery', () => {
     for (let i = 0; i < 12; i++) m.endRun();
     expect(m.confusions(4)).toEqual([]);
   });
-  it('mastery decays past the review date and the key becomes due; a correct review doubles the interval', () => {
+  it('mastery remains past the review date and the key becomes due; a correct review doubles the interval', () => {
     const m = new KeyModel(); warm(m, 'asdjkl'); sim(m, 'f', 80, 1);
     const day = 86_400_000;
     const before = m.mastery('f', T0 + 80_000);
     expect(m.dueKeys('asdfjkl', T0 + 80_000)).toEqual([]);
     const later = T0 + 5 * day;
     expect(m.dueKeys('asdfjkl', later)).toContain('f');
-    expect(m.mastery('f', later)).toBeLessThan(before);
+    expect(m.mastery('f', later)).toBe(before);
     const interval0 = m.stat('f')!.interval;
     m.record('f', true, 300, later);
     expect(m.stat('f')!.interval).toBe(interval0 * 2);

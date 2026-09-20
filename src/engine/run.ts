@@ -37,11 +37,15 @@ export class Run {
   }
   elapsed(now: number): number { return this.start ? (this.end || now) - this.start : 0; }
   /**
-   * 0..1 cadence of this run: ½·(1 − cv/0.6) + ½·(1 − spikeRate/0.3) over correct strokes after the first,
+   * 0..1 cadence of this run: ½·(1 − cv/0.6) + ½·(1 − spikeRate/0.3) within words, excluding retries, boundaries and interruptions,
    * a spike being a press > 1.8× the run's median interval. Slow and even scores as well as fast and even.
    */
   rhythm(): number {
-    const lats = this.strokes.slice(1).filter((s) => s.correct).map((s) => s.latencyMs).filter((l) => l > 0);
+    const lats = this.strokes.filter((s, i, all) => {
+      const prev = all[i - 1];
+      return s.correct && prev?.correct && prev.index === s.index - 1
+        && s.key !== ' ' && prev.key !== ' ' && s.latencyMs > 0 && s.latencyMs < 2000;
+    }).map((s) => s.latencyMs);
     if (lats.length < 4) return 0;
     const mean = lats.reduce((a, b) => a + b, 0) / lats.length;
     const sd = Math.sqrt(lats.reduce((a, l) => a + (l - mean) ** 2, 0) / lats.length);

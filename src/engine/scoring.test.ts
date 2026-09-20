@@ -14,16 +14,9 @@ describe('scoring', () => {
     expect(starsFor(g, 100, 0.8)).toBe(3);
     expect(g).not.toHaveProperty('star2Wpm');
   });
-  it('speed is a bonus only: up to double XP at 2× the reference pace', () => {
-    expect(swiftBonus(0, 15)).toBe(0);
-    expect(swiftBonus(15, 15)).toBe(0.5);
-    expect(swiftBonus(30, 15)).toBe(1);
-    expect(swiftBonus(90, 15)).toBe(1);
-    expect(xpFor(40, 100, 16, false, 0)).toBe(44);
-    expect(xpFor(40, 100, 16, false, 1)).toBe(88);
-    expect(xpFor(40, 50, 0, false)).toBe(10);
-    expect(xpFor(40, 100, 16, true)).toBe(66);
-    expect(xpFor(1, 10, 0, false)).toBe(5);
+  it('speed does not multiply learning rewards', () => {
+    expect(swiftBonus(90, 15)).toBe(0);
+    expect(xpFor(40, 100, 16, false, 0)).toBe(xpFor(40, 100, 16, false, 1));
   });
   it('ranks', () => {
     expect(rankFor(0)).toEqual({ name: 'Seed', next: 500 });

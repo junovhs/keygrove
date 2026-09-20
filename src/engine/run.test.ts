@@ -20,3 +20,11 @@ describe('Run.rhythm', () => {
     expect(r.rhythm()).toBeGreaterThan(0.5);
   });
 });
+
+it('word boundaries do not turn fluent phrasing into uneven typing', () => {
+  const text = 'the rain falls the rain falls';
+  const r = new Run(text); let t = 1000; r.begin(t);
+  [...text].forEach((c, i) => { t += c === ' ' || text[i - 1] === ' ' ? 450 : 150; r.type(c, t); });
+  expect(r.rhythm()).toBe(1);
+  expect(r.metrics(t).acc).toBe(100);
+});
