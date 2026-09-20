@@ -1,7 +1,7 @@
 import { accOf, wpmOf } from './scoring';
 
 export type RunStatus = 'idle' | 'playing' | 'complete';
-export type KeyOutcome = 'ok' | 'miss' | 'done' | 'space-wait' | 'ignored';
+export type KeyOutcome = 'ok' | 'miss' | 'done' | 'ignored';
 /** `key` is what the text wanted at `index`; `typed` is what was pressed. */
 export interface Keystroke { key: string; typed: string; index: number; correct: boolean; latencyMs: number }
 
@@ -19,11 +19,10 @@ export class Run {
     this.status = 'playing'; this.pos = this.hits = this.attempts = this.errors = this.combo = this.maxCombo = 0;
     this.wrong = false; this.start = now; this.lastKeyAt = now; this.strokes.length = 0;
   }
-  /** Feed one printable key. A non-space key while space is expected is a soft nudge, not a miss. */
+  /** Every printable attempt counts, including a letter where a space was needed. */
   type(k: string, now: number): KeyOutcome {
     if (this.status !== 'playing' || k.length !== 1) return 'ignored';
     const want = this.current;
-    if (want === ' ' && k !== ' ') { this.wrong = true; return 'space-wait'; }
     const latencyMs = now - this.lastKeyAt; this.lastKeyAt = now;
     this.attempts++;
     const ok = k === want;

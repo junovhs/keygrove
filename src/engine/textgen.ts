@@ -71,7 +71,7 @@ function rhythmPatterns(keys: string): string[] {
 }
 
 /** Coach drills: alternate a confused pair, rebuild one reach, or review rusty keys through real words. */
-export function generateDrill(kind: 'confusion' | 'reach' | 'review' | 'transition', keys: string[], trail: Trail, opts: GenOptions = {}): string {
+function generateDrillRaw(kind: 'confusion' | 'reach' | 'review' | 'transition', keys: string[], trail: Trail, opts: GenOptions = {}): string {
   const r = rng(opts.seed);
   const allowed = allowedChars(trail);
   const ks = keys.filter((k) => allowed.has(k) && k !== ' ');
@@ -89,16 +89,40 @@ export function generateDrill(kind: 'confusion' | 'reach' | 'review' | 'transiti
     // Words rich in the pair, in the pair's order (R→F: refer fret free); patterns when the bank is thin.
     const [a, b] = ks as [string, string]; const pair = a + b;
     const bank = [...new Set([...wordBank(trail), ...TOP.filter((w) => fits(w, allowed))])].filter((w) => w.includes(pair));
-    if (bank.length >= 4) return fill(trail.length, () => pickOne(bank, r));
+    if (bank.length >= 4) return fill(Math.min(60, trail.length), () => pickOne(bank, r));
     const pats = [pair, pair + a, b + pair, pair + pair, a + pair + b];
     return fill(30, () => pickOne(pats, r));
   }
-  // review: real words heavy on the rusty keys, falling back to patterns
+  // Review is short, even if the current trail is the long final assessment.
   const heat: Record<string, number> = {}; for (const k of ks) heat[k] = 4;
   const bank = wordBank(trail).filter((w) => w.length >= 3 && [...w].some((c) => ks.includes(c)));
-  if (bank.length >= 6) { const pick = sampler(bank, heat); return fill(trail.length, () => pick(r)); }
+  if (bank.length >= 6) { const pick = sampler(bank, heat); return fill(Math.min(60, trail.length), () => pick(r)); }
   const pats = rhythmPatterns(ks.join(''));
   return pats.length ? fill(30, () => pickOne(pats, r)) : generate(trail, 'mix', opts);
+}
+
+/** Every selected review key must actually occur; sampling alone can omit rare letters. */
+export function generateDrill(kind: 'confusion' | 'reach' | 'review' | 'transition', keys: string[], trail: Trail, opts: GenOptions = {}): string {
+  let text = generateDrillRaw(kind, keys, trail, opts);
+  const allowed = allowedChars(trail);
+  const bank = wordBank(trail);
+  for (const k of new Set(keys.filter(k => k !== ' ' && allowed.has(k)))) {
+    const count = [...text.toLowerCase()].filter(c => c === k.toLowerCase()).length;
+    if (count >= 2) continue;
+    const word = bank.find(w => w.includes(k) && w.length <= 5) ?? k;
+    text += ' ' + Array.from({ length: 2 - count }, () => word).join(' ');
+  }
+  return text;
+}
+
+/** A coherent transfer assessment, with a varied opening and every taught character in context. */
+function finalPassage(r: Rng): string {
+  const opening = pickOne([
+    'The last bend in the path leads to a small workshop. A blue cup stands beside an open notebook. Someone has left a drawing of a quick fox jumping over a lazy dog. You sit by the window and begin a letter. There is no need to hurry; the words will wait for you.',
+    'Rain has left bright beads on the garden gate. Inside, a quiet jazz record plays while a fox explores the empty yard. You put the kettle on, move a vase of flowers and open your notebook. A few separate movements have become something you can use.',
+    'At the end of the grove, you find a wooden desk with a view of the hills. A tiny bronze fox guards a jar of pencils. The room is quiet except for a bird outside the window. You pull up a chair and write a few lines about the journey.'
+  ], r);
+  return opening + ` The note begins: "Meet at 10:30 on 26/09/2026 by gate 7." Bring $8.50 for tea & cake (table 4). Don't forget page 3! Is everyone coming? Send a reply to hello@grove.dev and mark #home on your map. A pencilled puzzle reads: blue_fox = 2 * 4 + 1. Keep 95% of the seeds in the red-green box. When you are ready, close the notebook; the page will wait. The next thing you type can be your own.`;
 }
 
 /** Generate the text for a trail stage. Output only ever contains allowedChars(trail). */
@@ -201,7 +225,7 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
  */
 export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
   const allowed = allowedChars(trail);
-  let text = generateRaw(trail, stage, opts);
+  let text = trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts);
   const r = rng((opts.seed ?? Math.floor(Math.random() * 1e8)) + 17);
   const focus = trail.checkpoint ? [...cumulativeKeys(trail).keys] : [...trail.newKeys];
   const bank = wordBank(trail);
@@ -211,15 +235,12 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     if (count >= needed) continue;
     const words = bank.filter(w => w.includes(k) && w.length <= 6);
     for (let n = count; n < needed; n++) {
-      const piece = words.length && stage !== 'drill' ? pickOne(words, r) : k;
+      const fragment = ({ ';': 'a; a', '/': 'a/b', "'": "'hi'", '"': '"hi"', '?': 'why?', '!': 'yes!', '-': 'a-b', ':': 'a:b', '(': '(a)', ')': '(a)', '@': 'a@b', '#': '#a', '$': '$2', '%': '2%', '&': 'a&b', '*': '2*2', '=': 'a=b', '+': '2+2', '_': 'a_b', '{': '{a}', '}': '{a}', '[': '[a]', ']': '[a]', '<': 'a<b', '>': 'a>b' } as Record<string, string>)[k];
+      const piece = words.length && stage !== 'drill' ? pickOne(words, r) : stage === 'words' && fragment && fits(fragment, allowed) ? fragment : k;
       text += (text ? ' ' : '') + piece;
     }
   }
   if (trail.shift && !/[A-Z]/.test(text)) text += ' Fir Jar';
-  if (trail.id === 'flow-checkpoint') {
-    const closing = 'The final note reads: "Meet at 10:30 by gate 7." Bring $8.50 for tea & cake! Send a reply to hello@grove.dev. Mark #home on your map (page 6). The code is blue_fox = 2 * 4 + 1. Keep 95% of the seeds.';
-    text += ' ' + closing;
-  }
   if (![...text].every(c => allowed.has(c))) throw new Error(`Invalid curriculum text for ${trail.id}`);
   return text;
 }

@@ -1,163 +1,67 @@
-# Relaxed QWERTY (Keygrove) — Progression & Levels
+# RQWERTY — guided course progression
 
-Design of record for the curriculum. Ishoo ADR DEC on "progression model" points here.
-Vocabulary: **Grove** = world · **Trail** = level · **Run** = one attempt at a trail's text.
-Finger map: **Relaxed QWERTY 1.0** (docs/typing-method-spec.md) — Z left ring, X left middle, C left index, B right index; Traditional selectable.
+Current implementation contract under Ishoo **DEC-05**. This replaces the earlier fixed-run, rhythm-star and XP progression proposal. Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
 
-## Principles
+## One course, one next action
 
-1. **Accuracy and rhythm gate; speed is a bonus.** You never advance on WPM and no star needs it. Advancement is per-key *mastery* (accuracy + steady rhythm + enough volume); stars are accuracy + run rhythm; WPM only multiplies XP.
-2. **Strong fingers first, then pairs, symmetric.** Spec §22: F J → D K → E I → R U, then the rest of the home row, then the upper row, then the lower row taught with the relaxed map. Each trail adds one left-hand key and its right-hand mirror so both hands learn the same reach at once.
-3. **Cumulative key set.** A trail's text may only use keys unlocked at or before it. This is a hard invariant, enforced by tests.
-4. **Stages come from evidence, not a counter.** Each run's text kind is picked from the current mastery of the trail's focus keys: `drill` (< 35%) → `mix` (< 70%) → `words`. A trail is **cleared** only when: ≥ 5 runs, the last two runs passed the accuracy gate, and every focus key is ≥ 80% mastery. Focus keys = the trail's new keys (+ Space on trail 1), or the 5 weakest unlocked keys on trails that add none. With ~10 presses of a new key per run this is ≥ 5 runs for a clean typist and open-ended for a sloppy one.
-5. **A coach, not a heat map.** The path is fixed and legible, but the coach watches patterns after every run and redirects: *weak key* (mastery < 50% with errors after 3+ runs) → required finger drill; *confusion pair* (typed X for Y 4+ times recently) → required alternation drill; *searching* (≥ 30% of a key's presses come after a pause ≥ 1.8× its own baseline) → reach drill offer; *rushing* (errors climb as latency drops within a run) → note + slow-mode nudge; *fatigue* (three declining runs) → note; *rusty* (a key past its review date) → review run at session start, required when 3+ keys are due or any has slipped below 50%. Required drills block the next trail run; offers are Tab. Word choice is weighted toward weak, rusty and confused keys.
-6. **Failure is cheap.** Fail 3× in a row → the coach says slow right down; an even slow rhythm scores as well as a fast one. Never lock a player out.
+A learner follows 36 lessons in seven chapters. Continue either presents the next useful passage, inserts one short targeted practice after a repeated error pattern, or opens the next lesson after sufficient evidence. A practice always returns to the course; it does not recursively generate more practices. The player can skip it. A due review at the start of a visit offers a short warm-up, also skippable.
 
-## Gates & stars
+The Course book is optional navigation. Cleared lessons can be revisited. A keepsake replay returns to the earliest unfinished main-course lesson. Earned chapters and keepsakes persist through absence and method changes. No daily retention mechanic, speed gate, spendable currency or random loot exists.
 
-| | Condition |
-|---|---|
-| **Pass** (unlock next stage/trail) | accuracy ≥ *passAcc* for the grove |
-| ★ | Pass |
-| ★★ | accuracy ≥ 97 % **and** run rhythm ≥ 0.6 |
-| ★★★ | accuracy = 100 % **and** run rhythm ≥ 0.8 |
-| swift | speed is a **bonus only**: XP × (1 + min(1, wpm / 2·reference)) — never a gate, never a star |
+## Curriculum
 
-Grove-level defaults (each trail can override):
+| Chapter | Lessons | Content | Lesson accuracy target | Keepsake |
+|---|---:|---|---:|---|
+| Roots | 1–6 | F J + Space, D K, E I, R U, first words | 90% | Little fir |
+| Home | 7–11 | S L, A ;, G H, home words | 91% | Blue cup |
+| Canopy | 12–15 | T Y, W O, Q P | 92% | Paper kite |
+| Undergrowth | 16–21 | V M, C B, X comma, Z period, N slash | 94% | Emerald beetle |
+| Bark | 22–26 | Opposite-hand Shift, sentences, quotes, questions, dashes, colons, parentheses | 95% | Sealed letter |
+| Rings | 27–31 | Numbers, dates, prices, common symbols | 95% | Brass watch |
+| Flow | 32–36 | Sequences, common words, pangrams, longer text, final mixed assessment | 96% | Music box |
+| Code (optional) | 37–40 | Brackets, angles, arrows, snippets | 96% | Folded fox |
 
-| Grove | passAcc | swift reference WPM |
-|---|---|---|
-| 1 Roots (strong fingers) | 90 % | 15 |
-| 2 Home | 91 % | 18 |
-| 3 Canopy | 92 % | 20 |
-| 4 Undergrowth (relaxed lower row) | 94 % | 25 |
-| 5 Bark (shift + punctuation) | 95 % | 30 |
-| 6 Rings (numbers + symbols) | 95 % | 30 |
-| 7 Flow | 96 % | ladder 40 / 50 / 60 / 70 |
-| 8 Code (optional) | 96 % | 40 |
+Code is enabled in Settings and opens after Bark. It never blocks the main course. Endurance and the final passage are lengths of text, not timed tests. Text generation never introduces characters outside a lesson’s cumulative key set. Introduced keys and chapter coverage are guaranteed rather than left to sampling. The final assessment is an authored passage with varied openings, all taught characters in context, and a deliberate ending.
 
-A **Grove checkpoint** is the last trail of each grove: a longer mixed-words run that must be ★★ (not just Pass) to open the next grove. Speed gates nothing anywhere; ★★ means clean *and* even.
+## Evidence to clear a lesson
 
-## The trails
+All conditions must hold:
 
-Keys shown as `new keys` — the cumulative set is everything above it.
+1. The latest two course attempts meet the chapter’s accuracy target.
+2. Every focus key has at least 0.8 mastery. Focus is the new keys (plus Space on lesson 1), or the five weakest cumulative keys when none are introduced.
+3. The completed attempt **started in the words stage**. Improving enough during a drill does not make that drill count as transfer.
+4. For checkpoints, the latest passage also reaches **97% accuracy**.
 
-### Grove 1 — Roots (strong fingers)
-| # | Trail | New keys | Notes |
-|---|---|---|---|
-| 1 | Anchors | `f j` + space | Rhythm patterns; F and J are landmarks. |
-| 2 | Inner Pair | `d k` | |
-| 3 | Middle Up | `e i` | First real words: die, fee, kid. |
-| 4 | Index Up | `r u` | |
-| 5 | Core Words | — | |
-| 6 | **Roots Checkpoint** | — | ★★ opens Home |
+There is no five-run quota, speed requirement, consecutive-clean-run escape hatch or two-star chapter gate. Short patterns precede real words when the available alphabet cannot form words yet. Stages are drill below 0.35 minimum focus mastery, mix below 0.7, then words. Lessons without new keys use mix below 0.5, otherwise words.
 
-### Grove 2 — Home (home-row expansion)
-| # | Trail | New keys |
-|---|---|---|
-| 7 | Ring Pair | `s l` |
-| 8 | Outer Pair | `a ;` |
-| 9 | Index Reach | `g h` |
-| 10 | Home Words | — |
-| 11 | **Home Checkpoint** | — |
+## Key model and timing
 
-### Grove 3 — Canopy (rest of the top row)
-| # | Trail | New keys |
-|---|---|---|
-| 12 | Index Stretch Up | `t y` |
-| 13 | Ring Up | `w o` |
-| 14 | Pinky Up | `q p` |
-| 15 | **Canopy Checkpoint** | — |
+- Key observations use exponential moving averages with alpha 0.15.
+- Volume = min(1, correct presses / 24).
+- Accuracy evidence = clamp((1 − error EMA − 0.80) / 0.15).
+- Mastery = volume × (0.9 × accuracy evidence + 0.1 × timing evidence). Space uses timing evidence 1.
+- Timing evidence describes variation relative to the learner’s own timing, not a WPM standard.
+- The UI supplies timing only after a correct consecutive within-word press, excluding word boundaries, retries and interruptions of at least two seconds.
+- Every printable incorrect attempt counts, including a letter where Space was required. Incorrect characters do not advance the cursor.
+- Due dates schedule review. They **do not decay mastery or revoke clears**.
 
-### Grove 4 — Undergrowth (lower row, relaxed map)
-| # | Trail | New keys | Notes |
-|---|---|---|---|
-| 16 | Index Down | `v m` | |
-| 17 | Index Stretch Down | `c b` | C = left index, B = right index — stated explicitly (spec §22 phase 5) |
-| 18 | Middle Down | `x ,` | X = left middle |
-| 19 | Ring Down | `z .` | Z = left ring |
-| 20 | Last Reaches | `n /` | |
-| 21 | **Undergrowth Checkpoint** | — | full alphabet, lowercase sentences |
+A browser cannot observe which finger actually pressed a key. The guide follows the canonical active method; it does not claim to verify posture or finger compliance. Switching methods retains completed lessons and resets observations for the reassigned Z/X/C/B keys and their transitions.
 
-### Grove 5 — Bark (shift & punctuation)
-| # | Trail | New keys |
-|---|---|---|
-| 22 | Opposite Shift | `Shift` — right-shift for left-hand letters, left-shift for right |
-| 23 | Sentences | `.` + capitals in real sentences |
-| 24 | Quotes & Questions | `' " ? !` |
-| 25 | Dashes & Colons | `- : ( )` |
-| 26 | **Bark Checkpoint** | — paragraph of 2–3 full sentences |
+## Feedback and returning
 
-### Grove 6 — Rings (numbers & symbols)
-| # | Trail | New keys |
-|---|---|---|
-| 27 | Left Numbers | `1 2 3 4 5` |
-| 28 | Right Numbers | `6 7 8 9 0` |
-| 29 | Mixed Numbers | dates, prices, times |
-| 30 | Symbols | `@ # $ % & * = + _` |
-| 31 | **Rings Checkpoint** | — prose with numbers and symbols |
+Results show accuracy, observed WPM, characters/misses or newly settled keys, and the next action. An earned checkpoint reveals a small authored SVG object. Collection ownership derives from permanent checkpoint clears; old saves gain the appropriate objects without another migration or claim action.
 
-### Grove 7 — Flow (speed & endurance)
-Same key set; texts get richer. The grove's 40/50/60/70 WPM ladder is only the *swift* reference for the XP bonus — stars here are accuracy + rhythm like everywhere else.
-| # | Trail | Text source |
-|---|---|---|
-| 32 | Bigrams | top English bigrams/trigrams (`th he in er an re`) as rhythm |
-| 33 | Common Words | top-200 English words, shuffled |
-| 34 | Pangrams & Quotes | sentence bank |
-| 35 | Endurance | 60 s continuous paragraph |
-| 36 | **Flow Checkpoint** | — 90 s paragraph |
+Only repeated mistakes trigger automatic targeted practice. Timing-only observations do not redirect the learner. Warmups and repairs have bounded text lengths and cover their named keys. A line beneath the prompt follows completed words. Correct-key animation is limited to small word-boundary marks, with reduced-motion support. Longer passages use a three-line window following the cursor.
 
-### Grove 8 — Code (optional side path)
-Unlocks after Grove 5 (Bark). `{ } [ ] < > ; = ( ) => .` — snippets in JS/TS/Python. Never required for the main path.
+## Save compatibility
 
-## Mastery model (per key)
+Save version remains 6. Legacy `stars`, `xp`, `days`, `cleanStreak`, WPM references and rank helpers remain for compatibility, but do not govern the visible experience. Old clears are retained. Account and guest storage are separate. A new account adopts current guest progress; an existing account loads its own progress. Replays save the course destination rather than moving the learner backwards.
 
-- **Stats** (EMAs, α = 0.15): error rate; latency and latency² (variance); `base` — this key's own non-spike latency; spike rate — presses slower than 1.8 × `base` (a pause = searching; a consistently slow key is *not* searching); correct-press count; substitution counts wanted→typed (decay ×0.85 per run).
-- **accuracy** = clamp((1 − err − 0.80) / 0.15): 80 % → 0, 95 % → 1.
-- **rhythm** = ½·clamp(1 − cv/0.6) + ½·clamp(1 − spikes/0.3), cv = stdev/mean latency.
-- **volume** = clamp(hits / 30).
-- **mastery** = volume × (0.55·accuracy + 0.45·rhythm); Space uses rhythm = 1 (it ends words, so its timing is naturally uneven). Speed is deliberately absent. Mastered at ≥ 0.80.
-- **Escape hatch**: after the 5-run minimum, three consecutive runs at ≥ 97 % accuracy with rhythm ≥ 0.6 clear the trail even if a key's stats lag.
-- **Spaced review**: each key has an interval (starts 1 day, doubles on a correct press after its due date, caps at 30 days). Past due, mastery decays (×(1 − 0.25·overdue), floor 0.4) — which is what makes the key show up as rusty and pulls it back into texts.
-- The first key of a run carries no timing evidence (there is no previous key).
+## Verification
 
-## Coach decisions (in priority order after a run)
+- All 40 trails × three stages × 50 seeds use allowed characters, fit a bounded passage length and include their intended keys.
+- A simulated learner types generated passages slowly through all 40 lessons using each method, including recoverable mistakes, without a coverage dead end.
+- Regression tests exercise transfer-stage gating, repeated accuracy samples, no absence penalty, honest missed-space accuracy, bounded review coverage, guest/account isolation, migration and permanent keepsakes.
+- Browser checks use real key events and the normal Import interface for isolated late-course fixtures. They cover first use, repair/return, welcome-back practice, chapter reveals, keepsake replay, the final assessment, keyboard navigation and narrow viewports.
 
-| Signal | Threshold | Action |
-|---|---|---|
-| weak focus key | runs ≥ 3, mastery < 0.5, err > 0.15 | **required** finger drill |
-| confusion pair | ≥ 4 recent wanted→typed | **required** alternation drill |
-| searching | spike rate ≥ 0.3, ≥ 10 presses | reach drill offer |
-| rushing | last-third errors ≥ 2× first-third and latency < 0.8× | note |
-| fatigue | 3 declining run accuracies | note |
-| rusty (session start) | key past due | review run; required if ≥ 3 due or any < 0.5 |
-| 3 fails in a row | — | 'steady' note: slow right down, even rhythm scores the same |
-
-## Economy
-
-- **XP** per run = `(hits × (acc/100)² + 2·⌊maxCombo/8⌋) × (1 + swift)`, ×1.5 on a first-time trail clear. `swift` = min(1, wpm / 2·reference). 
-- **Ranks** by total XP: Seed 0 · Sprout 500 · Sapling 2 000 · Young Tree 6 000 · Tree 15 000 · Grove 35 000 · Old Growth 80 000.
-- **Streak** = consecutive calendar days with ≥ 1 run (today's "≥90 % runs in a row" counter becomes *combo streak*, shown on the result card only).
-
-## State (v6)
-
-```ts
-interface SaveV6 {
-  v: 6;
-  trail: TrailId;                               // current
-  trails: Record<TrailId, { runs: number; cleared: boolean; stars: 0|1|2|3; bestWpm: number; bestAcc: number; fails: number; recent: number[]; cleanStreak: number }>;
-  keys: Record<string, KeyStat>;                // see Mastery model
-  confusions: Record<'k>d', number>;            // wanted>typed substitution counts
-  stats: { runs; chars; attempts; bestWpm; bestAcc; xp; days: number; lastDay: string; bestCombo };
-  settings: { guideStrong: boolean; reviewOn: boolean; codeGrove: boolean; method: string };  // method = TypingMethod id, e.g. 'relaxed-qwerty@1.0'
-}
-```
-Migration into v6: v5 `stage: 3` → `cleared: true`, key stats gain review fields with defaults, `settings.method` defaults to relaxed-qwerty@1.0. v2–v4 `completed[]` → cleared trails; `fingerStats` → seeded key error rates using the *traditional* ownership those versions taught (see the comment in save.ts).
-
-## Invariants (tested)
-
-1. Every trail's generated text ⊆ cumulative key set.
-2. Cumulative key sets are monotonic along the path.
-3. Every grove ends in exactly one checkpoint trail.
-4. Gates are monotonic non-decreasing across groves.
-5. A save round-trips `migrate(v4) → v5 → JSON → v5` losslessly.
+These checks establish software behavior. They are not longitudinal evidence of learning outcomes or a guarantee of typing speed.
