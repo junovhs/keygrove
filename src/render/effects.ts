@@ -1,36 +1,27 @@
 import type { Band, Flow, Glyph } from './textflow';
 
-/** A glyph that has lifted off the line. Pooled; `life` ≤ 0 means free. */
-interface Leaf { ch: string; x: number; y: number; vx: number; vy: number; rot: number; vr: number; life: number; ttl: number }
+/** A typed glyph that has been cut loose: it tumbles down the page under gravity. Pooled; `life` ≤ 0 means free. */
+interface Ragdoll { ch: string; x: number; y: number; w: number; h: number; vx: number; vy: number; rot: number; vr: number; life: number; ttl: number }
 /** A hot fleck thrown off a miss. Drawn as a short streak along its velocity. */
 interface Spark { x: number; y: number; vx: number; vy: number; life: number; ttl: number; size: number }
-/** A tiny mote of dust lifted where a key settled. Drifts up and fades. */
-interface Mote { x: number; y: number; vx: number; vy: number; life: number; ttl: number; r: number }
-/** A glyph that just turned from current to done: it pops for a moment. */
-interface Settle { index: number; at: number }
 
 export const reducedMotion = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const MISS_MS = 420;
-const SETTLE_MS = 240;
 const POP_MS = 140;
 
 /**
  * Per-frame effects over the canvas prompt. Everything here is positioned from the Pretext
  * glyph layout, so nothing reads the DOM: a sprung cursor box that glides to the next glyph,
- * a pop + a puff of dust + a leaf where a key settled, a combo glow that warms up under the cursor, and
- * the miss — a black pill, an orange letter, a violent shake and a spray of sparks before the
+ * the typed glyph itself cut loose to ragdoll down the page under gravity, a combo glow that warms up
+ * under the cursor, and the miss — a black pill, an orange letter, a violent shake and a spray of sparks before the
  * box returns to waiting. Pools are fixed; tick() allocates nothing.
  */
 export class Effects {
-  readonly leaves: Leaf[] = Array.from({ length: 96 }, () => ({ ch: '', x: 0, y: 0, vx: 0, vy: 0, rot: 0, vr: 0, life: 0, ttl: 1 }));
+  readonly ragdolls: Ragdoll[] = Array.from({ length: 160 }, () => ({ ch: '', x: 0, y: 0, w: 0, h: 0, vx: 0, vy: 0, rot: 0, vr: 0, life: 0, ttl: 1 }));
   readonly sparks: Spark[] = Array.from({ length: 160 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, ttl: 1, size: 1 }));
-  readonly motes: Mote[] = Array.from({ length: 96 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, ttl: 1, r: 1 }));
-  private readonly settles: Settle[] = Array.from({ length: 12 }, () => ({ index: -1, at: -Infinity }));
-  private settleHead = 0;
-  private liveLeaves = 0;
+  private liveRagdolls = 0;
   private liveSparks = 0;
-  private liveMotes = 0;
 
   /** Cursor box in flow px: animated position/size and the target it is springing to. */
   readonly cursor = { x: 0, y: 0, w: 0, h: 0, vx: 0, vy: 0, vw: 0, tx: 0, ty: 0, tw: 0, th: 0, movedAt: -Infinity, placed: false };
@@ -49,8 +40,8 @@ export class Effects {
     if (!this.enabled) return false;
     const c = this.cursor;
     const springing = Math.abs(c.x - c.tx) > 0.2 || Math.abs(c.y - c.ty) > 0.2 || Math.abs(c.w - c.tw) > 0.2 || Math.abs(c.vx) > 1 || Math.abs(c.vy) > 1;
-    return this.liveLeaves > 0 || this.liveSparks > 0 || this.liveMotes > 0 || springing || now < this.missAt + MISS_MS
-      || now < c.movedAt + POP_MS || this.heat > 0.01 || this.orb !== null || this.settles.some((s) => now < s.at + SETTLE_MS);
+    return this.liveRagdolls > 0 || this.liveSparks > 0 || springing || now < this.missAt + MISS_MS
+      || now < c.movedAt + POP_MS || this.heat > 0.01 || this.orb !== null;
   }
 
   /** Aim the cursor at a glyph. Snaps when nothing has been placed yet (new text) or motion is off. */
@@ -62,14 +53,23 @@ export class Effects {
     if (moved) c.movedAt = now;
   }
   /** Forget the cursor so the next target snaps (new passage). */
-  reset(): void { this.cursor.placed = false; this.missAt = -Infinity; this.heat = 0; for (const s of this.settles) s.at = -Infinity; }
+  reset(): void { this.cursor.placed = false; this.missAt = -Infinity; this.heat = 0; }
 
-  /** A correct key on glyph `g`: pop it, puff a little dust, lift a leaf, warm the glow. */
-  hit(g: Glyph, now: number, strong = false): void {
+  /**
+   * A correct key on glyph `g`: cut it loose. It gets a small kick (up and to the side, away from the
+   * cursor's direction of travel), starts tumbling, and falls under gravity until it leaves the page.
+   * `h` is the drawn height of a Space pill; letters ignore it.
+   */
+  hit(g: Glyph, now: number, strong = false, h = 0): void {
+    void now;
     if (!this.enabled) return;
-    const s = this.settles[this.settleHead]!; s.index = g.index; s.at = now; this.settleHead = (this.settleHead + 1) % this.settles.length;
-    this.spawnMotes(g.x + g.w / 2, g.y, strong ? 7 : 4);
-    this.spawnLeaf(g, strong);
+    const r = this.ragdolls.find((x) => x.life <= 0);
+    if (!r) return;
+    r.ch = g.ch; r.x = g.x + g.w / 2; r.y = g.y; r.w = g.w; r.h = h;
+    r.vx = (this.rnd() - 0.5) * 220 - 40; r.vy = -(140 + this.rnd() * 160);
+    r.rot = 0; r.vr = (this.rnd() - 0.5) * 16 + (r.vx < 0 ? -3 : 3);
+    r.ttl = 1.5; r.life = r.ttl;
+    this.liveRagdolls++;
     this.heat = Math.min(1, this.heat + (strong ? 0.12 : 0.07));
   }
   /** A wrong key on the current glyph: the pill, the shake and the sparks. */
@@ -79,23 +79,13 @@ export class Effects {
     this.heat = 0;
     this.spawnSparks(g.x + g.w / 2, g.y, 22);
   }
-  /** Passage finished: every visible glyph lifts and the line throws sparks. */
+  /** Passage finished: the last line throws sparks. Its glyphs have already fallen. */
   burst(flow: Flow, firstLine: number, lastLine: number): void {
+    void firstLine;
     if (!this.enabled) return;
-    let n = 0;
-    for (const g of flow.glyphs) {
-      if (g.line < firstLine || g.line > lastLine || g.ch === ' ') continue;
-      if (n++ % 2 === 0) this.spawnLeaf(g, true);
-    }
     const line = flow.lines[Math.min(lastLine, flow.lines.length - 1)];
-    if (line) for (let i = 0; i < 6; i++) { const x = line.x + (line.width * (i + 0.5)) / 6; this.spawnSparks(x, line.y, 6); this.spawnMotes(x, line.y, 5); }
+    if (line) for (let i = 0; i < 6; i++) this.spawnSparks(line.x + (line.width * (i + 0.5)) / 6, line.y, 6);
     this.heat = 1;
-  }
-
-  /** Pop progress 0..1 for a glyph that just settled, or −1 if it did not. */
-  settleT(index: number, now: number): number {
-    for (const s of this.settles) if (s.index === index && now < s.at + SETTLE_MS) return (now - s.at) / SETTLE_MS;
-    return -1;
   }
   /** Inside the miss window? */
   missing(now: number): boolean { return now < this.missAt + MISS_MS; }
@@ -113,18 +103,6 @@ export class Effects {
     return 1 + 0.14 * pop * pop + 0.22 * miss * miss;
   }
 
-  spawnLeaf(g: Glyph, strong = false): void {
-    if (!this.enabled) return;
-    const n = strong ? 2 : 1;
-    for (let k = 0; k < n; k++) {
-      const l = this.leaves.find((x) => x.life <= 0);
-      if (!l) return;
-      l.ch = g.ch === ' ' ? '·' : g.ch; l.x = g.x + g.w / 2; l.y = g.y;
-      l.vx = (this.rnd() - 0.5) * 110 + (k ? 40 : 0); l.vy = -(80 + this.rnd() * 90);
-      l.rot = (this.rnd() - 0.5) * 0.6; l.vr = (this.rnd() - 0.5) * 7; l.ttl = 0.5 + this.rnd() * 0.3; l.life = l.ttl;
-      this.liveLeaves++;
-    }
-  }
   private spawnSparks(x: number, y: number, n: number): void {
     for (let k = 0; k < n; k++) {
       const s = this.sparks.find((p) => p.life <= 0);
@@ -137,17 +115,6 @@ export class Effects {
       this.liveSparks++;
     }
   }
-  private spawnMotes(x: number, y: number, n: number): void {
-    for (let k = 0; k < n; k++) {
-      const m = this.motes.find((q) => q.life <= 0);
-      if (!m) return;
-      m.x = x + (this.rnd() - 0.5) * 14; m.y = y + (this.rnd() - 0.5) * 10;
-      m.vx = (this.rnd() - 0.5) * 50; m.vy = -(40 + this.rnd() * 70);
-      m.ttl = 0.28 + this.rnd() * 0.22; m.life = m.ttl; m.r = 1.4 + this.rnd() * 1.6;
-      this.liveMotes++;
-    }
-  }
-
   setOrb(x: number, y: number, r: number): void { if (!this.enabled) return; if (!this.orb) this.orb = { x, y, r }; else { this.orb.x = x; this.orb.y = y; this.orb.r = r; } }
   clearOrb(): void { this.orb = null; }
 
@@ -175,23 +142,18 @@ export class Effects {
       c.h = c.th;
     }
     this.heat = Math.max(0, this.heat - dt * 0.28);
-    if (this.liveLeaves > 0) for (const l of this.leaves) {
-      if (l.life <= 0) continue;
-      l.life -= dt;
-      if (l.life <= 0) { this.liveLeaves--; continue; }
-      l.x += l.vx * dt; l.y += l.vy * dt; l.vy += 60 * dt; l.rot += l.vr * dt;
+    // Real gravity for the ragdolls: ~2000 px/s², so a letter clears the viewport in about a second.
+    if (this.liveRagdolls > 0) for (const r of this.ragdolls) {
+      if (r.life <= 0) continue;
+      r.life -= dt;
+      if (r.life <= 0) { this.liveRagdolls--; continue; }
+      r.vy += 2000 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.rot += r.vr * dt;
     }
     if (this.liveSparks > 0) for (const s of this.sparks) {
       if (s.life <= 0) continue;
       s.life -= dt;
       if (s.life <= 0) { this.liveSparks--; continue; }
       s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 1100 * dt; s.vx *= 1 - 1.6 * dt;
-    }
-    if (this.liveMotes > 0) for (const m of this.motes) {
-      if (m.life <= 0) continue;
-      m.life -= dt;
-      if (m.life <= 0) { this.liveMotes--; continue; }
-      m.x += m.vx * dt; m.y += m.vy * dt; m.vy *= 1 - 2.5 * dt;
     }
   }
 
@@ -205,7 +167,7 @@ export class Effects {
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   }
 
-  /** Draw motes, sparks, leaves and the orb over the glyphs. `ox/oy` = flow origin on the canvas. */
+  /** Draw sparks, ragdolls and the orb over the glyphs. `ox/oy` = flow origin on the canvas. */
   draw(ctx: CanvasRenderingContext2D, ox: number, oy: number, lineHeight: number, font: string, flow: Flow): void {
     void flow;
     const o = this.orb;
@@ -214,14 +176,6 @@ export class Effects {
       g.addColorStop(0, 'rgba(255,84,24,.55)'); g.addColorStop(0.55, 'rgba(255,84,24,.18)'); g.addColorStop(1, 'rgba(255,84,24,0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ox + o.x, oy + o.y, o.r, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#ff8b61'; ctx.beginPath(); ctx.arc(ox + o.x, oy + o.y, 5, 0, Math.PI * 2); ctx.fill();
-    }
-    if (this.liveMotes > 0) {
-      for (const m of this.motes) {
-        if (m.life <= 0) continue;
-        const a = m.life / m.ttl;
-        ctx.fillStyle = `rgba(255,${Math.round(110 + 90 * a)},${Math.round(40 + 60 * a)},${a * 0.85})`;
-        ctx.beginPath(); ctx.arc(ox + m.x, oy + m.y + lineHeight / 2, m.r * (0.5 + a * 0.5), 0, Math.PI * 2); ctx.fill();
-      }
     }
     if (this.liveSparks > 0) {
       ctx.lineCap = 'round';
@@ -235,18 +189,21 @@ export class Effects {
       }
       ctx.lineCap = 'butt';
     }
-    if (this.liveLeaves > 0) {
+    if (this.liveRagdolls > 0) {
       ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (const l of this.leaves) {
-        if (l.life <= 0) continue;
-        const a = l.life / l.ttl;
+      const small = `600 ${Math.round(lineHeight * 0.19)}px ${font.split('px ')[1]}`;
+      for (const r of this.ragdolls) {
+        if (r.life <= 0) continue;
+        const t = r.life / r.ttl;
         ctx.save();
-        ctx.globalAlpha = a * 0.9;
-        ctx.translate(ox + l.x, oy + l.y + lineHeight / 2);
-        ctx.rotate(l.rot);
-        ctx.scale(0.7 + a * 0.3, 0.7 + a * 0.3);
-        ctx.fillStyle = '#ff8b61';
-        ctx.fillText(l.ch, 0, 0);
+        ctx.globalAlpha = Math.min(1, t * 4); // solid on the way down, gone only at the very end
+        ctx.translate(ox + r.x, oy + r.y + lineHeight / 2);
+        ctx.rotate(r.rot);
+        if (r.ch === ' ') {
+          ctx.fillStyle = '#fbfaf7'; ctx.strokeStyle = '#c9c5bd'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.roundRect(-r.w / 2, -r.h / 2, r.w, r.h, 5); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#6d6a65'; ctx.font = small; ctx.fillText('SPACE', 0, 1); ctx.font = font;
+        } else { ctx.fillStyle = '#11110f'; ctx.fillText(r.ch, 0, 0); }
         ctx.restore();
       }
       ctx.textAlign = 'left';

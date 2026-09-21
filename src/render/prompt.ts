@@ -23,8 +23,9 @@ export class CanvasPrompt {
   private raf = 0;
   private fontPx = 32;
   private padding = 8;
-  /** Extra canvas on every side, outside the host's layout box, so effects never clip on the text box. */
+  /** Extra canvas outside the host's layout box, so effects never clip on the text box. The bottom is deep enough for a letter to fall out of the viewport. */
   private readonly bleed = 72;
+  private readonly bleedBottom = 1100;
   /** Optional per-line width override; null = full width (the orb sets one while present). */
   widthForLine: WidthForLine | null = null;
   private lastFlow: Flow | null = null;
@@ -32,6 +33,18 @@ export class CanvasPrompt {
   private loop = 0;
   private lastTick = 0;
   private top = 0;
+  /** Scrolled flow space: the line index the view is pinned to. Effects spawn and target in this space so a scroll never jolts them. */
+  private scroll = 0;
+  /**
+   * Animated glyph positions, indexed by text index. Pretext relayout is cheap, so every draw asks for the
+   * true layout and eases each glyph toward it: finished lines scroll up smoothly, and a resize or a
+   * reading-mode toggle reflows in motion instead of snapping.
+   */
+  private gx = new Float32Array(0);
+  private gy = new Float32Array(0);
+  private gplaced = false;
+  private lastDraw = 0;
+  private settling = false;
 
   private colors: Palette;
   private compact: boolean;
@@ -74,9 +87,12 @@ export class CanvasPrompt {
 
   /** Feed a key result so effects can react. `index` is the glyph that settled (ok) or the one still waited on (miss). */
   onKey(kind: 'ok' | 'miss', index: number, strong = false): void {
-    const g = this.lastFlow?.glyphs.find((x) => x.index === index);
+    const found = this.lastFlow?.glyphs.find((x) => x.index === index);
+    const lh = this.flow.lineHeight;
+    // Hand effects the glyph where it is drawn right now (animated, scrolled), not where the layout says it will be.
+    const g = found ? { ...found, x: this.gplaced ? this.gx[found.index]! : found.x, y: (this.gplaced ? this.gy[found.index]! : found.y) - this.scroll * lh } : undefined;
     const now = performance.now();
-    if (g && kind === 'ok') this.effects.hit(g, now, strong);
+    if (g && kind === 'ok') this.effects.hit(g, now, strong, Math.round(this.fontPx * 1.25));
     if (g && kind === 'miss') this.effects.miss(g, now);
     this.ensureLoop();
   }
@@ -96,7 +112,7 @@ export class CanvasPrompt {
       const dt = Math.min(0.05, (t - this.lastTick) / 1000); this.lastTick = t;
       this.effects.tick(dt);
       this.draw();
-      if (this.effects.active(t)) this.loop = requestAnimationFrame(step); else { this.loop = 0; this.requestDraw(); }
+      if (this.settling || this.effects.active(t)) this.loop = requestAnimationFrame(step); else { this.loop = 0; this.requestDraw(); }
     };
     this.loop = requestAnimationFrame(step);
   }
@@ -126,7 +142,7 @@ export class CanvasPrompt {
       this.flow = new TextFlow(this.font(), this.lineHeight(), this.letterSpacing(), s.reading ? 'left' : 'center', s.reading ? 1 : 3);
       this.measureHost();
     }
-    if (textChanged || readingChanged) { this.flow.setText(s.text); this.lastFlow = null; this.mirror.textContent = s.text; this.effects.reset(); }
+    if (textChanged || readingChanged) { this.flow.setText(s.text); this.lastFlow = null; this.mirror.textContent = s.text; this.effects.reset(); this.gplaced = false; }
     this.requestDraw();
   }
 
@@ -144,13 +160,13 @@ export class CanvasPrompt {
 
   private sizeCanvas(cssH: number): void {
     const b = this.bleed;
-    const cssW = this.width + this.padding * 2 + b * 2, fullH = cssH + b * 2;
+    const cssW = this.width + this.padding * 2 + b * 2, fullH = cssH + b + this.bleedBottom;
     const w = Math.round(cssW * this.dpr), h = Math.round(fullH * this.dpr);
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w; this.canvas.height = h;
       this.canvas.style.width = cssW + 'px'; this.canvas.style.height = fullH + 'px';
       // Negative margins keep the host's layout box at the text's own size; the bleed hangs outside it.
-      this.canvas.style.margin = `-${b}px`;
+      this.canvas.style.margin = `-${b}px -${b}px -${this.bleedBottom}px`;
     }
   }
 
@@ -165,18 +181,33 @@ export class CanvasPrompt {
     this.sizeCanvas(cssH);
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, this.width + this.padding * 2 + this.bleed * 2, cssH + this.bleed * 2);
+    ctx.clearRect(0, 0, this.width + this.padding * 2 + this.bleed * 2, cssH + this.bleed + this.bleedBottom);
     ctx.translate(this.bleed, this.bleed);
     ctx.font = this.flow.font;
     ctx.textBaseline = 'middle';
-    const top = this.padding - firstLine * lh + Math.max(0, (cssH - this.padding * 2 - visibleHeight) / 2);
-    this.top = top;
+    // `top` is the origin of scrolled flow space: glyph y minus the pinned line. Scrolling is animated per glyph below.
+    const top = this.padding + Math.max(0, (cssH - this.padding * 2 - visibleHeight) / 2);
+    this.top = top; this.scroll = firstLine;
     const { pos, wrong } = this.state;
     const now = performance.now();
+    const dt = Math.min(0.05, (now - this.lastDraw) / 1000); this.lastDraw = now;
     const fx = this.effects, colors = this.colors, reading = !!this.state.reading;
     const pad = this.boxPad();
-    // Aim the sprung cursor at the current glyph (flow px). A brand-new passage snaps it.
-    const cur = flow.glyphs.find((g) => g.index === pos);
+    // Ease every glyph toward its Pretext position (in scrolled space). Snap on a new passage or with motion off.
+    const n = this.state.text.length;
+    if (this.gx.length < n) { this.gx = new Float32Array(n); this.gy = new Float32Array(n); this.gplaced = false; }
+    const ease = this.gplaced && fx.enabled ? 1 - Math.exp(-dt * 16) : 1;
+    let moving = false;
+    for (const g of flow.glyphs) {
+      const tx = g.x, ty = g.y - firstLine * lh;
+      const ax = this.gx[g.index]! + (tx - this.gx[g.index]!) * ease, ay = this.gy[g.index]! + (ty - this.gy[g.index]!) * ease;
+      this.gx[g.index] = ax; this.gy[g.index] = ay;
+      if (Math.abs(ax - tx) > 0.3 || Math.abs(ay - ty) > 0.3) moving = true;
+    }
+    this.gplaced = true; this.settling = moving;
+    // Aim the sprung cursor at the current glyph (scrolled flow px). A brand-new passage snaps it.
+    const cur0 = flow.glyphs.find((g) => g.index === pos);
+    const cur = cur0 ? { ...cur0, y: cur0.y - firstLine * lh } : undefined;
     if (cur) {
       const isSpace = cur.ch === ' ';
       const h = isSpace && !reading ? Math.round(this.fontPx * 1.25) : Math.round(this.fontPx * 1.4);
@@ -200,24 +231,27 @@ export class CanvasPrompt {
       ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
     }
     for (const g of flow.glyphs) {
-      if (g.line < firstLine || g.line >= firstLine + 3) continue;
       const current = g.index === pos, done = g.index < pos;
-      const x = this.padding + g.x + (current ? shake.x : 0), cy = top + g.y + lh / 2 + (current ? shake.y : 0);
-      const settle = done ? fx.settleT(g.index, now) : -1;
+      if (done) continue;
+      const ay = this.gy[g.index]!;
+      // Lines above the pinned one fade out as they slide up; anything further off is skipped.
+      if (ay < -lh || ay >= lh * 3) continue;
+      ctx.globalAlpha = ay < 0 ? Math.max(0, 1 + ay / lh) : 1;
+      const x = this.padding + this.gx[g.index]! + (current ? shake.x : 0), cy = top + ay + lh / 2 + (current ? shake.y : 0);
       // Ink for the current glyph follows the box: white (or orange on a miss) once it has arrived, plain ink while it is still travelling.
       const currentInk = bad ? colors.missInk : arrived ? '#fff' : colors.ink;
       if (g.ch === ' ' && reading) {
-        ctx.fillStyle = current ? currentInk : done ? colors.done : '#b8b1a5';
+        ctx.fillStyle = current ? currentInk : '#b8b1a5';
         ctx.fillText('·', x, cy + 1); continue;
       }
       if (g.ch === ' ') {
         const h = Math.round(this.fontPx * 1.25), w = g.w;
         if (!current) {
-          ctx.fillStyle = done ? colors.pillDone : colors.pill;
+          ctx.fillStyle = colors.pill;
           ctx.strokeStyle = colors.pillLine; ctx.lineWidth = 1;
           ctx.beginPath(); ctx.roundRect(x, cy - h / 2, w, h, 5); ctx.fill(); ctx.stroke();
         }
-        ctx.fillStyle = current ? currentInk : done ? colors.pillDoneInk : colors.pillInk;
+        ctx.fillStyle = current ? currentInk : colors.pillInk;
         ctx.font = `600 ${Math.round(this.fontPx * 0.36)}px ${this.flow.font.split('px ')[1]}`;
         ctx.textAlign = 'center';
         // The label rides inside the sprung pill while current, so it never lags behind the box.
@@ -234,19 +268,11 @@ export class CanvasPrompt {
         } else ctx.fillText(g.ch, x, cy + 1);
         continue;
       }
-      if (settle >= 0) {
-        // A key that just settled pops up and cools from orange to the done grey.
-        const e = 1 - settle, s = 1 + 0.38 * e * e;
-        ctx.save(); ctx.translate(x + g.w / 2, cy + 1); ctx.scale(s, s);
-        ctx.fillStyle = settle < 0.55 ? colors.orange : colors.done;
-        ctx.globalAlpha = settle < 0.55 ? 1 : 1 - (settle - 0.55) * 0.5;
-        ctx.fillText(g.ch, -g.w / 2, 0); ctx.restore();
-        continue;
-      }
-      ctx.fillStyle = done ? colors.done : colors.ink;
+      ctx.fillStyle = colors.ink;
       ctx.fillText(g.ch, x, cy + 1);
     }
+    ctx.globalAlpha = 1;
     this.effects.draw(ctx, this.padding, top, lh, this.flow.font, flow);
-    if (!this.loop && this.effects.active(now)) this.ensureLoop();
+    if (!this.loop && (this.settling || this.effects.active(now))) this.ensureLoop();
   }
 }

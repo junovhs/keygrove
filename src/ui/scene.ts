@@ -23,21 +23,3 @@ export function collectionHtml(s: SaveV6): string {
   const owned = ownedKeepsakes(s);
   return owned.length ? `<div class="collection">${owned.map(k => objectCard(k)).join('')}</div>` : '<p class="collection-empty">Your first keepsake is waiting at the end of Roots. Each one remembers something your hands learned.</p>';
 }
-/** A line of ink follows completed words, never a timer. No movement while the player rests. */
-export class WordScene {
-  private words = -1;
-  constructor(private root: HTMLElement) { root.classList.add('word-scene'); }
-  reset(k: Keepsake): void {
-    this.words = -1;
-    this.root.innerHTML = `<span class="scene-caption">${esc(k.invitation)}</span><div class="scene-track" aria-hidden="true"><i></i><b>✦</b></div>`;
-    this.root.style.setProperty('--scene-color', k.color);
-    this.update('', 0);
-  }
-  update(text: string, pos: number): void {
-    const words = (text.slice(0, pos).match(/ /g) ?? []).length + (pos === text.length && text.length > 0 ? 1 : 0);
-    if (words === this.words) return;
-    this.words = words;
-    const total = Math.max(1, text.split(' ').length);
-    this.root.style.setProperty('--scene-progress', `${Math.min(100, words / total * 100)}%`);
-  }
-}

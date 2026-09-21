@@ -12,7 +12,7 @@ import { classifyRun, rollTally } from './engine/errors';
 import { applyRun, currentStage, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { courseComplete, keepsakeFor, ownedKeepsakes } from './engine/keepsakes';
-import { objectArt, collectionHtml, WordScene } from './ui/scene';
+import { objectArt, collectionHtml } from './ui/scene';
 import './ui/journey.css';
 import { generate, generateDrill } from './engine/textgen';
 import { clear as clearStored, fresh, load, loadGuest, saveGuest, sanitize, save as persist, type SaveV6 } from './state/save';
@@ -62,7 +62,6 @@ let beforeMastery: Record<string, number> = {};
 /** The briefing being read before this run, if any; `seenBriefs` keeps each exercise to one briefing per session. */
 let brief: { briefing: Briefing; step: number; pressed: Set<string> } | null = null;
 const seenBriefs = new Set<string>();
-const wordScene = new WordScene($('wordScene'));
 const actionable = (d: Decision) => !['rushing', 'fatigue', 'steady', 'reach'].includes(d.kind);
 const courseFrontier = () => MAIN_TRAILS.find(t => !isCleared(state, t.id)) ?? MAIN_TRAILS.at(-1)!;
 
@@ -102,8 +101,6 @@ function resetRun(): void {
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
   practice = null; fingerPassed = false;
   run = new Run(makeText()); outcome = null; decisions = [];
-  wordScene.reset(keepsakeFor(runTrail.grove));
-  if (mode.kind !== 'trail' && courseComplete(state)) $('wordScene').querySelector('.scene-caption')!.textContent = 'Familiar movements. A little room to play.';
   $('nextAction').textContent = 'Continue';
   $('skipPractice').hidden = mode.kind === 'trail';
   $('skipPractice').textContent = 'Back to my course';
@@ -148,7 +145,6 @@ function labels(): void {
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
 const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true, orb: false });
 function prompt(): void {
-  wordScene.update(run.text, run.pos);
   if (canvasPrompt) { canvasPrompt.set({ text: run.text, pos: run.pos, wrong: run.wrong, reading: (mode.kind === 'remedial' ? mode.level >= 3 : runStage === 'words') && run.text.length > 50 }); return; }
   const p = $('prompt'); p.innerHTML = '';
   [...run.text].forEach((c, i) => {
