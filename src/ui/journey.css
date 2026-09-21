@@ -23,7 +23,7 @@
 @media(max-width:760px){.keymap:has(.keyrow:first-child .keycap:nth-child(12)) .keycap{min-width:6vw}.keycap.shiftcap{min-width:30px!important}.onboard h2{text-transform:none}}
 /* Keep the next action close even on unusually tall displays. */
 .workspace{flex:none}.footer{margin-top:0}.showing-result .message span:first-child{visibility:hidden}.showing-result #focusBtn{display:none}.modalbox h2{text-transform:none}
-.nav button:nth-child(-n+2){display:block}.topbar{height:auto}.keymap{width:max-content}.metric{min-height:0}.textbox{overflow:hidden}
+.nav button:nth-child(-n+2){display:block}.topbar{height:auto}.keymap{width:max-content}.metric{min-height:0}.textbox:has(.prompt:not(.prompt-canvas)){overflow:hidden}
 @media(min-width:761px) and (max-height:850px){.workspace{padding:20px 0 12px}.lesson-track{margin-bottom:18px}.lesson-intro{padding-bottom:16px}.lesson-copy h1{font-size:42px}.lesson-copy p{font-size:14px;margin-top:8px}.textbox{min-height:140px;padding:16px 22px}.word-scene{padding:12px 3px}.keycue{margin-top:4px}.deck{margin:4px 0 10px}.hand-wrap{height:125px;width:170px}.keymap{margin-top:18px}.keycap{height:31px}.metrics{height:50px}.controls{padding-top:10px;min-height:58px}.message{margin-top:8px}.utility{padding-top:6px}}
 
 .textbox:has(.prompt:not(.prompt-canvas)){max-height:230px;overflow:auto;align-items:flex-start}
@@ -153,3 +153,6 @@ body:has(.arena.brief-mode) .metrics{visibility:hidden}
 .result .score,.result p,.result-actions{animation:result-in .5s .08s cubic-bezier(.2,1,.3,1) both}
 @keyframes result-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.sound-btn .sound-wave,.metric b.tick,.brief-key.filled,.keycap.hot,.result h2,.result p,.result-actions,.restart-btn:hover svg{animation:none}}
+/* The canvas prompt draws with a bleed margin so leaves and sparks fly past the text box instead of clipping on it. */
+.textbox:has(.prompt-canvas),.prompt-canvas{overflow:visible}
+.prompt-canvas canvas{max-width:none!important;pointer-events:none}

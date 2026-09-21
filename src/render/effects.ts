@@ -4,8 +4,8 @@ import type { Band, Flow, Glyph } from './textflow';
 interface Leaf { ch: string; x: number; y: number; vx: number; vy: number; rot: number; vr: number; life: number; ttl: number }
 /** A hot fleck thrown off a miss. Drawn as a short streak along its velocity. */
 interface Spark { x: number; y: number; vx: number; vy: number; life: number; ttl: number; size: number }
-/** An expanding ring left where a key settled. */
-interface Ring { x: number; y: number; r0: number; r1: number; life: number; ttl: number; strong: boolean }
+/** A tiny mote of dust lifted where a key settled. Drifts up and fades. */
+interface Mote { x: number; y: number; vx: number; vy: number; life: number; ttl: number; r: number }
 /** A glyph that just turned from current to done: it pops for a moment. */
 interface Settle { index: number; at: number }
 
@@ -18,19 +18,19 @@ const POP_MS = 140;
 /**
  * Per-frame effects over the canvas prompt. Everything here is positioned from the Pretext
  * glyph layout, so nothing reads the DOM: a sprung cursor box that glides to the next glyph,
- * a pop + ring + leaf where a key settled, a combo glow that warms up under the cursor, and
+ * a pop + a puff of dust + a leaf where a key settled, a combo glow that warms up under the cursor, and
  * the miss — a black pill, an orange letter, a violent shake and a spray of sparks before the
  * box returns to waiting. Pools are fixed; tick() allocates nothing.
  */
 export class Effects {
   readonly leaves: Leaf[] = Array.from({ length: 96 }, () => ({ ch: '', x: 0, y: 0, vx: 0, vy: 0, rot: 0, vr: 0, life: 0, ttl: 1 }));
   readonly sparks: Spark[] = Array.from({ length: 160 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, ttl: 1, size: 1 }));
-  readonly rings: Ring[] = Array.from({ length: 24 }, () => ({ x: 0, y: 0, r0: 0, r1: 0, life: 0, ttl: 1, strong: false }));
+  readonly motes: Mote[] = Array.from({ length: 96 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: 0, ttl: 1, r: 1 }));
   private readonly settles: Settle[] = Array.from({ length: 12 }, () => ({ index: -1, at: -Infinity }));
   private settleHead = 0;
   private liveLeaves = 0;
   private liveSparks = 0;
-  private liveRings = 0;
+  private liveMotes = 0;
 
   /** Cursor box in flow px: animated position/size and the target it is springing to. */
   readonly cursor = { x: 0, y: 0, w: 0, h: 0, vx: 0, vy: 0, vw: 0, tx: 0, ty: 0, tw: 0, th: 0, movedAt: -Infinity, placed: false };
@@ -49,7 +49,7 @@ export class Effects {
     if (!this.enabled) return false;
     const c = this.cursor;
     const springing = Math.abs(c.x - c.tx) > 0.2 || Math.abs(c.y - c.ty) > 0.2 || Math.abs(c.w - c.tw) > 0.2 || Math.abs(c.vx) > 1 || Math.abs(c.vy) > 1;
-    return this.liveLeaves > 0 || this.liveSparks > 0 || this.liveRings > 0 || springing || now < this.missAt + MISS_MS
+    return this.liveLeaves > 0 || this.liveSparks > 0 || this.liveMotes > 0 || springing || now < this.missAt + MISS_MS
       || now < c.movedAt + POP_MS || this.heat > 0.01 || this.orb !== null || this.settles.some((s) => now < s.at + SETTLE_MS);
   }
 
@@ -64,11 +64,11 @@ export class Effects {
   /** Forget the cursor so the next target snaps (new passage). */
   reset(): void { this.cursor.placed = false; this.missAt = -Infinity; this.heat = 0; for (const s of this.settles) s.at = -Infinity; }
 
-  /** A correct key on glyph `g`: pop it, ring it, lift a leaf, warm the glow. */
+  /** A correct key on glyph `g`: pop it, puff a little dust, lift a leaf, warm the glow. */
   hit(g: Glyph, now: number, strong = false): void {
     if (!this.enabled) return;
     const s = this.settles[this.settleHead]!; s.index = g.index; s.at = now; this.settleHead = (this.settleHead + 1) % this.settles.length;
-    this.spawnRing(g.x + g.w / 2, g.y, strong);
+    this.spawnMotes(g.x + g.w / 2, g.y, strong ? 7 : 4);
     this.spawnLeaf(g, strong);
     this.heat = Math.min(1, this.heat + (strong ? 0.12 : 0.07));
   }
@@ -88,7 +88,7 @@ export class Effects {
       if (n++ % 2 === 0) this.spawnLeaf(g, true);
     }
     const line = flow.lines[Math.min(lastLine, flow.lines.length - 1)];
-    if (line) { for (let i = 0; i < 6; i++) this.spawnSparks(line.x + (line.width * (i + 0.5)) / 6, line.y, 6); this.spawnRing(line.x + line.width / 2, line.y, true); }
+    if (line) for (let i = 0; i < 6; i++) { const x = line.x + (line.width * (i + 0.5)) / 6; this.spawnSparks(x, line.y, 6); this.spawnMotes(x, line.y, 5); }
     this.heat = 1;
   }
 
@@ -137,11 +137,15 @@ export class Effects {
       this.liveSparks++;
     }
   }
-  private spawnRing(x: number, y: number, strong: boolean): void {
-    const r = this.rings.find((q) => q.life <= 0);
-    if (!r) return;
-    r.x = x; r.y = y; r.r0 = strong ? 12 : 8; r.r1 = strong ? 46 : 26; r.ttl = strong ? 0.5 : 0.32; r.life = r.ttl; r.strong = strong;
-    this.liveRings++;
+  private spawnMotes(x: number, y: number, n: number): void {
+    for (let k = 0; k < n; k++) {
+      const m = this.motes.find((q) => q.life <= 0);
+      if (!m) return;
+      m.x = x + (this.rnd() - 0.5) * 14; m.y = y + (this.rnd() - 0.5) * 10;
+      m.vx = (this.rnd() - 0.5) * 50; m.vy = -(40 + this.rnd() * 70);
+      m.ttl = 0.28 + this.rnd() * 0.22; m.life = m.ttl; m.r = 1.4 + this.rnd() * 1.6;
+      this.liveMotes++;
+    }
   }
 
   setOrb(x: number, y: number, r: number): void { if (!this.enabled) return; if (!this.orb) this.orb = { x, y, r }; else { this.orb.x = x; this.orb.y = y; this.orb.r = r; } }
@@ -183,10 +187,11 @@ export class Effects {
       if (s.life <= 0) { this.liveSparks--; continue; }
       s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 1100 * dt; s.vx *= 1 - 1.6 * dt;
     }
-    if (this.liveRings > 0) for (const r of this.rings) {
-      if (r.life <= 0) continue;
-      r.life -= dt;
-      if (r.life <= 0) this.liveRings--;
+    if (this.liveMotes > 0) for (const m of this.motes) {
+      if (m.life <= 0) continue;
+      m.life -= dt;
+      if (m.life <= 0) { this.liveMotes--; continue; }
+      m.x += m.vx * dt; m.y += m.vy * dt; m.vy *= 1 - 2.5 * dt;
     }
   }
 
@@ -200,7 +205,7 @@ export class Effects {
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   }
 
-  /** Draw rings, sparks, leaves and the orb over the glyphs. `ox/oy` = flow origin on the canvas. */
+  /** Draw motes, sparks, leaves and the orb over the glyphs. `ox/oy` = flow origin on the canvas. */
   draw(ctx: CanvasRenderingContext2D, ox: number, oy: number, lineHeight: number, font: string, flow: Flow): void {
     void flow;
     const o = this.orb;
@@ -210,13 +215,12 @@ export class Effects {
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ox + o.x, oy + o.y, o.r, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#ff8b61'; ctx.beginPath(); ctx.arc(ox + o.x, oy + o.y, 5, 0, Math.PI * 2); ctx.fill();
     }
-    if (this.liveRings > 0) {
-      ctx.lineWidth = 2;
-      for (const r of this.rings) {
-        if (r.life <= 0) continue;
-        const t = 1 - r.life / r.ttl, e = 1 - (1 - t) * (1 - t);
-        ctx.strokeStyle = `rgba(255,84,24,${(1 - t) * (r.strong ? 0.6 : 0.45)})`;
-        ctx.beginPath(); ctx.arc(ox + r.x, oy + r.y + lineHeight / 2, r.r0 + (r.r1 - r.r0) * e, 0, Math.PI * 2); ctx.stroke();
+    if (this.liveMotes > 0) {
+      for (const m of this.motes) {
+        if (m.life <= 0) continue;
+        const a = m.life / m.ttl;
+        ctx.fillStyle = `rgba(255,${Math.round(110 + 90 * a)},${Math.round(40 + 60 * a)},${a * 0.85})`;
+        ctx.beginPath(); ctx.arc(ox + m.x, oy + m.y + lineHeight / 2, m.r * (0.5 + a * 0.5), 0, Math.PI * 2); ctx.fill();
       }
     }
     if (this.liveSparks > 0) {

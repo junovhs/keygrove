@@ -23,6 +23,8 @@ export class CanvasPrompt {
   private raf = 0;
   private fontPx = 32;
   private padding = 8;
+  /** Extra canvas on every side, outside the host's layout box, so effects never clip on the text box. */
+  private readonly bleed = 72;
   /** Optional per-line width override; null = full width (the orb sets one while present). */
   widthForLine: WidthForLine | null = null;
   private lastFlow: Flow | null = null;
@@ -64,7 +66,7 @@ export class CanvasPrompt {
   private pointer(e: PointerEvent): void {
     if (!this.effects.enabled || !this.orbEnabled) return;
     const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left - this.padding, y = e.clientY - rect.top - this.top;
+    const x = e.clientX - rect.left - this.bleed - this.padding, y = e.clientY - rect.top - this.bleed - this.top;
     this.effects.setOrb(x, y, Math.round(this.fontPx * 1.6));
     this.widthForLine = (i, ly) => this.effects.band(this.width, this.flow.lineHeight, i, ly);
     this.ensureLoop();
@@ -141,11 +143,14 @@ export class CanvasPrompt {
   }
 
   private sizeCanvas(cssH: number): void {
-    const cssW = this.width + this.padding * 2;
-    const w = Math.round(cssW * this.dpr), h = Math.round(cssH * this.dpr);
+    const b = this.bleed;
+    const cssW = this.width + this.padding * 2 + b * 2, fullH = cssH + b * 2;
+    const w = Math.round(cssW * this.dpr), h = Math.round(fullH * this.dpr);
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w; this.canvas.height = h;
-      this.canvas.style.width = cssW + 'px'; this.canvas.style.height = cssH + 'px';
+      this.canvas.style.width = cssW + 'px'; this.canvas.style.height = fullH + 'px';
+      // Negative margins keep the host's layout box at the text's own size; the bleed hangs outside it.
+      this.canvas.style.margin = `-${b}px`;
     }
   }
 
@@ -160,7 +165,8 @@ export class CanvasPrompt {
     this.sizeCanvas(cssH);
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, this.width + this.padding * 2, cssH);
+    ctx.clearRect(0, 0, this.width + this.padding * 2 + this.bleed * 2, cssH + this.bleed * 2);
+    ctx.translate(this.bleed, this.bleed);
     ctx.font = this.flow.font;
     ctx.textBaseline = 'middle';
     const top = this.padding - firstLine * lh + Math.max(0, (cssH - this.padding * 2 - visibleHeight) / 2);
@@ -187,7 +193,7 @@ export class CanvasPrompt {
     // The cursor box, drawn once at its animated position before any glyph.
     if (cur && c.placed) {
       const bx = this.padding + c.x + shake.x, by = top + c.y + lh / 2 + shake.y, bw = c.w * scale, bh = c.h * scale;
-      const cx = bx + c.w / 2, r = bad ? bh / 2 : 6;
+      const cx = bx + c.w / 2, r = 6;
       ctx.fillStyle = bad ? colors.missPill : colors.orange;
       if (!bad && fx.heat > 0.02) { ctx.shadowColor = `rgba(255,84,24,${0.25 + fx.heat * 0.5})`; ctx.shadowBlur = 6 + fx.heat * 18; }
       ctx.beginPath(); ctx.roundRect(cx - bw / 2, by - bh / 2, bw, bh, r); ctx.fill();
