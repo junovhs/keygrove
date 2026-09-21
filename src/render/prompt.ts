@@ -3,9 +3,9 @@ import { TextFlow, type Flow, type WidthForLine } from './textflow';
 
 export interface PromptState { text: string; pos: number; wrong: boolean; reading?: boolean }
 
-type Palette = { ink: string; done: string; orange: string; wrongBg: string; wrongInk: string; pill: string; pillLine: string; pillInk: string; pillDone: string; pillDoneInk: string };
-const DARK: Palette = { ink: '#e8e6df', done: '#8e8d86', orange: '#ff5418', wrongBg: '#ffb49f', wrongInk: '#201814', pill: '#2b2c29', pillLine: '#5c5e59', pillInk: '#c5c3bc', pillDone: '#222320', pillDoneInk: '#74766f' };
-const LIGHT: Palette = { ink: '#11110f', done: '#b3afa8', orange: '#ff5418', wrongBg: '#ffb49f', wrongInk: '#201814', pill: '#fbfaf7', pillLine: '#c9c5bd', pillInk: '#6d6a65', pillDone: '#f3f1ec', pillDoneInk: '#b3afa8' };
+type Palette = { ink: string; done: string; orange: string; wrongBg: string; wrongInk: string; missPill: string; missInk: string; pill: string; pillLine: string; pillInk: string; pillDone: string; pillDoneInk: string };
+const DARK: Palette = { ink: '#e8e6df', done: '#8e8d86', orange: '#ff5418', wrongBg: '#ffb49f', wrongInk: '#201814', missPill: '#000', missInk: '#ff5418', pill: '#2b2c29', pillLine: '#5c5e59', pillInk: '#c5c3bc', pillDone: '#222320', pillDoneInk: '#74766f' };
+const LIGHT: Palette = { ink: '#11110f', done: '#b3afa8', orange: '#ff5418', wrongBg: '#ffb49f', wrongInk: '#201814', missPill: '#11110f', missInk: '#ff5418', pill: '#fbfaf7', pillLine: '#c9c5bd', pillInk: '#6d6a65', pillDone: '#f3f1ec', pillDoneInk: '#b3afa8' };
 export interface PromptOptions { theme?: 'dark' | 'light'; compact?: boolean; orb?: boolean }
 
 /**
@@ -70,12 +70,20 @@ export class CanvasPrompt {
     this.ensureLoop();
   }
 
-  /** Feed a key result so effects can react. */
+  /** Feed a key result so effects can react. `index` is the glyph that settled (ok) or the one still waited on (miss). */
   onKey(kind: 'ok' | 'miss', index: number, strong = false): void {
     const g = this.lastFlow?.glyphs.find((x) => x.index === index);
     const now = performance.now();
-    if (kind === 'ok' && g) this.effects.spawnLeaf(g, strong);
-    if (kind === 'miss') this.effects.shake(now);
+    if (g && kind === 'ok') this.effects.hit(g, now, strong);
+    if (g && kind === 'miss') this.effects.miss(g, now);
+    this.ensureLoop();
+  }
+  /** The passage is done: lift the visible lines and throw a little light. */
+  onComplete(): void {
+    const flow = this.lastFlow;
+    if (!flow) return;
+    const last = flow.lines.length - 1;
+    this.effects.burst(flow, Math.max(0, last - 2), last);
     this.ensureLoop();
   }
 
@@ -116,7 +124,7 @@ export class CanvasPrompt {
       this.flow = new TextFlow(this.font(), this.lineHeight(), this.letterSpacing(), s.reading ? 'left' : 'center', s.reading ? 1 : 3);
       this.measureHost();
     }
-    if (textChanged || readingChanged) { this.flow.setText(s.text); this.lastFlow = null; this.mirror.textContent = s.text; }
+    if (textChanged || readingChanged) { this.flow.setText(s.text); this.lastFlow = null; this.mirror.textContent = s.text; this.effects.reset(); }
     this.requestDraw();
   }
 
@@ -159,36 +167,80 @@ export class CanvasPrompt {
     this.top = top;
     const { pos, wrong } = this.state;
     const now = performance.now();
-    const shake = this.effects.shakeOffset(now);
+    const fx = this.effects, colors = this.colors, reading = !!this.state.reading;
+    const pad = this.boxPad();
+    // Aim the sprung cursor at the current glyph (flow px). A brand-new passage snaps it.
+    const cur = flow.glyphs.find((g) => g.index === pos);
+    if (cur) {
+      const isSpace = cur.ch === ' ';
+      const h = isSpace && !reading ? Math.round(this.fontPx * 1.25) : Math.round(this.fontPx * 1.4);
+      const w = isSpace && !reading ? cur.w : cur.w + pad * 2;
+      const x = isSpace && !reading ? cur.x : cur.x - pad;
+      fx.target({ ...cur, x }, w, h, now);
+    }
+    const c = fx.cursor;
+    const bad = !!cur && (fx.enabled ? fx.missing(now) : wrong);
+    const shake = fx.shake(now);
+    const scale = fx.cursorScale(now);
+    const arrived = cur ? Math.abs(c.x - c.tx) < c.tw * 0.45 : false;
+    fx.drawHeat(ctx, this.padding, top, lh);
+    // The cursor box, drawn once at its animated position before any glyph.
+    if (cur && c.placed) {
+      const bx = this.padding + c.x + shake.x, by = top + c.y + lh / 2 + shake.y, bw = c.w * scale, bh = c.h * scale;
+      const cx = bx + c.w / 2, r = bad ? bh / 2 : 6;
+      ctx.fillStyle = bad ? colors.missPill : colors.orange;
+      if (!bad && fx.heat > 0.02) { ctx.shadowColor = `rgba(255,84,24,${0.25 + fx.heat * 0.5})`; ctx.shadowBlur = 6 + fx.heat * 18; }
+      ctx.beginPath(); ctx.roundRect(cx - bw / 2, by - bh / 2, bw, bh, r); ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+    }
     for (const g of flow.glyphs) {
       if (g.line < firstLine || g.line >= firstLine + 3) continue;
-      const x = this.padding + g.x + (g.index === pos ? shake : 0), cy = top + g.y + lh / 2;
-      const done = g.index < pos, current = g.index === pos, bad = current && wrong;
-      if (g.ch === ' ' && this.state.reading) {
-        if (current) { ctx.fillStyle = bad ? this.colors.wrongBg : this.colors.orange; ctx.beginPath(); ctx.roundRect(x - 1, cy - this.fontPx * 0.65, g.w + 2, this.fontPx * 1.3, 3); ctx.fill(); }
-        ctx.fillStyle = current ? '#fff' : done ? this.colors.done : '#b8b1a5';
+      const current = g.index === pos, done = g.index < pos;
+      const x = this.padding + g.x + (current ? shake.x : 0), cy = top + g.y + lh / 2 + (current ? shake.y : 0);
+      const settle = done ? fx.settleT(g.index, now) : -1;
+      // Ink for the current glyph follows the box: white (or orange on a miss) once it has arrived, plain ink while it is still travelling.
+      const currentInk = bad ? colors.missInk : arrived ? '#fff' : colors.ink;
+      if (g.ch === ' ' && reading) {
+        ctx.fillStyle = current ? currentInk : done ? colors.done : '#b8b1a5';
         ctx.fillText('·', x, cy + 1); continue;
       }
       if (g.ch === ' ') {
         const h = Math.round(this.fontPx * 1.25), w = g.w;
-        ctx.fillStyle = bad ? this.colors.wrongBg : current ? this.colors.orange : done ? this.colors.pillDone : this.colors.pill;
-        ctx.strokeStyle = bad ? this.colors.wrongBg : current ? this.colors.orange : this.colors.pillLine;
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.roundRect(x, cy - h / 2, w, h, 5); ctx.fill(); if (!current) ctx.stroke();
-        ctx.fillStyle = bad ? this.colors.wrongInk : current ? '#fff' : done ? this.colors.pillDoneInk : this.colors.pillInk;
+        if (!current) {
+          ctx.fillStyle = done ? colors.pillDone : colors.pill;
+          ctx.strokeStyle = colors.pillLine; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.roundRect(x, cy - h / 2, w, h, 5); ctx.fill(); ctx.stroke();
+        }
+        ctx.fillStyle = current ? currentInk : done ? colors.pillDoneInk : colors.pillInk;
         ctx.font = `600 ${Math.round(this.fontPx * 0.36)}px ${this.flow.font.split('px ')[1]}`;
-        ctx.textAlign = 'center'; ctx.fillText('SPACE', x + w / 2, cy + 1); ctx.textAlign = 'left';
+        ctx.textAlign = 'center';
+        // The label rides inside the sprung pill while current, so it never lags behind the box.
+        const lx = current && c.placed ? this.padding + c.x + c.w / 2 + shake.x : x + w / 2;
+        ctx.fillText('SPACE', lx, cy + 1); ctx.textAlign = 'left';
         ctx.font = this.flow.font;
         continue;
       }
       if (current) {
-        const pad = this.boxPad(), boxH = Math.round(this.fontPx * 1.4), boxW = g.w + pad * 2;
-        ctx.fillStyle = bad ? this.colors.wrongBg : this.colors.orange;
-        ctx.beginPath(); ctx.roundRect(x - pad, cy - boxH / 2, boxW, boxH, 6); ctx.fill();
-        ctx.fillStyle = bad ? this.colors.wrongInk : '#fff';
-      } else ctx.fillStyle = done ? this.colors.done : this.colors.ink;
+        ctx.fillStyle = currentInk;
+        if (bad || scale > 1.001) {
+          const s = current ? scale : 1;
+          ctx.save(); ctx.translate(x + g.w / 2, cy + 1); ctx.scale(s, s); ctx.fillText(g.ch, -g.w / 2, 0); ctx.restore();
+        } else ctx.fillText(g.ch, x, cy + 1);
+        continue;
+      }
+      if (settle >= 0) {
+        // A key that just settled pops up and cools from orange to the done grey.
+        const e = 1 - settle, s = 1 + 0.38 * e * e;
+        ctx.save(); ctx.translate(x + g.w / 2, cy + 1); ctx.scale(s, s);
+        ctx.fillStyle = settle < 0.55 ? colors.orange : colors.done;
+        ctx.globalAlpha = settle < 0.55 ? 1 : 1 - (settle - 0.55) * 0.5;
+        ctx.fillText(g.ch, -g.w / 2, 0); ctx.restore();
+        continue;
+      }
+      ctx.fillStyle = done ? colors.done : colors.ink;
       ctx.fillText(g.ch, x, cy + 1);
     }
     this.effects.draw(ctx, this.padding, top, lh, this.flow.font, flow);
+    if (!this.loop && this.effects.active(now)) this.ensureLoop();
   }
 }

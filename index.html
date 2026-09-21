@@ -349,6 +349,10 @@ kbd{font:inherit}
       <button id="lessonsNav" type="button">Course</button>
       <button id="statsNav" type="button">Keepsakes</button>
       <button id="settingsTopBtn" type="button">Settings</button>
+      <!-- Interface sounds. Procedural (no downloads); the preference persists in localStorage. -->
+      <button id="soundBtn" class="sound-btn" type="button" aria-pressed="true" aria-label="Turn interface sounds off" title="Sound on">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="sound-body" d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path class="sound-wave sound-wave-1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5"/><path class="sound-wave sound-wave-2" d="M18 7a7 7 0 0 1 0 10"/><path class="sound-slash" d="M4 4l16 16"/></svg>
+      </button>
       <span class="nav-divider" aria-hidden="true"></span>
       <!-- Optional. Typing never needs it; it exists to keep you known across
            the Strange Systems apps. Hidden until the build has an account service. -->

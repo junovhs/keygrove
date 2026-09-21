@@ -24,6 +24,7 @@ import { mountPanel, type PanelHandle } from 'dopedocs/panel';
 import { docs } from './docs-content';
 import './docs.css';
 import { renderMap } from './ui/map';
+import { sound, wireAudioToggle, type CueName } from './ui/sound';
 import { loadHands, onFingerHover, paintHand } from './ui/hands';
 import { CanvasPrompt } from './render/prompt';
 import { selfTest as textflowSelfTest } from './render/textflow';
@@ -160,7 +161,9 @@ function prompt(): void {
 }
 function metrics(): { wpm: number; acc: number; pct: number } {
   const m = run.metrics(now());
-  $('wpm').textContent = String(m.wpm); $('acc').textContent = m.acc + '%'; $('pct').textContent = m.pct + '%'; $('combo').textContent = String(run.combo);
+  $('wpm').textContent = String(m.wpm); $('acc').textContent = m.acc + '%'; $('pct').textContent = m.pct + '%';
+  const combo = $('combo');
+  if (combo.textContent !== String(run.combo)) { combo.textContent = String(run.combo); if (run.combo > 0 && run.combo % 10 === 0) { combo.classList.remove('tick'); void combo.offsetWidth; combo.classList.add('tick'); } }
   const fill = document.getElementById('progressFill'); if (fill) fill.style.width = m.pct + '%';
   return m;
 }
@@ -284,6 +287,7 @@ const briefTip = () => brief?.briefing.tips[brief.step] ?? null;
 const briefWaiting = (): boolean => { const t = briefTip(); return !!t?.press && [...t.press].some((k) => !brief!.pressed.has(k)); };
 function briefNext(): void {
   if (!brief || briefWaiting()) return;
+  sound.play('step');
   if (brief.step + 1 < brief.briefing.tips.length) { brief.step++; brief.pressed = new Set(); renderBrief(); paintBrief(); return; }
   endBrief(true); render(); $('lessonTitle').focus();
 }
@@ -293,12 +297,14 @@ function briefPress(k: string): void {
   if (!brief || !t?.press || briefTimer) return;
   const key = k.toLowerCase();
   const tile = $('briefKeys').querySelector<HTMLElement>(`[data-brief-key="${key}"]`);
-  if (!t.press.includes(key) || brief.pressed.has(key)) { const any = $('briefKeys').querySelector<HTMLElement>('.brief-key:not(.filled)'); any?.classList.remove('miss'); void any?.offsetWidth; any?.classList.add('miss'); return; }
+  if (!t.press.includes(key) || brief.pressed.has(key)) { const any = $('briefKeys').querySelector<HTMLElement>('.brief-key:not(.filled)'); any?.classList.remove('miss'); void any?.offsetWidth; any?.classList.add('miss'); sound.play('miss'); return; }
   brief.pressed.add(key);
   tile?.classList.add('filled');
+  sound.play('fill', 1, 1 + brief.pressed.size * 0.08);
   paintHand('left', null); paintHand('right', null); paintBrief();
   if (!briefWaiting()) {
     $('briefKeys').insertAdjacentHTML('beforeend', '<span class="brief-check" role="img" aria-label="Done"><svg viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></svg></span>');
+    sound.play('complete');
     briefTimer = setTimeout(() => { briefTimer = null; briefNext(); }, 900);
   }
 }
@@ -344,7 +350,7 @@ function renderBrief(): void {
 $('briefNext').onclick = briefNext;
 
 // ---- run lifecycle -----------------------------------------------------------
-function begin(): void { if (run.status === 'playing') return; if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); run.begin(now()); render(); }
+function begin(): void { if (run.status === 'playing') return; if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); run.begin(now()); sound.play('begin'); render(); }
 function startMaintenance(): void {
   replayReturn = null;
   const focus = keys.weakest(unlockedLetters()).slice(0, 6).map(k => k.key);
@@ -394,12 +400,16 @@ function typeKey(k: string): void {
   // The pair is the two wanted letters; its evidence is this press. Only after a correct previous press: a retry is not a transition.
   const prev = run.strokes.at(-2);
   if (prev && prev.correct && prev.index === last.index - 1) trans.record(prev.key, last.key, last.correct, last.latencyMs);
-  // A small mark at a word boundary, not a shower of letters on every press.
-  if (!last.correct || last.key === ' ') canvasPrompt?.onKey(last.correct ? 'ok' : 'miss', last.correct ? run.pos - 1 : run.pos);
-  if (r === 'done') return finish();
+  canvasPrompt?.onKey(last.correct ? 'ok' : 'miss', last.correct ? run.pos - 1 : run.pos, last.key === ' ');
+  // The keystroke tick rises a hair with the combo, so a clean run audibly warms up; a miss is a low shrug.
+  if (!last.correct) sound.play('miss');
+  else if (last.key === ' ') sound.play('word', 1, 1 + Math.min(run.combo, 40) * 0.004);
+  else sound.play('key', 1, 1 + Math.min(run.combo, 40) * 0.006);
+  if (last.correct && run.combo > 0 && run.combo % 20 === 0) sound.play('streak');
+  if (r === 'done') { canvasPrompt?.onComplete(); return finish(); }
   prompt(); metrics(); keymap(); nextVisual();
 }
-function abort(): void { if (run.status !== 'playing') return; toast('Run stopped.'); resetRun(); }
+function abort(): void { if (run.status !== 'playing') return; sound.play('error'); toast('Run stopped.'); resetRun(); }
 
 function thirds(): { errors: number; lat: number }[] {
   const st = run.strokes; const n = Math.max(1, Math.floor(st.length / 3));
@@ -456,6 +466,9 @@ function finish(): void {
     $('nextAction').textContent = !fingerPassed ? 'Continue practice' : mode.level === 9 ? 'Replay final level' : `Next: ${fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level + 1]!.name}`;
     $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my course';
   }
+  // The result's chime, a beat after the passage's own burst: the keepsake sparkle outranks a lesson clear outranks a pass.
+  const chime: CueName = mode.kind === 'remedial' ? (fingerPassed ? 'complete' : 'settle') : earned ? 'sparkle' : outcome?.firstClear ? 'clear' : outcome?.passed ? 'complete' : 'settle';
+  setTimeout(() => sound.play(chime), 260);
   save(); arena().classList.add('result-mode'); document.body.classList.add('showing-result');
   $('resultTitle').focus();
   header();
@@ -465,6 +478,7 @@ function finish(): void {
 let mapKeys: ((e: KeyboardEvent) => void) | null = null;
 function openMap(showObjects = false): void {
   if (run.status === 'playing') resetRun();
+  sound.play('open');
   arena().classList.remove('result-mode', 'focus-mode'); arena().classList.add('map-mode');
   document.body.classList.remove('showing-result'); document.body.classList.add('showing-book');
   mapKeys = renderMap($('groveMap'), state, keys, {
@@ -476,17 +490,18 @@ function openMap(showObjects = false): void {
   $('bookProgress').textContent = `${MAIN_TRAILS.filter(t => isCleared(state, t.id)).length} of 36 lessons complete · ${ownedKeepsakes(state).length} ${ownedKeepsakes(state).length === 1 ? 'keepsake' : 'keepsakes'}`;
   if (showObjects) { $('collectionTitle').tabIndex = -1; $('collectionTitle').focus(); $('collectionTitle').scrollIntoView({ block: 'start' }); }
 }
-function selectLesson(t: Trail): void { replayReturn = isCleared(state, t.id) ? courseFrontier().id : null; state.trail = t.id; mode = { kind: 'trail' }; gate = null; closeMap(); resetRun(); }
-function closeMap(): void { arena().classList.remove('map-mode'); document.body.classList.remove('showing-book'); mapKeys = null; if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); $(completionHome || run.status === 'complete' ? 'resultTitle' : 'lessonTitle').focus(); }
+function selectLesson(t: Trail): void { sound.play('select'); replayReturn = isCleared(state, t.id) ? courseFrontier().id : null; state.trail = t.id; mode = { kind: 'trail' }; gate = null; closeMap(); resetRun(); }
+function closeMap(): void { sound.play('close'); arena().classList.remove('map-mode'); document.body.classList.remove('showing-book'); mapKeys = null; if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); $(completionHome || run.status === 'complete' ? 'resultTitle' : 'lessonTitle').focus(); }
 
 // ---- focus / remedial ----------------------------------------------------------
 function openFocus(): void {
   if (run.status === 'playing') { toast('Finish or reset before opening trouble-spot practice.'); return; }
   if (mode.kind === 'remedial') browseFinger = mode.pair.id;
   browseLevel = Math.min(9, pairCompleted(state.fingerCourses, FINGER_PAIRS.find(p => p.id === browseFinger)!));
+  sound.play('open');
   arena().classList.remove('result-mode'); document.body.classList.remove('showing-result'); arena().classList.add('focus-mode'); focusGrid(); $('focusTitle').focus();
 }
-function closeFocus(): void { arena().classList.remove('focus-mode'); if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); }
+function closeFocus(): void { sound.play('close'); arena().classList.remove('focus-mode'); if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); }
 function chooseFocus(id: string): void {
   const f = FINGER_PAIRS.find(p => p.id === id);
   if (!f) { closeFocus(); return; }
@@ -525,7 +540,7 @@ function trapDialog(e: KeyboardEvent, dialog: HTMLElement): void {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
 }
 document.addEventListener('keydown', (e) => {
-  if (settingsModal().classList.contains('open')) { trapDialog(e, settingsModal()); if (e.key === 'Escape') { settingsModal().classList.remove('open'); $('settingsTopBtn').focus(); e.preventDefault(); } return; }
+  if (settingsModal().classList.contains('open')) { trapDialog(e, settingsModal()); if (e.key === 'Escape') { sound.play('close'); settingsModal().classList.remove('open'); $('settingsTopBtn').focus(); e.preventDefault(); } return; }
   if (arena().classList.contains('map-mode')) { mapKeys?.(e); return; }
   if (e.target instanceof HTMLElement && e.target.closest('button,a,input,select,textarea,summary,[contenteditable]')) return;
   if (arena().classList.contains('focus-mode')) { handleFocusKey(e); return; }
@@ -555,9 +570,9 @@ $('statsNav').onclick = () => openMap(true);
 $('closeBook').onclick = closeMap;
 $('skipPractice').onclick = () => { gate = null; mode = { kind: 'trail' }; replayReturn = null; if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else resetRun(); };
 $('startBtn').onclick = () => { if (arena().classList.contains('map-mode')) { closeMap(); return; } if (brief) { briefNext(); return; } if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); };
-function showSettings(): void { settingsModal().classList.add('open'); $('closeSettings').focus(); }
+function showSettings(): void { sound.play('open'); settingsModal().classList.add('open'); $('closeSettings').focus(); }
 $('settingsTopBtn').onclick = showSettings;
-$('closeSettings').onclick = () => settingsModal().classList.remove('open');
+$('closeSettings').onclick = () => { sound.play('close'); settingsModal().classList.remove('open'); };
 settingsModal().onclick = (e) => { if (e.target === settingsModal()) settingsModal().classList.remove('open'); };
 // ---- Method: Relaxed QWERTY by default; Settings toggles to traditional and back --------
 function switchMethod(methodId: string): void {
@@ -573,7 +588,7 @@ function switchMethod(methodId: string): void {
 }
 $('methodBtn').onclick = () => switchMethod(activeMethod().id === RELAXED_QWERTY.id ? TRADITIONAL.id : RELAXED_QWERTY.id);
 
-$('codeBtn').onclick = () => { state.settings.codeGrove = !state.settings.codeGrove; save(); $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off'); toast(state.settings.codeGrove ? 'Code grove will appear after the Bark checkpoint.' : 'Code grove hidden.'); };
+$('codeBtn').onclick = () => { state.settings.codeGrove = !state.settings.codeGrove; sound.play(state.settings.codeGrove ? 'toggle-on' : 'toggle-off'); save(); $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off'); toast(state.settings.codeGrove ? 'Code grove will appear after the Bark checkpoint.' : 'Code grove hidden.'); };
 $('exportBtn').onclick = () => {
   save();
   const u = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })), a = document.createElement('a');
@@ -656,6 +671,14 @@ document.addEventListener('keydown', (e) => { if (docsPanel?.isOpen && e.key !==
 
 syncSettingsUi(); resetRun(); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else sessionCheck(); save(); showGuestHint(); void loadHands(nextVisual);
 state.settings.onboarded = true;
+// Interface sounds: every button taps, navigation hovers a little brighter, the primary actions warmer, Reset darker.
+wireAudioToggle($('soundBtn'));
+sound.wire(
+  (host) => (host.id === 'soundBtn' || host.closest('.keymap') ? null : 'tap'),
+  (host) => host.closest('.nav') ? 'hover-nav' : host.classList.contains('danger') ? 'hover-danger' : (host.classList.contains('primary') || host.id === 'nextAction' || host.id === 'startBtn' || host.classList.contains('finger-start') || host.classList.contains('nav-cta')) ? 'hover-positive' : null,
+);
+const played: string[] = [];
+sound.onPlay = (name) => { played.push(name); if (played.length > 200) played.shift(); };
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
     snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, decisions, gate, brief: brief ? { title: brief.briefing.title, step: brief.step, tip: brief.briefing.tips[brief.step]!.title } : null, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
@@ -666,5 +689,7 @@ Object.defineProperty(window, 'keygrove', {
     method: () => activeMethod().id,
     account: () => account.session()?.user.email ?? null,
     signedIn: () => signedIn,
+    sounds: () => played.slice(),
+    sound,
   }),
 });

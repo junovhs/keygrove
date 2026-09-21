@@ -1,3 +1,5 @@
+import { sound } from './sound';
+
 export const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Missing element #${id}`);
@@ -14,6 +16,7 @@ export function toast(t: string): void {
   const el = $('toast');
   el.textContent = t;
   el.classList.add('show');
+  sound.play('toast');
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 1400);
 }

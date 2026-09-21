@@ -119,3 +119,37 @@ body:has(.arena.brief-mode) .metrics{visibility:hidden}
 .brief-next kbd{font:600 12px var(--mono);letter-spacing:.06em;padding:4px 8px;border:1px solid rgba(255,255,255,.55);border-radius:4px;color:#fff}
 @media(prefers-reduced-motion:reduce){.begin-cue,.brief-key,.brief-check,.brief-check svg{animation:none}.brief-check svg{stroke-dashoffset:0}}
 @media(max-width:760px){.brand-hint{display:none}.nav-cta{padding:7px 10px!important}.result-actions{flex-direction:column;align-items:stretch}.brief-keys{grid-column:1/-1;justify-content:center}.restart-btn{top:8px;right:8px;width:32px;height:32px}}
+
+/* ---- interface sound toggle + small moments ------------------------------------ */
+.sound-btn{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:rgba(255,255,255,.6);color:#4e4b46;padding:0!important;transition:color .12s,border-color .12s,transform .12s}
+.sound-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sound-btn .sound-body{fill:currentColor;stroke:none}
+.sound-btn .sound-wave{transform-origin:12px 12px;transition:opacity .18s,transform .18s}
+.sound-btn .sound-slash{opacity:0;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .22s ease,opacity .1s}
+.sound-btn:hover{color:var(--orange);border-color:var(--orange);transform:translateY(-1px)}
+.sound-btn:active{transform:scale(.92)}
+.sound-btn.is-muted{color:var(--muted)}
+.sound-btn.is-muted .sound-wave{opacity:0;transform:scale(.6)}
+.sound-btn.is-muted .sound-slash{opacity:1;stroke-dashoffset:0}
+.sound-btn:not(.is-muted):hover .sound-wave-1{animation:wave-pulse .9s ease-in-out infinite}
+.sound-btn:not(.is-muted):hover .sound-wave-2{animation:wave-pulse .9s .15s ease-in-out infinite}
+@keyframes wave-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.08)}}
+.nav button:not(.nav-cta):not(.sound-btn):not(.account-open){position:relative}
+.nav button:not(.nav-cta):not(.sound-btn):not(.account-open):after{content:"";position:absolute;left:0;right:0;bottom:3px;height:2px;background:var(--orange);transform:scaleX(0);transform-origin:left;transition:transform .18s cubic-bezier(.2,.9,.3,1.2)}
+.nav button:not(.nav-cta):not(.sound-btn):not(.account-open):hover:after{transform:scaleX(1)}
+.nav-cta,.primary-control,.finger-start,.restart-btn{transition:transform .1s ease,background .12s,color .12s,border-color .12s,box-shadow .12s}
+.nav-cta:hover,.primary-control:hover,.finger-start:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(255,84,24,.22)}
+.nav-cta:active,.primary-control:active,.finger-start:active,.restart-btn:active{transform:scale(.97)}
+.restart-btn:hover svg{animation:restart-spin .5s cubic-bezier(.3,.9,.3,1)}
+@keyframes restart-spin{to{transform:rotate(-360deg)}}
+.metric b{display:inline-block;transition:transform .12s ease,color .12s}
+.metric b.tick{animation:metric-tick .28s cubic-bezier(.2,1.4,.4,1)}
+@keyframes metric-tick{0%{transform:translateY(3px) scale(1.12);color:var(--orange)}100%{transform:none}}
+.brief-key.filled{animation:key-fill .32s cubic-bezier(.2,1.4,.4,1)}
+@keyframes key-fill{0%{transform:scale(.88)}60%{transform:scale(1.1)}100%{transform:scale(1.04)}}
+.keycap.hot{animation:keycap-hot .3s cubic-bezier(.2,1.4,.4,1)}
+@keyframes keycap-hot{0%{transform:translateY(0) scale(.94)}55%{transform:translateY(-2px) scale(1.08)}100%{transform:none}}
+.result h2{animation:result-in .5s cubic-bezier(.2,1,.3,1) both}
+.result .score,.result p,.result-actions{animation:result-in .5s .08s cubic-bezier(.2,1,.3,1) both}
+@keyframes result-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.sound-btn .sound-wave,.metric b.tick,.brief-key.filled,.keycap.hot,.result h2,.result p,.result-actions,.restart-btn:hover svg{animation:none}}
