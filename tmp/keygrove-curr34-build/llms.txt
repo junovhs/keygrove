@@ -1,0 +1,56 @@
+# Relaxed QWERTY
+
+> A complete guided course in making your hands more at home with the keyboard. Accuracy first. Time to settle. Something small to keep along the way.
+
+Not to be confused with: a keyboard layout, a keyboard remapper, Dvorak or Colemak.
+
+## Documentation
+
+### Your course
+
+What is RQWERTY?
+
+RQWERTY is a free, guided touch-typing course on a standard QWERTY keyboard. Its 36 lessons cover letters, capitals, punctuation, numbers and longer mixed passages, with four optional code lessons.
+
+https://keygrove-phi.vercel.app/docs/what-it-is/
+
+### The method
+
+What makes Relaxed QWERTY different?
+
+Relaxed QWERTY keeps the usual QWERTY layout and stable finger assignments, while allowing the hands to move. Z uses the left ring finger, X the left middle, C the left index and B the right index.
+
+https://keygrove-phi.vercel.app/docs/the-method/
+
+### How you advance
+
+How do I finish a lesson?
+
+Each lesson has a short, visible sequence of exercises. Every accuracy pass moves you forward; the last exercise completes the lesson. Chapter passages require 97% accuracy. Speed is never a gate.
+
+https://keygrove-phi.vercel.app/docs/progress/
+
+### Things to keep
+
+How do keepsakes work?
+
+Each chapter gives you one permanent illustrated keepsake. It remembers a capability you practised and opens that chapter’s passage for replay.
+
+https://keygrove-phi.vercel.app/docs/keepsakes/
+
+### Your progress
+
+Where is my progress saved?
+
+Relaxed QWERTY stores progress in this browser, or your account when signed in. An account is free and optional; it syncs progress across devices.
+
+https://keygrove-phi.vercel.app/docs/your-data/
+
+### Made with intention
+
+Who makes RQWERTY?
+
+RQWERTY is made by Strange Systems, the studio behind CropASAP and No Ceremony.
+
+https://keygrove-phi.vercel.app/docs/who-makes-this/
+

@@ -4,7 +4,7 @@ export const PRACTICE_WORDS = `a i ed jeff if did kid feed fed fee die died he h
 /** Authored phrases grow naturally as the taught alphabet expands; punctuation is added only when allowed. */
 export const PRACTICE_PHRASES: readonly string[] = [
   'i did', 'if i did', 'kid did', 'if jeff did', 'kid fed jeff', 'he did', 'i hid her jug', 'hug her kid', 'kid hugged', 'a huge jug', 'jill has a jug', 'hug a kid', 'a kid hugs jill', 'hi kid; hi jill', 'hi you', 'you hurt it', 'they yell', 'he hid', 'i hid', 'he did dig', 'jeff hid', 'i hike high', 'he fed jeff', 'kid hid', 'dig high',
-  'give him', 'he did give', 'give him five', 'hide him', 'i give him', 'give me', 'he hid him', 'him if he did', 'give him his mug', 'i met him', 'let him in', 'give her time', 'a little hint',
+  'give him five', 'hide him', 'give me five', 'he hid him', 'if he hid', 'give him his mug', 'i met him', 'let him in', 'give her time', 'a little hint',
   'ed fed jeff', 'i fed deer', 'red fur', 'free ride', 'deer feed', 'he hurried', 'her huge rug', 'i heard her', 'he hid here',
   'i feel ill', 'i fed red deer', 'a red leaf', 'a girl held a red leaf', 'he had a glass', 'she reads',
   'his kid is ill', 'jill fills his jug', 'hi jill', 'he likes hills', 'she fell', 'his skill', 'sell his fish', 'i like his jug', 'hush kid',
