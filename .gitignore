@@ -4,3 +4,4 @@
 **/.ishoo/worktrees/
 node_modules
 dist/
+tmp/

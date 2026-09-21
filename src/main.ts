@@ -243,6 +243,13 @@ function nextVisual(): void {
   }
   $('nextCue').textContent = '';
 }
+/** Key pitch (cap + gap) measured from the number row, so the stagger tracks every responsive cap size. */
+function measurePitch(): void {
+  const [a, b] = $('keymap').querySelectorAll<HTMLElement>('.keyrow:first-child .keycap');
+  const u = a && b ? b.getBoundingClientRect().left - a.getBoundingClientRect().left : 0;
+  if (u > 0) $('keymap').style.setProperty('--u', `${u}px`);
+}
+window.addEventListener('resize', measurePitch);
 function keymap(): void {
   const c = baseKey(run.current), shifted = isShifted(run.current);
   const focused = new Set([...practiceAllowed()].map(baseKey));
@@ -256,8 +263,11 @@ function keymap(): void {
       ? `<button type="button" class="${classes}" data-key="${escapeHtml(k)}" aria-label="Explore ${escapeHtml(k === ' ' ? 'Space' : k.toUpperCase())}">${escapeHtml(label)}</button>`
       : `<span class="${classes}" data-key="${escapeHtml(k)}">${escapeHtml(label)}</span>`;
   };
-  $('keymap').innerHTML = rows.map((r, i) => `<div class="keyrow" style="--row-offset:${i * 4}px">${[...r].map(cap).join('')}</div>`).join('')
+  // Real ANSI stagger, in key pitch from the backtick's left edge: Tab 1.5u, Caps 1.75u, Shift 2.25u.
+  const stagger = [0, 1.5, 1.75, 2.25];
+  $('keymap').innerHTML = rows.map((r, i) => `<div class="keyrow" style="--row-offset:calc(var(--u, 0px) * ${stagger[i]})">${[...r].map(cap).join('')}</div>`).join('')
     + `<div class="keyrow"><span class="keycap shiftcap ${(helpVisible || guided()) && shifted && fingerForKey(run.current)?.id.startsWith('r') ? 'hot' : ''}">⇧</span>${cap(' ')}<span class="keycap shiftcap ${(helpVisible || guided()) && shifted && fingerForKey(run.current)?.id.startsWith('l') ? 'hot' : ''}">⇧</span></div>`;
+  measurePitch();
   $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => {
     el.onpointerenter = () => peekKey(el.dataset.key!); el.onpointerleave = () => peekKey(null);
     if (mode.kind === 'explore') el.onclick = () => { mode = { kind: 'explore', key: el.dataset.key! }; resetRun(); };
