@@ -393,6 +393,7 @@ kbd{font:inherit}
             <div class="prompt" id="prompt"></div><div class="next-cue" id="nextCue"></div>
           </div>
           <div class="keycue" id="handInstruction"></div>
+          <div class="learning-tools"><button id="guideToggle" type="button" aria-pressed="true">Hide finger hints</button><button id="exploreKeyboard" type="button">Explore the keyboard</button><button id="skipGuided" type="button" hidden>Skip this guided step</button></div>
           <div class="deck guide-strong" id="handsZone">
             <div class="hand-col hand-left-col">
               <div class="home-letters" aria-hidden="true">
@@ -444,7 +445,7 @@ kbd{font:inherit}
           <div class="result-mastery" id="resultMastery"></div>
           <div class="score">
             <div><small>Accuracy</small><b id="resultAcc">0%</b></div>
-            <div><small>Your pace · WPM</small><b id="resultWpm">0</b></div>
+            <div hidden><small>Your pace · WPM</small><b id="resultWpm">0</b></div>
           </div>
           <p class="result-offer" id="resultOffer" hidden></p>
           <div class="result-actions">
@@ -459,13 +460,13 @@ kbd{font:inherit}
   <footer class="footer" id="footer">
     <div class="shell-inner">
         <section class="metrics" aria-label="Typing metrics">
-          <div class="metric"><small>WPM</small><b id="wpm">0</b></div>
+          <div class="metric" hidden><small>WPM</small><b id="wpm">0</b></div>
           <div class="metric"><small>Accuracy</small><b id="acc">100%</b></div>
           <div class="metric">
             <small>Progress</small>
             <div class="progress-row"><b id="pct">0%</b><div class="progress-meter" aria-hidden="true"><span id="progressFill"></span></div></div>
           </div>
-          <div class="metric"><small>Clean sequence</small><b id="combo">0</b></div>
+          <div class="metric" hidden><small>Clean sequence</small><b id="combo">0</b></div>
         </section>
 
     </div>

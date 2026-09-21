@@ -301,6 +301,12 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
  */
 export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
   const allowed = allowedChars(trail);
+  if (opts.exercise?.assessment === 'guided') for (const k of opts.exercise.guidedKeys ?? '') allowed.add(k);
+  if (opts.exercise?.text !== undefined) {
+    const text = opts.exercise.text;
+    if (!text || ![...text].every(c => allowed.has(c))) throw new Error(`Invalid authored exercise for ${trail.id}`);
+    return text;
+  }
   let text = trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts);
   if (opts.exercise && trail.checkpoint && trail.id !== 'flow-checkpoint') {
     const pangram = readablePhrases(allowed).find(p => [...LETTERS].every(k => p.toLowerCase().includes(k)));

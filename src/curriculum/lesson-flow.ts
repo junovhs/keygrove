@@ -7,6 +7,14 @@ export interface LessonExercise {
   format: 'movement' | 'words' | 'passage';
   instruction: string;
   length: number;
+  /** Assisted discovery advances on completion, never on a performance score. */
+  assessment?: 'guided';
+  /** Explicitly introduced keys outside the lesson's assessed alphabet. */
+  guidedKeys?: string;
+  /** A deliberately authored movement phrase, including its word boundaries. */
+  text?: string;
+  /** Later transfer invites independent recall; help remains available. */
+  guidance?: 'on-demand';
 }
 const move = (name: string, stage: StageName, instruction: string, length = 24): LessonExercise => ({ name, stage, format: 'movement', instruction, length });
 const use = (name: string, format: 'words' | 'passage', instruction: string, length: number): LessonExercise => ({ name, stage: 'words', format, instruction, length });

@@ -156,3 +156,17 @@ body:has(.arena.brief-mode) .metrics{visibility:hidden}
 /* The canvas prompt draws with a bleed margin so leaves and sparks fly past the text box instead of clipping on it. */
 .textbox:has(.prompt-canvas),.prompt-canvas{overflow:visible}
 .prompt-canvas canvas{max-width:none!important;pointer-events:none;position:relative;z-index:3}
+
+/* A complete instrument, without speed or combo pressure. */
+.learning-tools{display:flex;justify-content:center;flex-wrap:wrap;gap:8px 20px;margin:8px 0 12px}
+.learning-tools button{font-size:11px;color:var(--muted);padding:6px 2px;border-bottom:1px solid var(--line)}
+.learning-tools button:hover,.learning-tools button:focus-visible{color:var(--orange);border-color:var(--orange)}
+.learning-tools button:disabled{opacity:.4;cursor:default}
+.learning-tools [hidden],.metric[hidden],.score[hidden],.score>[hidden]{display:none!important}
+.metrics{grid-template-columns:1fr 1fr}.metric:last-child{display:none}.score{justify-content:flex-start}
+.keycap.familiar{border-color:#bdb8b0}.keymap button.keycap{cursor:pointer;font-family:inherit;font-weight:inherit}
+.keymap button.keycap:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+@media(max-width:760px){.metrics{grid-template-columns:1fr 1fr}.keymap{margin-left:auto;margin-right:auto}.keymap:has(.keyrow:first-child .keycap:nth-child(12)) .keycap{min-width:0;width:5.7vw;padding:0;height:6vw;font-size:9px}.keymap .keycap.spacebar{width:32vw!important}.keymap .keyrow{gap:2px}.learning-tools{gap:6px 14px}}
+@media(max-width:760px){.nav{gap:10px}.nav button{font-size:9px}.nav .account-open{white-space:nowrap}.prompt-canvas canvas{max-width:100%}.deck{overflow:hidden}}
+/* Keep prompt feedback inside its exercise rather than extending the page. */
+.textbox:has(.prompt-canvas){overflow:hidden}

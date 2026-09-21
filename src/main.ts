@@ -11,6 +11,7 @@ import { decide, sessionReview, type Decision } from './engine/coach';
 import { classifyRun, rollTally } from './engine/errors';
 import { applyRun, currentStage, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
+import { recordPerformance } from './engine/learning';
 import { courseComplete, keepsakeFor, ownedKeepsakes } from './engine/keepsakes';
 import { objectArt, collectionHtml } from './ui/scene';
 import './ui/journey.css';
@@ -30,7 +31,7 @@ import { CanvasPrompt } from './render/prompt';
 import { selfTest as textflowSelfTest } from './render/textflow';
 
 /** What the current run is for: the trail itself, a finger drill, or a coach drill (confusion / reach / review). */
-type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number } | { kind: 'coach'; decision: Decision };
+type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number } | { kind: 'coach'; decision: Decision } | { kind: 'explore'; key: string };
 
 // Guests have a separate durable save. Account state never leaks into a
 // signed-out session; first signup carries the current guest course forward.
@@ -62,6 +63,8 @@ let beforeMastery: Record<string, number> = {};
 /** The briefing being read before this run, if any; `seenBriefs` keeps each exercise to one briefing per session. */
 let brief: { briefing: Briefing; step: number; pressed: Set<string> } | null = null;
 const seenBriefs = new Set<string>();
+let helpVisible = true;
+const guided = () => mode.kind === 'explore' || (mode.kind === 'trail' && runExercise.assessment === 'guided');
 const actionable = (d: Decision) => !['rushing', 'fatigue', 'steady', 'reach'].includes(d.kind);
 const courseFrontier = () => MAIN_TRAILS.find(t => !isCleared(state, t.id)) ?? MAIN_TRAILS.at(-1)!;
 
@@ -71,7 +74,7 @@ const settingsModal = () => $('settingsModal');
 const trail = (): Trail => currentTrail(state);
 const stageName = () => currentStage(state, keys);
 const fingerLevel = () => mode.kind === 'remedial' ? fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level]! : null;
-const practiceAllowed = () => mode.kind === 'remedial' ? new Set(run.text) : allowedChars(runTrail);
+const practiceAllowed = () => mode.kind === 'remedial' || guided() ? new Set(run.text) : allowedChars(runTrail);
 const focusPair = (): FingerPair | null => (mode.kind === 'remedial' ? mode.pair : null);
 
 function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); store(); sync.wrote(); }
@@ -85,6 +88,7 @@ const unlockedLetters = () => [...allowedChars(trail())].filter((k) => k.length 
 const dueNow = () => new Set(keys.dueKeys([...allowedChars(trail())].filter((k) => k.length === 1 && k !== ' ' && k === k.toLowerCase()), Date.now()));
 function makeText(): string {
   const allowed = allowedChars(trail());
+  if (mode.kind === 'explore') return mode.key === ' ' ? '   ' : mode.key.repeat(2) + ' ' + mode.key.repeat(2);
   if (mode.kind === 'remedial') { practice = fingerPractice(mode.pair, mode.level, state.fingerCourses, { known: new Set(MAIN_TRAILS.filter(t => isCleared(state, t.id)).flatMap(t => [...t.newKeys])) }); return practice.text; }
   if (mode.kind === 'coach') {
     const d = mode.decision;
@@ -100,6 +104,7 @@ function resetRun(): void {
   runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail)[runExerciseIndex]!;
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
   practice = null; fingerPassed = false;
+  helpVisible = mode.kind !== 'trail' || runExercise.guidance !== 'on-demand';
   run = new Run(makeText()); outcome = null; decisions = [];
   $('nextAction').textContent = 'Continue';
   $('skipPractice').hidden = mode.kind === 'trail';
@@ -114,6 +119,9 @@ function startCoach(d: Decision): void { mode = { kind: 'coach', decision: d }; 
 // ---- rendering -------------------------------------------------------------
 function header(): void {
   const t = runTrail, g = groveOf(t);
+  if (mode.kind === 'explore') {
+    $('route').innerHTML = ''; $('lessonNo').textContent = 'Your whole keyboard'; $('modeLabel').textContent = 'Guided exploration'; return;
+  }
   if (mode.kind === 'remedial') {
     const selected = mode;
     $('route').innerHTML = fingerLevels(fingerById(selected.pair.sides[0])!).map((_, i) => '<i class="' + (i === selected.level ? 'current' : i < pairCompleted(state.fingerCourses, selected.pair) ? 'done' : '') + '"></i>').join('');
@@ -127,9 +135,8 @@ function header(): void {
 }
 function labels(): void {
   const t = runTrail, g = groveOf(t), f = focusPair();
-  const stageCopy = { drill: 'Meet the new keys. Take your time.', mix: 'Now weave them into familiar movements.', words: t.checkpoint ? 'A fresh passage using everything so far.' : 'Put those movements to work.' };
   $('lessonTitle').textContent = f ? f.name + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : t.name;
-  $('lessonCopy').textContent = f ? fingerLevel()!.instruction + (practice?.helperKeys.length ? ` New helper keys: ${practice.helperKeys.join(' ').toUpperCase()}. Try their short introduction first; the hand guide shows which fingers to use.` : '') : mode.kind === 'coach' ? mode.decision.reason : runExercise.instruction;
+  $('lessonCopy').textContent = f ? fingerLevel()!.instruction + (practice?.helperKeys.length ? ` New helper keys: ${practice.helperKeys.join(' ').toUpperCase()}. Try their short introduction first; the hand guide shows which fingers to use.` : '') : mode.kind === 'coach' ? mode.decision.reason : resolveCopy(runExercise.instruction);
   $('summaryLabel').textContent = replayReturn ? 'A familiar place' : 'This passage';
   $('focusName').textContent = mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : `${runExerciseIndex + 1}/${lessonExercises(t).length} · ${runExercise.name}` : 'Short practice · then your course';
   $('gateLabel').textContent = mode.kind !== 'trail' ? 'No test here' : t.checkpoint ? 'Chapter passage' : 'Accuracy before speed';
@@ -139,6 +146,21 @@ function labels(): void {
     $('gateLabel').textContent = 'Accuracy before speed';
     $('focusInstruction').textContent = `${FINGER_PASS_ACC}% for each finger · at your pace`;
   }
+  if (guided()) {
+    $('gateLabel').textContent = 'Guided · no score';
+    $('focusInstruction').textContent = 'Try each movement slowly. Pauses and corrections are welcome.';
+  }
+  if (mode.kind === 'explore') {
+    $('lessonTitle').textContent = 'Meet ' + (mode.key === ' ' ? 'Space' : mode.key.toUpperCase());
+    $('lessonCopy').textContent = 'Choose any key below. The guide shows its finger. Press lightly; let your hand adjust comfortably.';
+    $('focusName').textContent = 'A small movement, at your pace';
+  }
+  $('exploreKeyboard').textContent = mode.kind === 'explore' ? 'Back to my lesson' : 'Explore the keyboard';
+  $<HTMLButtonElement>('exploreKeyboard').disabled = run.status === 'playing' && mode.kind !== 'explore';
+  $('guideToggle').hidden = guided() || !!brief;
+  $('guideToggle').textContent = helpVisible ? 'Hide finger hints' : 'Show finger hints';
+  $('guideToggle').setAttribute('aria-pressed', String(helpVisible));
+  $('skipGuided').hidden = mode.kind !== 'trail' || !guided() || !!brief;
   $('beginCue').classList.toggle('gone', run.status !== 'idle' || !!brief);
   $('beginCue').textContent = mode.kind === 'trail' ? 'Begin typing when you\'re ready · any key' : 'Begin typing when you\'re ready · a short practice';
 }
@@ -157,7 +179,7 @@ function prompt(): void {
 }
 function metrics(): { wpm: number; acc: number; pct: number } {
   const m = run.metrics(now());
-  $('wpm').textContent = String(m.wpm); $('acc').textContent = m.acc + '%'; $('pct').textContent = m.pct + '%';
+  $('wpm').textContent = String(m.wpm); $('acc').textContent = guided() ? 'No score' : m.acc + '%'; $('pct').textContent = m.pct + '%';
   const combo = $('combo');
   if (combo.textContent !== String(run.combo)) { combo.textContent = String(run.combo); if (run.combo > 0 && run.combo % 10 === 0) { combo.classList.remove('tick'); void combo.offsetWidth; combo.classList.add('tick'); } }
   const fill = document.getElementById('progressFill'); if (fill) fill.style.width = m.pct + '%';
@@ -200,6 +222,10 @@ function badges(active: Partial<Record<string, string>>): void {
 }
 function nextVisual(): void {
   if (brief) { paintBrief(); return; }
+  if (!helpVisible && !guided() && run.status !== 'complete') {
+    badges({}); paintHand('left', null); paintHand('right', null);
+    $('handInstruction').textContent = 'Prepare the next movement. Finger hints are here whenever you want them.'; $('nextCue').textContent = ''; return;
+  }
   const c = run.current, f = fingerForKey(c);
   badges(f && 'anchor' in f && c !== ' ' ? { [f.id]: baseKey(c) } : {});
   const shifted = isShifted(c);
@@ -219,12 +245,23 @@ function nextVisual(): void {
 }
 function keymap(): void {
   const c = baseKey(run.current), shifted = isShifted(run.current);
-  const allowed = practiceAllowed(), bases = new Set([...allowed].map(baseKey));
+  const focused = new Set([...practiceAllowed()].map(baseKey));
   const homes = new Set('fj');
-  const rows = [...([...bases].some(k => /[0-9\-=]/.test(k)) ? ['`1234567890-='] : []), 'qwertyuiop' + (bases.has('[') || bases.has('\\') ? '[]\\' : ''), "asdfghjkl;" + (bases.has("'") ? "'" : ''), 'zxcvbnm,./'];
-  $('keymap').innerHTML = rows.map((r, i) => '<div class="keyrow" style="--row-offset:' + (i * 5) + 'px">' + [...r].map(k => '<span class="keycap ' + (homes.has(k) ? 'home ' : '') + (bases.has(k) ? '' : 'locked ') + (c === k ? 'hot' : '') + '" data-key="' + escapeHtml(k) + '">' + escapeHtml(c === k && shifted ? run.current : k.toUpperCase()) + '</span>').join('') + '</div>').join('')
-    + '<div class="keyrow"><span class="keycap shiftcap ' + (shifted && fingerForKey(run.current)?.id.startsWith('r') ? 'hot' : '') + '">⇧</span><span class="keycap spacebar ' + (c === ' ' ? 'hot' : '') + '" data-key=" ">SPACE</span><span class="keycap shiftcap ' + (shifted && fingerForKey(run.current)?.id.startsWith('l') ? 'hot' : '') + '">⇧</span></div>';
-  $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => { el.onpointerenter = () => peekKey(el.dataset.key!); el.onpointerleave = () => peekKey(null); });
+  const rows = ['`1234567890-=', 'qwertyuiop[]\\', "asdfghjkl;'", 'zxcvbnm,./'];
+  const cap = (k: string): string => {
+    const hot = (helpVisible || guided()) && c === k;
+    const classes = `keycap ${homes.has(k) ? 'home ' : ''}${focused.has(k) ? 'familiar ' : ''}${hot ? 'hot' : ''}${k === ' ' ? ' spacebar' : ''}`;
+    const label = k === ' ' ? 'SPACE' : hot && shifted ? run.current : k.toUpperCase();
+    return mode.kind === 'explore'
+      ? `<button type="button" class="${classes}" data-key="${escapeHtml(k)}" aria-label="Explore ${escapeHtml(k === ' ' ? 'Space' : k.toUpperCase())}">${escapeHtml(label)}</button>`
+      : `<span class="${classes}" data-key="${escapeHtml(k)}">${escapeHtml(label)}</span>`;
+  };
+  $('keymap').innerHTML = rows.map((r, i) => `<div class="keyrow" style="--row-offset:${i * 4}px">${[...r].map(cap).join('')}</div>`).join('')
+    + `<div class="keyrow"><span class="keycap shiftcap ${(helpVisible || guided()) && shifted && fingerForKey(run.current)?.id.startsWith('r') ? 'hot' : ''}">⇧</span>${cap(' ')}<span class="keycap shiftcap ${(helpVisible || guided()) && shifted && fingerForKey(run.current)?.id.startsWith('l') ? 'hot' : ''}">⇧</span></div>`;
+  $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => {
+    el.onpointerenter = () => peekKey(el.dataset.key!); el.onpointerleave = () => peekKey(null);
+    if (mode.kind === 'explore') el.onclick = () => { mode = { kind: 'explore', key: el.dataset.key! }; resetRun(); };
+  });
 }
 /** Hovering a keycap paints its finger; hovering a finger lights its keys. Null restores the live state. */
 function peekKey(k: string | null): void {
@@ -239,9 +276,8 @@ function peekFinger(id: string | null): void {
   $('keymap').querySelectorAll('.keycap.peek').forEach((x) => x.classList.remove('peek'));
   if (id === null) { nextVisual(); return; }
   const f = fingerById(id);
-  const allowed = practiceAllowed();
   paintHand('left', id); paintHand('right', id);
-  const keys = id === 'thumb' ? [' '] : f ? [...f.keys].filter((k) => allowed.has(k)) : [];
+  const keys = id === 'thumb' ? [' '] : f ? [...f.keys] : [];
   $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => { if (keys.includes(el.dataset.key!)) el.classList.add('peek'); });
 }
 onFingerHover(peekFinger);
@@ -261,7 +297,7 @@ const BRIEF_ICONS: Record<BriefIcon, string> = {
 /** Open the lesson's briefing before its first exercise, once per lesson per session. */
 function openBrief(): void {
   const briefing = briefingFor(runTrail);
-  if (!briefing || runExerciseIndex !== 0 || seenBriefs.has(runTrail.id) || run.status !== 'idle') return;
+  if (!briefing || seenBriefs.has(runTrail.id) || run.status !== 'idle') return;
   brief = { briefing, step: 0, pressed: new Set() };
   arena().classList.add('brief-mode');
   render();
@@ -371,6 +407,7 @@ function showCompletion(): void {
   $('resultTitle').focus();
 }
 function continueAfterResult(firstKey?: string): void {
+  if (mode.kind === 'explore') { resetRun(); return; }
   if (mode.kind === 'remedial') {
     if (fingerPassed) mode.level = Math.min(9, mode.level + 1);
     resetRun(); return;
@@ -384,24 +421,18 @@ function continueAfterResult(firstKey?: string): void {
   else if (gate) { const d = gate; gate = null; startCoach(d); return; }
   replayReturn = null;
   resetRun();
-  if (firstKey !== undefined && !brief) { begin(); typeKey(firstKey); }
+  if (firstKey !== undefined && !brief && firstKey === run.current) { begin(); typeKey(firstKey); }
 }
 function typeKey(k: string): void {
   const r = run.type(k, now());
   if (r === 'ignored') return;
   const last = run.strokes.at(-1)!;
-  const timingPrev = run.strokes.at(-2);
-  const timed = timingPrev?.correct && timingPrev.index === last.index - 1 && timingPrev.key !== ' ' && last.key !== ' ' && last.latencyMs < 2000;
-  keys.record(last.key, last.correct, timed ? last.latencyMs : null, Date.now(), last.correct ? undefined : k); // first key of a run has no rhythm evidence
-  // The pair is the two wanted letters; its evidence is this press. Only after a correct previous press: a retry is not a transition.
-  const prev = run.strokes.at(-2);
-  if (prev && prev.correct && prev.index === last.index - 1) trans.record(prev.key, last.key, last.correct, last.latencyMs);
-  canvasPrompt?.onKey(last.correct ? 'ok' : 'miss', last.correct ? run.pos - 1 : run.pos, last.key === ' ');
+  recordPerformance(run, keys, trans, Date.now(), guided() ? run.text.length : 0);
+  if (last.correct || !guided()) canvasPrompt?.onKey(last.correct ? 'ok' : 'miss', last.correct ? run.pos - 1 : run.pos, last.key === ' ');
   // The keystroke tick rises a hair with the combo, so a clean run audibly warms up; a miss is a low shrug.
-  if (!last.correct) sound.play('miss');
-  else if (last.key === ' ') sound.play('word', 1, 1 + Math.min(run.combo, 40) * 0.004);
-  else sound.play('key', 1, 1 + Math.min(run.combo, 40) * 0.006);
-  if (last.correct && run.combo > 0 && run.combo % 20 === 0) sound.play('streak');
+  if (!last.correct && !guided()) sound.play('miss');
+  else if (last.correct && last.key === ' ') sound.play('word', 1, 1 + Math.min(run.combo, 40) * 0.004);
+  else if (last.correct) sound.play('key');
   if (r === 'done') { canvasPrompt?.onComplete(); return finish(); }
   prompt(); metrics(); keymap(); nextVisual();
 }
@@ -414,19 +445,21 @@ function thirds(): { errors: number; lat: number }[] {
 function finish(): void {
   const m = metrics(), t = runTrail, wasReplay = replayReturn !== null;
   let title = 'Practice complete.', copy = 'A little more familiarity to take into your next passage.';
-  decisions = []; gate = null; keys.endRun();
+  decisions = []; gate = null; if (!guided()) keys.endRun();
   const focus = focusKeys(t, keys);
   if (mode.kind === 'trail') {
     state.trail = t.id;
     outcome = applyRun(state, keys, { hits: run.hits, attempts: run.attempts, maxCombo: run.maxCombo, wpm: m.wpm, acc: m.acc, rhythm: run.rhythm(), now: Date.now(), stage: runStage });
-    const p = progressOf(state, t.id);
-    const unlocked = [...allowedChars(t)].filter(k => k === k.toLowerCase());
-    const errors = classifyRun(run.text, run.strokes, activeMethod());
-    state.errors = rollTally(state.errors, errors);
-    const missedKeys = [...new Set(run.strokes.filter(s => !s.correct).map(s => s.key.toLowerCase()))];
-    decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm: run.rhythm(), runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent, errors, missedKeys, weakPairs: trans.weakest(unlocked) });
-    // One bounded repair between course attempts. Timing alone never sends a player off course.
-    if (!outcome.passed && !wasReplay && missedKeys.length && run.errors >= 3) gate = decisions.find(actionable) ?? { kind: 'precision', required: false, keys: missedKeys.slice(0, 3), title: 'A little room to settle', reason: `A short practice with ${missedKeys.slice(0, 3).map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}, then we will try the passage again.` };
+    if (!guided()) {
+      const p = progressOf(state, t.id);
+      const unlocked = [...allowedChars(t)].filter(k => k === k.toLowerCase());
+      const errors = classifyRun(run.text, run.strokes, activeMethod());
+      state.errors = rollTally(state.errors, errors);
+      const missedKeys = [...new Set(run.strokes.filter(s => !s.correct).map(s => s.key.toLowerCase()))];
+      decisions = decide(keys, { thirds: thirds(), wpm: m.wpm, acc: m.acc, rhythm: run.rhythm(), runsOnTrail: p.runs, focusKeys: focus, unlocked, passed: outcome.passed, fails: p.fails, recentAcc: p.recent, errors, missedKeys, weakPairs: trans.weakest(unlocked) });
+      // One bounded repair between course attempts. Timing alone never sends a player off course.
+      if (!outcome.passed && !wasReplay && missedKeys.length && run.errors >= 3) gate = decisions.find(actionable) ?? { kind: 'precision', required: false, keys: missedKeys.slice(0, 3), title: 'A little room to settle', reason: `A short practice with ${missedKeys.slice(0, 3).map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}, then we will try the passage again.` };
+    }
     if (wasReplay) { title = 'A familiar place, revisited.'; copy = 'Your next lesson is waiting right where you left it.'; state.trail = replayReturn!; }
     else if (outcome.firstClear && t.id === 'flow-checkpoint') { title = 'Look what your hands can do.'; copy = 'You completed all 36 lessons: letters, capitals, punctuation, numbers and a longer mixed passage. Keep using this in everyday writing. Fluency grows with use.'; }
     else if (outcome.firstClear && t.checkpoint) { title = `${groveOf(t).name}, complete.`; copy = keepsakeFor(t.grove).line + (outcome.nextTrail ? ` Next, ${groveOf(outcome.nextTrail).name}: ${resolveCopy(outcome.nextTrail.blurb ?? groveOf(outcome.nextTrail).blurb)}` : ' A small extra, made yours.'); }
@@ -434,6 +467,11 @@ function finish(): void {
     else if (!outcome.passed) { title = 'Try this passage again.'; copy = `${gate ? 'A short practice will help with the missed keys, then we’ll try again.' : 'Take your time; there is no timer to beat.'}`; }
     else { title = 'Exercise complete.'; copy = `${outcome.exercise.index + 1} of ${outcome.exercise.total} complete. Next: ${outcome.exercise.nextName}.`; }
     copy = `${m.acc}% accuracy · ${t.checkpoint ? 97 : gateFor(t).passAcc}% needed. ${copy}`;
+  }
+  if (guided()) {
+    title = 'A little more familiar.';
+    copy = mode.kind === 'explore' ? 'Choose another key, repeat this movement, or return to your lesson. There is no score here.'
+      : `Guided practice complete. Next: ${outcome?.exercise.nextName ?? 'your next lesson'}. Take this movement at whatever pace feels comfortable.`;
   }
   if (mode.kind === 'remedial' && practice) {
     const replay = pairCompleted(state.fingerCourses, mode.pair) > mode.level;
@@ -443,8 +481,10 @@ function finish(): void {
       ? mode.level === 9 ? 'All ten levels are yours to revisit whenever you like.' : 'Your progress is saved. Continue to the next level at your own pace.'
       : 'Some movements need another pass. Your next practice will focus on them; the progress you earned is saved.';
   }
-  const newly = [...allowedChars(t)].filter(k => k === k.toLowerCase()).filter(k => keys.mastery(k) >= MASTERED && (beforeMastery[k] ?? 0) < MASTERED);
+  const newly = guided() ? [] : [...allowedChars(t)].filter(k => k === k.toLowerCase()).filter(k => keys.mastery(k) >= MASTERED && (beforeMastery[k] ?? 0) < MASTERED);
   $('resultMastery').textContent = newly.length ? `Settled this time: ${newly.map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}` : `${run.hits} characters typed · ${run.errors === 0 ? 'no missed keys' : `${run.errors} missed ${run.errors === 1 ? 'key' : 'keys'}`}`;
+  if (guided()) $('resultMastery').textContent = 'Slow is welcome. Let your hands stay easy.';
+  $('result').querySelector<HTMLElement>('.score')!.hidden = guided();
   const earned = outcome?.firstClear && t.checkpoint;
   const k = keepsakeFor(t.grove);
   $('resultObject').innerHTML = earned ? `${objectArt(k)}<span class="eyebrow">Yours to keep</span><h3>${escapeHtml(k.name)}</h3><p>${escapeHtml(k.line)}</p>` : '';
@@ -462,6 +502,7 @@ function finish(): void {
     $('nextAction').textContent = !fingerPassed ? 'Continue practice' : mode.level === 9 ? 'Replay final level' : `Next: ${fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level + 1]!.name}`;
     $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my course';
   }
+  if (mode.kind === 'explore') { $('nextAction').textContent = 'Try this key again'; $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my lesson'; }
   // The result's chime, a beat after the passage's own burst: the keepsake sparkle outranks a lesson clear outranks a pass.
   const chime: CueName = mode.kind === 'remedial' ? (fingerPassed ? 'complete' : 'settle') : earned ? 'sparkle' : outcome?.firstClear ? 'clear' : outcome?.passed ? 'complete' : 'settle';
   setTimeout(() => sound.play(chime), 260);
@@ -560,6 +601,17 @@ document.addEventListener('keydown', (e) => {
 });
 $('prompt').onclick = () => { if (run.status === 'idle' && !brief) begin(); };
 $('focusNav').onclick = () => { if (arena().classList.contains('focus-mode')) closeFocus(); else openFocus(); };
+$('guideToggle').onclick = () => { helpVisible = !helpVisible; labels(); keymap(); nextVisual(); $('lessonTitle').focus(); };
+$('exploreKeyboard').onclick = () => {
+  if (mode.kind === 'explore') mode = { kind: 'trail' };
+  else { if (replayReturn) { state.trail = replayReturn; replayReturn = null; } mode = { kind: 'explore', key: 'f' }; }
+  resetRun();
+};
+$('skipGuided').onclick = () => {
+  if (mode.kind !== 'trail' || !guided()) return;
+  applyRun(state, keys, { hits: 0, attempts: 0, maxCombo: 0, wpm: 0, acc: 0, rhythm: 0, now: Date.now() });
+  save(); resetRun();
+};
 $('resetRunBtn').onclick = () => { if (run.status === 'playing') abort(); else resetRun(); };
 $('lessonsNav').onclick = () => { if (arena().classList.contains('map-mode')) closeMap(); else openMap(); };
 $('statsNav').onclick = () => openMap(true);
@@ -677,7 +729,7 @@ const played: string[] = [];
 sound.onPlay = (name) => { played.push(name); if (played.length > 200) played.shift(); };
 Object.defineProperty(window, 'keygrove', {
   value: Object.freeze({
-    snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, outcome, decisions, gate, brief: brief ? { title: brief.briefing.title, step: brief.step, tip: brief.briefing.tips[brief.step]!.title } : null, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
+    snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, exercise: runExercise, guided: guided(), helpVisible, outcome, decisions, gate, brief: brief ? { title: brief.briefing.title, step: brief.step, tip: brief.briefing.tips[brief.step]!.title } : null, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
     import: (raw: unknown) => applyImport(raw),
     openMap,
     selftest: textflowSelfTest,

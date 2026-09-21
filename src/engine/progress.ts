@@ -65,26 +65,29 @@ export interface Outcome {
 export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
   const trail = currentTrail(s);
   const exercises = lessonExercises(trail), index = exerciseIndex(s, trail);
+  const guided = exercises[index]!.assessment === 'guided';
   const p = progressOf(s, trail.id);
   if (!p.cleared) s.lessonSteps[trail.id] ??= 0;
   const gate = gateFor(trail);
-  const stars = starsFor(gate, r.acc, r.rhythm);
+  const stars = guided ? 0 : starsFor(gate, r.acc, r.rhythm);
   const target = trail.checkpoint ? 97 : gate.passAcc;
-  const passed = r.acc >= target;
+  const passed = guided || r.acc >= target;
   const wasCleared = p.cleared;
   let advance: Outcome['advance'] = 'none';
   let next: Trail | null = null;
   const needsTwoStars = false;
   let firstClear = false;
-  p.runs++;
-  p.recent = [...p.recent, r.acc].slice(-5);
-  p.cleanStreak = r.acc >= 97 && r.rhythm >= 0.6 ? (p.cleanStreak ?? 0) + 1 : 0;
+  if (!guided) {
+    p.runs++;
+    p.recent = [...p.recent, r.acc].slice(-5);
+    p.cleanStreak = r.acc >= 97 && r.rhythm >= 0.6 ? (p.cleanStreak ?? 0) + 1 : 0;
+  }
   const focus = focusKeys(trail, model, r.now);
   const mastery = focus.map((k) => ({ key: k, mastery: model.mastery(k, r.now) }));
   const blockers = passed ? [] : [`${r.acc}% accuracy; ${target}% needed to continue`];
 
   if (passed) {
-    p.fails = 0;
+    if (!guided) p.fails = 0;
     p.stars = Math.max(p.stars, stars) as Stars;
     if (!wasCleared) {
       s.lessonSteps[trail.id] = index + 1;
@@ -102,12 +105,14 @@ export function applyRun(s: SaveV6, model: KeyModel, r: RunInput): Outcome {
     p.fails++;
   }
   const swift = swiftBonus(r.wpm, gate.swiftWpm);
-  const xp = xpFor(r.hits, r.acc, r.maxCombo, firstClear, swift);
-  p.bestWpm = Math.max(p.bestWpm, r.wpm); p.bestAcc = Math.max(p.bestAcc, r.acc);
-  const st = s.stats;
-  st.runs++; st.chars += r.hits; st.attempts += r.attempts; st.xp += xp;
-  st.bestWpm = Math.max(st.bestWpm, r.wpm); st.bestAcc = Math.max(st.bestAcc, r.acc); st.bestCombo = Math.max(st.bestCombo, r.maxCombo);
-  const streak = bumpStreak(st.days, st.lastDay, r.now); st.days = streak.days; st.lastDay = streak.lastDay;
+  const xp = guided ? 0 : xpFor(r.hits, r.acc, r.maxCombo, firstClear, swift);
+  if (!guided) {
+    p.bestWpm = Math.max(p.bestWpm, r.wpm); p.bestAcc = Math.max(p.bestAcc, r.acc);
+    const st = s.stats;
+    st.runs++; st.chars += r.hits; st.attempts += r.attempts; st.xp += xp;
+    st.bestWpm = Math.max(st.bestWpm, r.wpm); st.bestAcc = Math.max(st.bestAcc, r.acc); st.bestCombo = Math.max(st.bestCombo, r.maxCombo);
+    const streak = bumpStreak(st.days, st.lastDay, r.now); st.days = streak.days; st.lastDay = streak.lastDay;
+  }
   const exercise = { index, total: exercises.length, name: exercises[index]!.name, nextName: !p.cleared ? exercises[exerciseIndex(s, trail)]!.name : null };
   return { exercise, passed, stars, xp, firstClear, advance, mastery, blockers, nextTrail: next, needsTwoStars, swift };
 }
