@@ -18,6 +18,6 @@
   "dependencies": {
     "@chenglou/pretext": "0.0.9",
     "@supabase/supabase-js": "^2.116.0",
-    "dopedocs": "git+https://github.com/junovhs/dopedocs.git"
+    "dopedocs": "^0.3.0"
   }
 }
