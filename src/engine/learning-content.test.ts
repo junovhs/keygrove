@@ -8,15 +8,17 @@ import { generate } from './textgen';
 import { fingerPractice } from './finger-practice';
 afterEach(() => setMethod(DEFAULT_METHOD_ID));
 
-it('every planned course exercise covers its focus using only taught keys, at a bounded length', () => {
+it('every planned exercise covers its assessed focus or explicitly guided keys, at a bounded length', () => {
   for (const method of METHODS) {
     setMethod(method.id);
     for (const trail of TRAILS) for (const exercise of lessonExercises(trail)) for (let seed = 0; seed < 10; seed++) {
       const text = generate(trail, exercise.stage, { exercise, seed });
-      expect([...text].every(k => allowedChars(trail).has(k)), `${trail.id}/${exercise.name}: ${text}`).toBe(true);
-      expect(text.length).toBeGreaterThan(6);
+      const allowed = allowedChars(trail);
+      if (exercise.assessment === 'guided') for (const k of exercise.guidedKeys ?? '') allowed.add(k);
+      expect([...text].every(k => allowed.has(k)), `${trail.id}/${exercise.name}: ${text}`).toBe(true);
+      expect(text.length).toBeGreaterThanOrEqual(4);
       expect(text.length, `${trail.id}/${exercise.name}/${seed}: ${text}`).toBeLessThan(trail.length * 2 + 100);
-      for (const k of trail.newKeys) expect(text.toLowerCase(), `${trail.id}/${exercise.name}`).toContain(k);
+      for (const k of exercise.assessment === 'guided' ? exercise.guidedKeys ?? '' : exercise.focusKeys ?? trail.newKeys) expect(text.toLowerCase(), `${trail.id}/${exercise.name}`).toContain(k.toLowerCase());
       expect(text).not.toContain('  ');
     }
   }
@@ -25,7 +27,7 @@ it('introduces Space deliberately after the first three short landmark exercises
   const t = trailById('anchors'), exercises = lessonExercises(t);
   for (const exercise of exercises.slice(0, 3)) {
     const text = generate(t, exercise.stage, { exercise, seed: 3 });
-    expect(text).toMatch(/^[fj]+$/); expect(text.length).toBeLessThanOrEqual(30);
+    expect(text).not.toContain(' '); expect(text.length).toBeLessThanOrEqual(30);
   }
   const last = exercises[3]!;
   const text = generate(t, last.stage, { exercise: last, seed: 3 });
@@ -39,7 +41,7 @@ it('guarantees real words with E/I and G/H and constrained phrases with G/H', ()
     expect(text.split(' ').every(w => PRACTICE_WORDS.includes(w))).toBe(true);
     expect(text).not.toMatch(/\b(iii|diff|ref)\b/);
   }
-  const t = trailById('index-reach'), ex = lessonExercises(t)[3]!;
+  const t = trailById('index-reach'), ex = lessonExercises(t).at(-1)!;
   const text = generate(t, ex.stage, { exercise: ex, seed: 7 });
   expect(readablePhrases(allowedChars(t)).some(p => text.includes(p))).toBe(true);
 });

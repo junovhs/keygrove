@@ -1,43 +1,37 @@
 import type { Trail } from './types';
 
-/**
- * Just-in-time coaching shown once, before a lesson's first exercise (docs/progression.md §Briefings).
- * One message at a time, at most four, and as few as the lesson truly needs. Copy uses `{f}`-style
- * placeholders resolved against the active method — never a hard-coded finger. `keys` are the keycaps
- * to light and the fingers to paint while the step is read. A `press` step is interactive: the learner
- * presses each listed key (ideally with the named finger) and the step advances on its own.
- */
 export type BriefIcon = 'hand' | 'bumps' | 'anchor' | 'feather' | 'eye' | 'space' | 'rhythm' | 'stretch';
-/** One step: an icon, a short title, one sentence of coaching, keys to light, and optionally keys to press. */
 export interface BriefTip { icon: BriefIcon; title: string; body: string; keys?: string; press?: string }
-/** A briefing for one lesson: a title, a one-line lead, and one to four steps. */
 export interface Briefing { title: string; lead: string; tips: readonly BriefTip[] }
-
 const tip = (icon: BriefIcon, title: string, body: string, keys?: string, press?: string): BriefTip => ({ icon, title, body, ...(keys ? { keys } : {}), ...(press ? { press } : {}) });
 const brief = (title: string, lead: string, ...tips: BriefTip[]): Briefing => ({ title, lead, tips });
-
-/** Briefings keyed by trail id. Lessons without an entry show none. */
 const BRIEFINGS: Record<string, Briefing> = {
-  anchors: brief('Starting position', 'Where your hands rest, and which fingers move first.',
-    tip('hand', 'Use your index fingers', 'Press F with your {f}, then J with your {j}.', 'fj', 'fj'),
-    tip('bumps', 'Feel the bumps', 'F and J carry small ridges. Rest your fingertips on them without looking; that is how you find home again.', 'fj'),
-    tip('anchor', 'Keep your hands still', 'Only the index fingers press. Every other finger rests lightly on its key, and your wrists float rather than plant.', 'fj')),
-  'inner-pair': brief('Middle fingers', 'D and K sit right beside your landmarks.',
-    tip('hand', 'Use your middle fingers', 'Press D with your {d}, then K with your {k}. They already rest on these keys.', 'dk', 'dk'),
-    tip('anchor', 'Press down, not across', 'Index fingers stay on the bumps. The middle finger presses straight down; nothing reaches across.', 'fjdk')),
-  'middle-up': brief('Middle fingers reach up', 'E and I live on the top row, directly above D and K.',
-    tip('stretch', 'Reach up with the middle fingers', 'Press E with your {e}, then I with your {i}. Curl the finger up and back; the hand stays where it is.', 'ei', 'ei'),
-    tip('anchor', 'Return to D and K', 'After E, settle back onto D. After I, back onto K. The return is half the movement, and real words start here.', 'dk')),
-  'index-reach': brief('Index fingers reach inward', 'G and H sit between your landmarks.',
-    tip('stretch', 'Slide inward with the index fingers', 'Press G with your {g}, then H with your {h}. One key inward and back; every other finger stays put.', 'gh', 'gh'),
-    tip('bumps', 'Back to the bump', 'Feel for the ridge on F or J as you return. If the wrist turns, you have gone too far.', 'fj')),
-  'core-words': brief('Everything so far', 'Eight keys, four fingers, real words.',
-    tip('eye', 'Read the word, then type it', 'One finger per key, hands still, and see the whole word before the first press. Speed follows accuracy on its own.', 'fjdkeigh')),
-  'roots-checkpoint': brief('Roots checkpoint', 'A longer passage using everything from this chapter.',
-    tip('rhythm', '97% accuracy, any pace', 'There is no speed target. Whenever you lose your place, feel for the bumps on F and J and start the next word from there.', 'fjdkeigh')),
+  anchors: brief('Find your bearings', 'Small, accurate movements. As slowly as you need.',
+    tip('hand', 'Find F and J deliberately', 'Press F with your {f}, then J with your {j}.', 'fj', 'fj'),
+    tip('bumps', 'Landmarks, not anchors', 'Feel the bumps to orient yourself. Your hands may adjust a little; you do not need to return here after every press.', 'fj'),
+    tip('feather', 'An easy touch', 'Use only the pressure needed for the key. Let the other fingers stay easy. Pause if you notice tension or strain.', 'fj')),
+  'inner-pair': brief('Another pair joins in', 'Connect the fingers rather than holding the hand still.',
+    tip('hand', 'Find D and K deliberately', 'Press D with your {d}, then K with your {k}.', 'dk', 'dk'),
+    tip('feather', 'Prepare the next finger', 'While one finger presses, let the next get ready. Keep the movements small without making the hand rigid.', 'fjdk')),
+  'middle-up': brief('Move into your first words', 'Connect an upward reach to a familiar movement.',
+    tip('stretch', 'Find E and I deliberately', 'Press E with your {e}, then I with your {i}. A small hand adjustment is welcome.', 'ei', 'ei'),
+    tip('eye', 'Connect, rather than reset', 'E and D share a finger; I and K share a finger. Move toward the next letter, without a compulsory return between presses.', 'edik')),
+  'index-reach': brief('Reach inward', 'These small movements open more useful words.',
+    tip('stretch', 'Find G and H deliberately', 'Press G with your {g}, then H with your {h}. Keep the press light.', 'gh', 'gh'),
+    tip('eye', 'Carry coordination into a word', 'See hi or hide as a little movement phrase. Find each letter slowly, then connect them without unnecessary resets.', 'hi')),
+  'core-words': brief('Reach down', 'The lower row is part of the same instrument.',
+    tip('stretch', 'Find V and M deliberately', 'Press V with your {v}, then M with your {m}. Let the hand make a small comfortable adjustment.', 'vm', 'vm'),
+    tip('eye', 'Look ahead by one movement', 'Connect give and him. Prepare the next finger while the current one presses; there is no need to hurry.', 'vm')),
+  'roots-checkpoint': brief('Your first connected passage', 'Use the movements from all three letter rows.',
+    tip('rhythm', '97% accuracy, at your pace', 'Slow practice counts fully. Read a word ahead, pause when you need to, and use the landmarks if you lose your bearings.', 'fjdkeighvm')),
 };
-
-/** The briefing for a lesson, or null when it has none. */
-export const briefingFor = (trail: Trail): Briefing | null => BRIEFINGS[trail.id] ?? null;
-/** Trails that carry briefings, for tests and docs. */
+/** Later new movements also receive a short explicit introduction, resolved through the active method. */
+export function briefingFor(trail: Trail): Briefing | null {
+  if (BRIEFINGS[trail.id]) return BRIEFINGS[trail.id]!;
+  if (trail.shift) return brief('Opposite-hand Shift', 'Connect a held modifier to a light letter press.', tip('hand', 'Let the other hand help', 'Hold right Shift for left-hand letters and left Shift for right-hand letters. The guide shows both hands; release between capitals.', 'fj'));
+  if (!trail.newKeys) return null;
+  return brief(trail.name, 'Meet the movement before expecting yourself to remember it.',
+    ...[...trail.newKeys].reduce<string[]>((chunks, k, i) => { if (i % 2 === 0) chunks.push(k); else chunks[chunks.length - 1] += k; return chunks; }, []).slice(0, 3).map(ks => tip('hand', 'Find each key deliberately', [...ks].map(k => `${k.toUpperCase()} uses your {${k}}.`).join(' ') + ' Follow the Shift guide when needed.', ks)),
+    tip('feather', 'Small and comfortable', 'Allow an easy hand adjustment. Keep the press light; pause if you notice tension. Slow, accurate practice counts fully.'));
+}
 export const briefedTrails = (): string[] => Object.keys(BRIEFINGS);

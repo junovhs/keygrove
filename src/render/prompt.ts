@@ -127,7 +127,11 @@ export class CanvasPrompt {
   private measureHost(): void {
     const rect = this.host.getBoundingClientRect();
     const fontPx = this.state.reading ? Math.max(20, Math.min(28, Math.round(rect.width * 0.033))) : this.compact ? Math.max(24, Math.min(33, Math.round(rect.width * 0.03))) : Math.max(22, Math.min(34, Math.round(rect.width * 0.024)));
-    this.width = Math.max(1, Math.floor(rect.width) - this.padding * 2);
+    const width = Math.max(1, Math.floor(rect.width) - this.padding * 2);
+    // Opening a briefing/result can temporarily measure a hidden prompt at width 0.
+    // Do not animate a column of offscreen letters into the new readable passage.
+    if (width !== this.width) { this.gplaced = false; this.effects.reset(); }
+    this.width = width;
     this.dpr = Math.min(3, window.devicePixelRatio || 1);
     if (fontPx !== this.fontPx) { this.fontPx = fontPx; this.flow.setFont(this.font(), this.lineHeight(), this.letterSpacing()); }
     this.lastFlow = null;

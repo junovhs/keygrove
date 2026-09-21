@@ -43,10 +43,12 @@ describe('method-aware lesson copy', () => {
   it('resolves finger placeholders under whichever method is active', async () => {
     const { resolveCopy, trailById } = await import('./index');
     setMethod(RELAXED_QWERTY.id);
-    expect(resolveCopy(trailById('index-stretch-down').blurb)).toBe('C is the LEFT INDEX, B is the RIGHT INDEX. Follow the stagger, not the column.');
+    expect(resolveCopy(trailById('index-stretch-up').blurb)).toContain('C is your left index');
+    expect(resolveCopy(trailById('index-down').blurb)).toContain('B belongs to your right index');
     expect(resolveCopy(trailById('ring-down').blurb)).toBe('Z is the LEFT RING. Period is the right ring.');
     setMethod(TRADITIONAL.id);
-    expect(resolveCopy(trailById('index-stretch-down').blurb)).toBe('C is the LEFT MIDDLE, B is the LEFT INDEX. Follow the stagger, not the column.');
+    expect(resolveCopy(trailById('index-stretch-up').blurb)).toContain('C is your left middle');
+    expect(resolveCopy(trailById('index-down').blurb)).toContain('B belongs to your left index');
     expect(resolveCopy(trailById('ring-down').blurb)).toBe('Z is the LEFT PINKY. Period is the right ring.');
     setMethod(RELAXED_QWERTY.id);
   });

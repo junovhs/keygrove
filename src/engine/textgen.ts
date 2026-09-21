@@ -107,15 +107,19 @@ function fill(len: number, next: () => string): string {
   return s;
 }
 
+/** Short connected movements: the next target need not be a return to home. */
 function rhythmPatterns(keys: string): string[] {
-  const ks = [...keys].filter((k) => k !== ' ');
+  const ks = [...keys].filter(k => k !== ' ');
   const pats: string[] = [];
   for (const k of ks) {
     const a = anchorOf(k);
-    const p = a === k ? mirrorOf(k) : a;
-    pats.push(k + k, p + k + p, k + p + k, k + k + p, p + k + k);
+    const partner = a === k ? mirrorOf(k) : a;
+    pats.push(k + k, partner + k, k + partner);
   }
-  if (ks.length > 1) { const [x, y] = ks as [string, string]; pats.push(x + y, y + x, x + y + x, y + x + y, x + x + y + y, x + y + y + x); }
+  for (let i = 0; i + 1 < ks.length; i += 2) {
+    const x = ks[i]!, y = ks[i + 1]!;
+    pats.push(x + y, y + x, x + x + y + y);
+  }
   return pats;
 }
 
@@ -177,7 +181,8 @@ function finalPassage(r: Rng): string {
 /** Generate the text for a trail stage. Output only ever contains allowedChars(trail). */
 function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): string {
   const r = rng(opts.seed === undefined ? undefined : opts.seed + ['drill', 'mix', 'words'].indexOf(stage) * 1000003);
-  const heat = opts.heat ?? {};
+  const heat: Record<string, number> = { ...opts.heat };
+  for (const k of opts.exercise?.focusKeys ?? '') heat[k] = (heat[k] ?? 0) + 3;
   const allowed = allowedChars(trail);
   const bank = wordBank(trail);
   const pats = rhythmPatterns(trail.newKeys);
@@ -198,15 +203,21 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
   if (exercise?.format === 'movement' && ['rhythm', 'words'].includes(trail.kind)) {
     const fresh = [...trail.newKeys];
     const familiar = [...cumulativeKeys(trail).keys].filter(k => k !== ' ');
-    const source = exercise.stage === 'drill' ? fresh : familiar;
-    const patterns = rhythmPatterns(source.join('')).filter(p => fits(p, allowed));
-    const introduction = fresh.map(k => k.repeat(3)).join('');
-    return introduction + ' ' + fill(Math.max(8, len - introduction.length), () => pickOne(patterns, r));
+    // Give each focus key a same-finger connection and an alternating-hand phrase.
+    // These are literal destinations, not instructions to reset the hand after a press.
+    const patterns = fresh.flatMap(k => {
+      const same = familiar.filter(p => p !== k && fingerOf(p) === fingerOf(k)).slice(-2);
+      const other = fresh.find(p => handOf(fingerOf(p)!) !== handOf(fingerOf(k)!))
+        ?? familiar.find(p => handOf(fingerOf(p)!) !== handOf(fingerOf(k)!));
+      return [k + k, ...same.flatMap(p => [p + k, k + p]), ...(other ? [k + other, other + k] : [])];
+    }).filter(p => fits(p, allowed));
+    const introduction = fresh.map(k => k.repeat(2)).join('');
+    return introduction + ' ' + balancedFill(Math.max(8, len - introduction.length), () => pickOne(patterns, r), r);
   }
   if (exercise?.format === 'passage' && ['words', 'lower-sentences', 'bigrams', 'top'].includes(trail.kind)) {
     const phrases = readablePhrases(allowed);
     // Prefer language that actually exercises the new keys, rather than unrelated easy text.
-    const target = phrases.filter(p => [...trail.newKeys].some(k => p.toLowerCase().includes(k)));
+    const target = phrases.filter(p => [...(exercise.focusKeys ?? trail.newKeys)].some(k => p.toLowerCase().includes(k)));
     // A thin target pool would repeat one phrase; widen it with the rest so the balancer has real choices.
     const pool = shuffle(target.length >= 4 ? target : [...target, ...phrases.filter(p => !target.includes(p))], r);
     if (pool.length) {
@@ -273,6 +284,11 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
     case 'bigrams': {
       // The player's own weakest transitions, when known; the English list until then.
       const grams = opts.weakPairs?.length ? opts.weakPairs : BIGRAMS;
+      if (exercise?.format === 'words') {
+        const pool = [...new Set([...PRACTICE_WORDS, ...TOP])].filter(w => grams.some(pair => w.includes(pair)));
+        const pick = sampler(pool, heat, opts.pairHeat);
+        return balancedFill(len, () => pick(r), r);
+      }
       if (stage === 'drill') return fill(short, () => pickOne(grams, r));
       if (stage === 'mix') return fill(short, () => (r() < 0.5 ? pickOne(grams, r) : pickOne(TOP, r)));
       return fill(len, () => topWord(r));
@@ -313,7 +329,7 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     if (pangram) text = pangram + ' ' + text;
   }
   const r = rng((opts.seed ?? Math.floor(Math.random() * 1e8)) + 17);
-  const focus = trail.checkpoint ? [...cumulativeKeys(trail).keys] : [...trail.newKeys];
+  const focus = trail.checkpoint ? [...cumulativeKeys(trail).keys] : [...(opts.exercise?.focusKeys ?? trail.newKeys)];
   const bank = wordBank(trail);
   for (const k of focus) {
     const count = [...text.toLowerCase()].filter(c => c === k).length;
@@ -323,8 +339,11 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     const words = familiarWords.length ? familiarWords : bank.filter(w => w.includes(k) && w.length <= 6);
     for (let n = count; n < needed; n++) {
       const fragment = ({ ';': 'a; a', '/': 'a/b', "'": "'hi'", '"': '"hi"', '?': 'why?', '!': 'yes!', '-': 'a-b', ':': 'a:b', '(': '(a)', ')': '(a)', '@': 'a@b', '#': '#a', '$': '$2', '%': '2%', '&': 'a&b', '*': '2*2', '=': 'a=b', '+': '2+2', '_': 'a_b', '{': '{a}', '}': '{a}', '[': '[a]', ']': '[a]', '<': 'a<b', '>': 'a>b' } as Record<string, string>)[k];
-      const phrase = opts.exercise?.format === 'passage' ? readablePhrases(allowed).filter(p => p.toLowerCase().includes(k)).sort((a,b) => a.length - b.length)[0] : undefined;
-      const piece = phrase ?? (words.length && stage !== 'drill' ? pickOne(words, r) : stage === 'words' && fragment && fits(fragment, allowed) ? fragment : k);
+      const phrases = opts.exercise?.format === 'passage' ? readablePhrases(allowed).filter(p => p.toLowerCase().includes(k)).sort((a,b) => a.length - b.length) : [];
+      const shortPhrases = phrases.filter(p => p.length <= (phrases[0]?.length ?? 0) + 8);
+      const pool = shortPhrases.length ? shortPhrases : words.length && stage !== 'drill' ? words : [];
+      const piece = pool.length ? balancedPick(addLoad(emptyLoad(), text), () => pickOne(pool, r), new Map(), '', r, 16)
+        : stage === 'words' && fragment && fits(fragment, allowed) ? fragment : k;
       text += (text ? ' ' : '') + piece;
     }
   }

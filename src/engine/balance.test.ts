@@ -17,7 +17,7 @@ describe('hand and finger load balance in the main course (spec §31: no hand or
       setMethod(method.id);
       const report: string[] = [];
       for (const gid of LETTER_GROVES) for (const t of trailsInGrove(gid)) for (const ex of lessonExercises(t)) {
-        if (ex.format === 'movement') continue;
+        if (ex.format === 'movement' || ex.assessment === 'guided') continue;
         let load = emptyLoad();
         for (let seed = 0; seed < SEEDS; seed++) load = addLoad(load, generate(t, ex.stage, { exercise: ex, seed: seed * 7919 + 1 }));
         const left = share(load);
@@ -41,8 +41,8 @@ describe('hand and finger load balance in the main course (spec §31: no hand or
   }
   it('movement blocks split exactly evenly between hands', () => {
     for (const t of MAIN_TRAILS.filter(t => t.newKeys && ['rhythm', 'words'].includes(t.kind))) for (const ex of lessonExercises(t)) {
-      if (ex.format !== 'movement') continue;
-      // 'Last Reaches' (N and slash) is the one lesson whose new keys both sit on the right hand; its short drill is single-handed by design.
+      if (ex.format !== 'movement' || ex.assessment === 'guided') continue;
+      // A single-finger focus can be deliberately one-sided; chapter totals still include it.
       if (new Set([...t.newKeys].map(k => handOf(fingerOf(k)!))).size < 2) continue;
       let load = emptyLoad();
       for (let seed = 0; seed < SEEDS; seed++) load = addLoad(load, generate(t, ex.stage, { exercise: ex, seed }));

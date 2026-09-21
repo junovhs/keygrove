@@ -71,12 +71,14 @@ describe('curriculum invariants', () => {
     expect(g).toEqual({ passAcc: 90, star2Acc: 97, star3Acc: 100, star2Rhythm: 0.6, star3Rhythm: 0.8, swiftWpm: 15 });
     expect(gateFor(checkpointOf('flow')).swiftWpm).toBe(50);
   });
-  it('follows spec Phase 2: strong-finger core F J, D K, E I, G H, then R U before the rest of the home row', () => {
+  it('teaches early cross-row control, then connects common N/T before rarer reaches', () => {
     // G/H replace R/U in Roots so a frequent right-hand letter arrives early; the fjdkeiru set is finger-symmetric but ~83/17 left in English.
     expect(MAIN_TRAILS.slice(0, 4).map((t) => t.newKeys)).toEqual(['fj', 'dk', 'ei', 'gh']);
     const idx = (k: string) => MAIN_TRAILS.findIndex((t) => t.newKeys.includes(k));
     expect(idx('s')).toBeGreaterThan(idx('u'));
-    expect(idx('c')).toBeGreaterThan(idx('p'));
+    expect(idx('v')).toBe(4); expect(idx('m')).toBe(4);
+    expect(idx('n')).toBeLessThan(idx('q')); expect(idx('t')).toBeLessThan(idx('q'));
+    expect(idx('c')).toBeLessThan(idx('p'));
   });
   it('prints the path (compare against docs/progression.md)', () => {
     const table = describePath();
