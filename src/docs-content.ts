@@ -5,7 +5,7 @@ export const FACTS = defineFacts({
   price: { value: 'free', reviewed: '2026-09-21' },
   storage: { value: 'this browser, or your account when signed in', reviewed: '2026-09-21' },
   account: { value: 'free and optional; it syncs progress across devices', reviewed: '2026-09-21' },
-  method: { value: 'Relaxed QWERTY 1.0', reviewed: '2026-09-21' },
+  method: { value: 'traditional touch typing, with Relaxed QWERTY 1.0 as an option', reviewed: '2026-09-21' },
   lessons: { value: '36', reviewed: '2026-09-21' },
   chapters: { value: '7', reviewed: '2026-09-21' },
   checkpoint: { value: '97%', reviewed: '2026-09-21' },
@@ -18,8 +18,8 @@ export const docs = defineDocs({
   lead: 'A complete guided course in making your hands more at home with the keyboard. Accuracy first. Time to settle. Something small to keep along the way.',
   facts: FACTS,
   sections: [
-    { id: 'what-it-is', title: 'Your course', question: 'What is Relaxed QWERTY?', answer: `${PRODUCT} is a free, guided touch-typing course on a standard QWERTY keyboard. Its ${FACTS.lessons.value} lessons in ${FACTS.chapters.value} chapters cover letters, capitals, punctuation, numbers and longer mixed passages, with four optional code lessons. Nothing is installed and nothing is remapped.`, keywords: ['typing course', 'touch typing', 'relaxed qwerty', 'learn to type'], blocks: [
-      { kind: 'facts', title: 'At a glance', rows: [['Price', '{fact:price}'], ['Method', '{fact:method}'], ['Course', '{fact:lessons} lessons in {fact:chapters} chapters, plus an optional Code chapter'], ['Keyboard', 'Any physical QWERTY keyboard; nothing is remapped'], ['Progress', 'Saved in {fact:storage}']] },
+    { id: 'what-it-is', title: 'Your course', question: 'What is Relaxed QWERTY?', answer: `${PRODUCT} is a free, guided course in standard touch typing on an ordinary QWERTY keyboard. Its ${FACTS.lessons.value} lessons in ${FACTS.chapters.value} chapters cover letters, capitals, punctuation, numbers and longer mixed passages, with four optional code lessons. Nothing is installed and nothing is remapped.`, keywords: ['typing course', 'touch typing', 'relaxed qwerty', 'learn to type'], blocks: [
+      { kind: 'facts', title: 'At a glance', rows: [['Price', '{fact:price}'], ['Method', 'Standard touch typing ({fact:method})'], ['Course', '{fact:lessons} lessons in {fact:chapters} chapters, plus an optional Code chapter'], ['Keyboard', 'Any physical QWERTY keyboard; nothing is remapped'], ['Progress', 'Saved in {fact:storage}']] },
       { kind: 'p', text: 'You do not need to plan a practice session or understand a scoring system. Each lesson introduces a few keys, mixes them with movements you already know, then uses them in fresh text. **Continue** always takes you to what comes next.' },
       { kind: 'steps', items: [
         { title: 'Open the app on a computer', text: 'Use a physical QWERTY keyboard. A phone keyboard cannot teach finger placement.' },
@@ -35,7 +35,7 @@ export const docs = defineDocs({
           ['1 · Roots', 'F J and Space, D K, E I, G H, V M. Six lessons. Real two-handed words from the third lesson on.'],
           ['2 · Home', 'R U, S L, A and semicolon, N T. Five lessons of everyday connections.'],
           ['3 · Canopy', 'C Y across the stagger, W O, Q P. Four lessons.'],
-          ['4 · Undergrowth', 'B, connected index movements, X and comma, Z and full stop, slash. Six lessons.'],
+          ['4 · Undergrowth', 'B, the connected lower row, X and comma, Z and full stop, slash. Six lessons.'],
           ['5 · Bark', 'Opposite-hand Shift, sentences, quotes and questions, dashes, colons and parentheses. Five lessons.'],
           ['6 · Rings', 'Left numbers, right numbers, mixed numbers, common symbols. Five lessons.'],
           ['7 · Flow', 'Bigrams, common words, pangrams and quotes, endurance, the final mixed assessment. Five lessons.'],
@@ -45,12 +45,9 @@ export const docs = defineDocs({
         { kind: 'details', summary: 'What the Code chapter is for', text: 'Four lessons of brackets, angle brackets, equals, arrows and short snippets for people who write code. Enable it from **Settings → Code grove**. It never blocks the main course, it has its own keepsake, and you can turn it off again without losing anything.' },
       ] },
     ] },
-    { id: 'the-method', title: 'The method', question: 'What makes Relaxed QWERTY different from traditional touch typing?', answer: 'Relaxed QWERTY keeps the usual QWERTY layout and stable finger assignments, but lets the hands move a little instead of anchoring them to the home row. The only remapped fingers are on the lower-left row: Z uses the left ring finger, X the left middle, C the left index, and B the right index.', keywords: ['finger assignment', 'bottom row', 'traditional', 'home row', 'landmarks'], blocks: [
-      { kind: 'quote', text: 'Maintain a stable typing map, but allow the hands to move naturally rather than forcing them into rigid historical positions.', attribution: 'Relaxed QWERTY specification' },
-      { kind: 'p', text: 'Find the bumps on F and J with your index fingers and use them to orient yourself. They are **landmarks, not anchors**: they tell your hands where they are, they are not places every finger must return to after each keystroke. Let the hand move a little toward a reach instead of holding it rigidly in place.' },
-      { kind: 'compare',
-        before: { title: 'Traditional touch typing', text: 'Fingers own vertical columns. Z pinky, X ring, C middle, V and B left index. Every finger returns to its home key between presses.' },
-        after: { title: 'Relaxed QWERTY', text: 'The lower-left row follows the physical stagger of the keys. Z ring, X middle, C index, V index; B moves to the right index. Fingers prepare the next movement instead of resetting.' } },
+    { id: 'the-method', title: 'The method', question: 'Which typing method does Relaxed QWERTY teach?', answer: `${PRODUCT} teaches standard touch typing by default: the conventional QWERTY finger assignments, with F and J as tactile landmarks and Shift on the opposite hand. The Relaxed QWERTY finger map that gave the course its name is still available as an option in Settings.`, keywords: ['finger assignment', 'touch typing', 'home row', 'landmarks', 'traditional'], blocks: [
+      { kind: 'p', text: 'Every key has one preferred finger, and the map is the one taught in typing classes for a century: each finger owns a slanted column, the index fingers cover the two middle columns, and the thumbs press Space. A predictable map is what lets key selection become automatic.' },
+      { kind: 'p', text: 'Find the bumps on F and J with your index fingers and use them to orient yourself. They are **landmarks, not anchors**: they tell your hands where they are, they are not places every finger must return to after each keystroke. Rest lightly near the home row and let the hand move a little toward a reach instead of holding it rigidly in place.' },
       { kind: 'checklist', items: [
         { text: 'Rest the fingers lightly near the home row; find F and J by feel.' },
         { text: 'Move the finger first, then let the hand shift a little; return toward neutral when it is easy.' },
@@ -59,22 +56,26 @@ export const docs = defineDocs({
         { text: 'Read ahead and prepare the next finger while the current one presses.' },
         { text: 'Pause when you notice tension. Slow, accurate practice counts fully.' },
       ] },
-      { kind: 'callout', tone: 'note', text: 'The app draws finger assignments, but a browser cannot see which finger you actually used or whether you looked down. Use the guide deliberately and give unfamiliar reaches time. This is an opinionated teaching method, not a measured ergonomic assessment, and it makes no claim about preventing injury.' },
-      { kind: 'details', summary: 'Prefer traditional touch typing?', text: 'Choose it at any time from **Settings → Method**. Its assignments are Z pinky, X ring, C middle and B left index. The course, the accuracy targets and the keepsakes are identical. Switching keeps every completed lesson and only resets the observations for the four reassigned keys. Nothing is remapped on your computer under either method.' },
+      { kind: 'callout', tone: 'note', text: 'The app draws finger assignments, but a browser cannot see which finger you actually used or whether you looked down. Use the guide deliberately and give unfamiliar reaches time. This is a teaching method, not a measured ergonomic assessment, and it makes no claim about preventing injury.' },
+      { kind: 'details', summary: 'The optional Relaxed QWERTY finger map', text: 'Choose it from **Settings → Method**. It keeps the standard map everywhere except the lower row, where the left hand follows the physical stagger of the keys: Z uses the left ring finger, X the left middle, C the left index, and B moves to the right index. The course, the accuracy targets and the keepsakes are identical. Switching either way keeps every completed lesson and only resets the observations for the four reassigned keys. Nothing is remapped on your computer under either method.' },
+      { kind: 'compare',
+        before: { title: 'Standard touch typing (default)', text: 'Z pinky, X ring, C middle, V and B left index. The map every keyboard course and reference chart agrees on.' },
+        after: { title: 'Relaxed QWERTY (optional)', text: 'Z ring, X middle, C index, V index; B on the right index. The left hand follows the angle of the row stagger. Everything above the lower row is the same.' } },
     ], children: [
-      { id: 'finger-map', title: 'Finger map', question: 'Which finger presses which key in Relaxed QWERTY?', answer: 'Relaxed QWERTY gives every key one preferred finger. Left hand: pinky Q A; ring W S Z; middle E D X; index R F C V T G. Right hand: index Y U H J B N M; middle I K comma; ring O L full stop; pinky P semicolon slash.', keywords: ['finger map', 'which finger', 'key assignment'], blocks: [
+      { id: 'finger-map', title: 'Finger map', question: 'Which finger presses which key in standard touch typing?', answer: 'Standard touch typing gives every key one finger. Left hand: pinky Q A Z; ring W S X; middle E D C; index R F V T G B. Right hand: index Y U H J N M; middle I K comma; ring O L full stop; pinky P semicolon slash.', keywords: ['finger map', 'which finger', 'key assignment'], blocks: [
         { kind: 'table', head: ['Finger', 'Keys'], rows: [
-          ['Left pinky', 'Q · A'],
-          ['Left ring', 'W · S · Z'],
-          ['Left middle', 'E · D · X'],
-          ['Left index', 'R · F · C · V · T · G'],
-          ['Right index', 'Y · U · H · J · B · N · M'],
+          ['Left pinky', 'Q · A · Z'],
+          ['Left ring', 'W · S · X'],
+          ['Left middle', 'E · D · C'],
+          ['Left index', 'R · F · V · T · G · B'],
+          ['Right index', 'Y · U · H · J · N · M'],
           ['Right middle', 'I · K · ,'],
           ['Right ring', 'O · L · .'],
           ['Right pinky', 'P · ; · /'],
         ] },
+        { kind: 'p', text: 'Numbers follow the same columns: 1 and 2 to the left pinky and ring, 3 to the middle, 4 and 5 to the index; 6 and 7 to the right index, 8 middle, 9 ring, 0 pinky. Shifted symbols use the finger of the key underneath them, with Shift held by the other hand.' },
         { kind: 'p', text: 'The map is deliberately stable through the whole course. A learner who keeps changing assignments in search of a marginal gain interferes with their own motor learning; learn one map first, optimise later if you ever want to.' },
-        { kind: 'p', text: 'The lower row splits cleanly by hand: **Z X C V** on the left, **B N M , .** on the right. That is the one place the method departs from tradition, and it exists so the left hand can follow the angle the row stagger already gives it.' },
+        { kind: 'details', summary: 'Relaxed QWERTY differences', text: 'Under the optional method the lower row is Z ring, X middle, C index, V index on the left and B index, N index, M index on the right. Every other row is identical.' },
       ] },
     ] },
     { id: 'progress', title: 'How you advance', question: 'How do I finish a lesson in Relaxed QWERTY?', answer: `Each lesson is a short, visible sequence of exercises. Every pass at the shown accuracy target moves you forward one exercise; the last exercise completes the lesson. Chapter checkpoints require ${FACTS.checkpoint.value} accuracy. Speed is never a gate.`, keywords: ['accuracy', 'pass', 'exercise', 'checkpoint', 'wpm'], blocks: [
@@ -128,7 +129,7 @@ export const docs = defineDocs({
       { kind: 'table', head: ['Setting', 'What it does'], rows: [
         ['Export', 'Downloads a JSON backup of your course.'],
         ['Import', 'Replaces your current course with a backup file.'],
-        ['Method', 'Switches between Relaxed QWERTY and traditional touch typing. Completed lessons are kept.'],
+        ['Method', 'Switches between standard touch typing (the default) and the optional Relaxed QWERTY map. Completed lessons are kept.'],
         ['Code grove', 'Turns the optional Code chapter on or off. It opens after Bark.'],
         ['Reset', 'Clears your current progress. It asks twice. When signed in, the reset syncs to your account.'],
       ] },

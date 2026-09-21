@@ -25,7 +25,7 @@ describe('error classification (§29)', () => {
   it('anticipation: a later character typed early (form → from)', () => {
     expect(classifyMiss('form', 1, 'r')).toBe('anticipation');
     expect(classifyMiss('the cat', 0, 'e')).toBe('anticipation');
-    expect(classifyMiss('the cat', 2, 'c')).toBe('other'); // across the space is not reading ahead
+    expect(classifyMiss('the cat', 2, 'c', RELAXED_QWERTY)).toBe('other'); // across the space is not reading ahead (C and E share a finger under Traditional)
   });
   it('repetition: the previous character again (thee); omission: a doubled letter dropped (al for all)', () => {
     expect(classifyMiss('the', 2, 'h')).toBe('repetition');

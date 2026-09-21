@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from 'vitest';
-import { METHODS, DEFAULT_METHOD_ID, setMethod, fingerOf } from './method';
+import { METHODS, DEFAULT_METHOD_ID, RELAXED_QWERTY, setMethod, fingerOf } from './method';
 import { fingers } from './fingers';
 import { fingerLevels, fingerCourseId } from './finger-course';
 import { fresh, sanitize } from '../state/save';
@@ -19,7 +19,7 @@ for (const method of METHODS) it(`covers all base and shifted keys for ${method.
   }
 });
 it('includes C and V at level 3 with a fresh relaxed course', () => {
-  setMethod(DEFAULT_METHOD_ID);
+  setMethod(RELAXED_QWERTY.id);
   const text = fingerLevels(fingers().find(f => f.id === 'li')!)[2]!.text;
   expect(text).toContain('c'); expect(text).toContain('v');
 });

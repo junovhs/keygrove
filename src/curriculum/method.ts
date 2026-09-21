@@ -38,13 +38,16 @@ export const TRADITIONAL: TypingMethod = {
   shift: 'opposite', space: 'either',
   blurb: 'Conventional column assignments: Z pinky, X ring, C middle, B left index. For typists with established muscle memory.',
 };
-export const METHODS: readonly TypingMethod[] = [RELAXED_QWERTY, TRADITIONAL];
-export const DEFAULT_METHOD_ID = RELAXED_QWERTY.id;
+export const METHODS: readonly TypingMethod[] = [TRADITIONAL, RELAXED_QWERTY];
+/** DEC-12: Traditional by default; Relaxed QWERTY stays selectable. A stored choice always wins. */
+export const DEFAULT_METHOD_ID = TRADITIONAL.id;
+/** Keys whose finger differs between two methods: the evidence a switch must reset. */
+export const reassignedKeys = (a: TypingMethod, b: TypingMethod): string[] => Object.keys(a.assignments).filter((k) => a.assignments[k] !== b.assignments[k]);
 
-let active: TypingMethod = RELAXED_QWERTY;
+let active: TypingMethod = TRADITIONAL;
 export const activeMethod = (): TypingMethod => active;
 export function setMethod(id: string): TypingMethod {
-  active = METHODS.find((m) => m.id === id) ?? RELAXED_QWERTY;
+  active = METHODS.find((m) => m.id === id) ?? TRADITIONAL;
   return active;
 }
 

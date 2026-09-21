@@ -4,7 +4,7 @@ import { fingerPractice, completeFingerPractice, type FingerPractice } from './e
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
 import { fingers, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
-import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, fingerOf, isShifted, setMethod } from './curriculum/method';
+import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, fingerOf, isShifted, reassignedKeys, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
@@ -632,13 +632,14 @@ function showSettings(): void { sound.play('open'); settingsModal().classList.ad
 $('settingsTopBtn').onclick = showSettings;
 $('closeSettings').onclick = () => { sound.play('close'); settingsModal().classList.remove('open'); };
 settingsModal().onclick = (e) => { if (e.target === settingsModal()) settingsModal().classList.remove('open'); };
-// ---- Method: Relaxed QWERTY by default; Settings toggles to traditional and back --------
+// ---- Method: Traditional by default (DEC-12); Settings toggles to Relaxed QWERTY and back --------
 function switchMethod(methodId: string): void {
   if (state.settings.method !== methodId) {
-    // Only the four reassigned keys need fresh evidence. Earned chapters stay earned.
+    // Only the reassigned keys need fresh evidence. Earned chapters stay earned.
+    const moved = reassignedKeys(activeMethod(), METHODS.find((m) => m.id === methodId) ?? activeMethod());
     const j = keys.toJSON();
-    for (const k of 'zxcb') delete j.keys[k];
-    for (const pair of Object.keys(state.transitions)) if ([...pair].some(k => 'zxcb'.includes(k))) delete state.transitions[pair];
+    for (const k of moved) delete j.keys[k];
+    for (const pair of Object.keys(state.transitions)) if ([...pair].some(k => moved.includes(k))) delete state.transitions[pair];
     keys = KeyModel.fromJSON(j.keys, j.confusions); trans = TransitionModel.fromJSON(state.transitions);
   }
   state.settings.method = methodId; state.settings.onboarded = true; setMethod(methodId); save(); syncSettingsUi();
