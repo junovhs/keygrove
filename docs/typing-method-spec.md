@@ -715,153 +715,39 @@ error
 
 # 22. Learning Progression
 
-The curriculum SHOULD progress from strong central fingers toward weaker and less frequent keys.
+The product north star is [RQWERTY north star](north-star.md), governed by DEC-09, DEC-10 and DEC-11. This replaces the earlier region-by-region recommended sequence; the canonical Relaxed QWERTY 1.0 finger assignments are unchanged.
 
-A recommended sequence follows.
+## 22.1 Learn the instrument in small movement phrases
 
-## Phase 1: Orientation
+The whole keyboard SHOULD be visible and available for guided exploration from the start. Assessed attention progresses from manageable strong-finger movements to wider coordination; a region need not be mastered before another can be encountered.
 
-Teach:
+The recurring learning sequence is:
 
-```text
-F
-J
-```
+1. Find a key deliberately.
+2. Connect two keys with the same finger.
+3. Alternate between hands.
+4. Prepare the next finger while the current one presses.
+5. Carry that coordination into a word.
 
-Then introduce the home region.
+A short lesson SHOULD demonstrate a movement, allow ungraded practice, connect it with familiar movements, and apply it in words or text. F/J establish orientation; early focused practice includes upper and lower reaches. Outer fingers, rarer movements and practical symbols receive deliberate attention progressively. Space belongs between words and meaningful groups.
 
-Goals:
+## 22.2 Accuracy at a comfortable pace
 
-* find F/J without looking;
-* understand left and right hand territories;
-* establish relaxed hand placement.
+Slow deliberate work counts fully. Learners SHOULD use light pressure and small comfortable adjustments, never hold the hand rigid to minimize movement. They SHOULD pause when tension or strain appears. A miss invites a calm correction; flawless runs are not a prerequisite for progress.
 
----
+Guided introductions MUST identify the keys and their preferred fingers before asking for independent performance. They have no passing score, can be skipped, and MUST NOT contribute to accuracy gates, performance models, speed statistics or remedial triggers. A guided encounter is not mastery.
 
-## Phase 2: Strong-Finger Core
+Assessed exercises MUST show their purpose and accuracy target. Each pass advances immediately. Mastery, speed, absence and hidden repetition MUST NOT veto a pass. Earned lesson, exercise and paired-finger credit remains earned when the curriculum evolves.
 
-Introduce high-control index and middle finger keys.
+## 22.3 Connect, revisit and become independent
 
-Possible early set:
+Practice SHOULD move into familiar words as soon as useful language is possible, and return to earlier movements in new contexts. Unfamiliar helper keys need explicit guidance, not surprise appearances in assessed text. Novelty is bounded by the number and complexity of new movements, not a fixed character percentage.
 
-```text
-F J
-D K
-E I
-R U
-```
+The Relaxed lower-left mapping MUST be explicitly taught: Z with the left ring, X with the left middle, C with the left index, and B with the right index. All finger guidance MUST derive from the active method, including the Traditional alternative.
 
-Exercises should produce real letter combinations as quickly as possible.
+Later lessons emphasize connected words, opposite-hand Shift, sentence punctuation, practical numbers and symbols, and sustained unfamiliar text. Shift coordination follows basic lowercase control; a guided number-row visit may precede sustained number work. Proactive guidance SHOULD recede during later familiar practice, with help always available.
 
----
-
-## Phase 3: Home-Row Expansion
-
-Introduce:
-
-```text
-A S D F
-J K L ;
-```
-
-The application SHOULD explain that the home row is an orientation system rather than a mandatory resting cage.
-
----
-
-## Phase 4: Upper Row
-
-Introduce the remaining upper-row keys progressively.
-
-```text
-Q W E R T
-Y U I O P
-```
-
-Particular attention SHOULD be given to:
-
-```text
-R/T
-Y/U
-```
-
-because they share index fingers.
-
----
-
-## Phase 5: Ergonomic Lower Row
-
-Introduce:
-
-```text
-Z X C V
-B N M , .
-```
-
-The application MUST explicitly teach the Relaxed QWERTY lower-left mapping:
-
-```text
-Z = left ring
-X = left middle
-C = left index
-```
-
-This should not be left ambiguous because many users may arrive with prior knowledge of traditional touch typing.
-
----
-
-## Phase 6: Words
-
-Transition rapidly from isolated letters to common words.
-
-Examples should emphasize:
-
-* frequent English letter sequences;
-* alternating hands;
-* index-finger transitions;
-* upper/lower-row movement;
-* common suffixes and prefixes.
-
----
-
-## Phase 7: Capitalization
-
-Teach opposite-hand Shift.
-
----
-
-## Phase 8: Punctuation
-
-Add:
-
-```text
-,
-.
-'
-;
-?
-!
-```
-
-and other common punctuation.
-
----
-
-## Phase 9: Numbers and Symbols
-
-Introduce the number row after alphabetic typing is substantially automatic.
-
----
-
-## Phase 10: Full Text
-
-Learners progress to:
-
-* sentences;
-* paragraphs;
-* prose;
-* code if selected;
-* user-provided text;
-* real-world transcription.
+Fluency is encouraged through familiarity, preparation and connected movement, not promised as an automatic consequence of slowness. Keystrokes cannot verify finger choice, relaxation or posture. Evaluation SHOULD include delayed transfer and learner comfort rather than immediate scores alone.
 
 ---
 

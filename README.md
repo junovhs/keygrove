@@ -20,9 +20,11 @@ Guest learning persists locally in a separate save. The optional account uses Su
 
 ## Product contracts
 
+- [North star](docs/north-star.md): small, relaxed movement phrases in a Duolingo-like course.
+
 - [Method specification](docs/typing-method-spec.md): canonical finger assignments and teaching philosophy.
 - [Current progression](docs/progression.md): evidence, routing, permanence and compatibility.
-- Ishoo DEC-06 governs immediate advancement on a visible pass; mastery guides practice rather than blocking lessons.
+- Ishoo DEC-09–11 govern the method, movement-led curriculum and separate guided/assessed learning; mastery guides practice rather than blocking lessons.
 
 The app observes characters and timing, not finger choice or posture. Completing the course demonstrates performance on its passages; it does not promise a particular real-world typing speed.
 
