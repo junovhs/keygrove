@@ -29,6 +29,15 @@ describe('mergeProgress', () => {
     expect(m.confusions).toEqual({ 'f>d': 5, 'j>k': 1 });
     expect(m.stats).toMatchObject({ runs: 5, xp: 400, days: 4, lastDay: '2026-09-18' });
   });
+  it('a transition keeps the richer record but the later `last` from either side', () => {
+    const pair = (seen: number, last: number) => ({ err: 0.1, lat: 300, lat2: 90_000, seen, hits: seen, last });
+    const local = saveWith({ transitions: { ed: pair(12, 1_700_000_000_000), th: pair(3, 1_700_000_900_000) } });
+    const remote = saveWith({ transitions: { ed: pair(4, 1_700_000_500_000), mu: pair(6, 1_700_000_100_000) } });
+    const m = mergeProgress(local, remote);
+    expect(m.transitions['ed']).toMatchObject({ seen: 12, last: 1_700_000_500_000 });
+    expect(m.transitions['th']).toMatchObject({ seen: 3, last: 1_700_000_900_000 });
+    expect(m.transitions['mu']).toMatchObject({ seen: 6, last: 1_700_000_100_000 });
+  });
 
   it('settings stay local; the current trail follows whoever has run more', () => {
     const local = saveWith({ trail: T1, settings: { ...fresh().settings, guideStrong: true }, stats: { ...fresh().stats, runs: 2 } });

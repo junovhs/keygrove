@@ -1,5 +1,5 @@
 import { PRACTICE_WORDS, readablePhrases } from '../curriculum/language';
-import type { LessonExercise } from '../curriculum/lesson-flow';
+import { transitionLoop, type LessonExercise } from '../curriculum/lesson-flow';
 import { allowedChars, cumulativeKeys, type StageName, type Trail } from '../curriculum';
 import WORDS from '../data/words.json';
 import TOP from '../data/top200.json';
@@ -8,6 +8,7 @@ import QUOTES from '../data/quotes.json';
 import CODE from '../data/code.json';
 import { rng, pickOne, shuffle, type Rng } from './rng';
 import { fingerOf, handOf, homeOf, mirrorOf, type FingerId } from '../curriculum/method';
+import { CHUNKS, PRACTICE_WORDS as CARRIERS } from '../curriculum/movements';
 
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
@@ -15,6 +16,7 @@ export type Heat = Readonly<Record<string, number>>;
 export interface GenOptions { exercise?: LessonExercise; heat?: Heat; pairHeat?: Heat; weakPairs?: string[]; seed?: number }
 
 const anchorOf = (k: string) => homeOf(k);
+const EXCLUDED_PRACTICE_WORDS = new Set(['iii', 'diff', 'ref', 'gnu', 'thru', 'thy', 'sol', 'jeff', 'murder', 'murders', 'murdered', 'murderer', 'died']);
 const BIGRAMS = 'th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ne ea ra ce li ch ll be ma si om ur'.split(' ');
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -25,7 +27,7 @@ export function wordBank(trail: Trail): string[] {
   let b = bankCache.get(trail.id);
   if (!b) {
     const set = cumulativeKeys(trail).keys;
-    b = [...new Set([...PRACTICE_WORDS, ...WORDS])].filter(w => !['iii', 'diff', 'ref', 'gnu', 'thru', 'thy', 'sol'].includes(w) && [...w].every(c => set.has(c)));
+    b = [...new Set([...PRACTICE_WORDS, ...WORDS])].filter(w => !EXCLUDED_PRACTICE_WORDS.has(w) && [...w].every(c => set.has(c)));
     bankCache.set(trail.id, b);
   }
   return b;
@@ -141,6 +143,8 @@ function generateDrillRaw(kind: 'confusion' | 'reach' | 'review' | 'transition',
   if (kind === 'transition' && ks.length >= 2) {
     // Words rich in the pair, in the pair's order (R→F: refer fret free); patterns when the bank is thin.
     const [a, b] = ks as [string, string]; const pair = a + b;
+    const research = etude(pair, allowed, Math.min(60, trail.length), r);
+    if (research) return research;
     const bank = [...new Set([...wordBank(trail), ...TOP.filter((w) => fits(w, allowed))])].filter((w) => w.includes(pair));
     if (bank.length >= 4) return fill(Math.min(60, trail.length), () => pickOne(bank, r));
     const pats = [pair, pair + a, b + pair, pair + pair, a + pair + b];
@@ -227,7 +231,11 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
   }
   if (exercise?.format === 'words' && trail.kind === 'words') {
     const familiar = PRACTICE_WORDS.filter(w => w.length >= 2 && fits(w, allowed));
-    const pool = familiar.length ? familiar : bank;
+    // If this lesson just taught keys, make the word line actually use them heavily before prose transfer.
+    // A research etude (handled above) wins when present; otherwise this is the warm-up -> words bridge.
+    const focus = [...(exercise.focusKeys ?? trail.newKeys)].filter(k => k !== ' ');
+    const focused = focus.length ? familiar.filter(w => focus.some(k => w.includes(k.toLowerCase()))) : [];
+    const pool = focused.length >= 4 ? focused : familiar.length ? familiar : bank;
     const pick = sampler(pool, heat, opts.pairHeat);
     return balancedFill(len, () => pick(r), r);
   }
@@ -285,7 +293,8 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
       // The player's own weakest transitions, when known; the English list until then.
       const grams = opts.weakPairs?.length ? opts.weakPairs : BIGRAMS;
       if (exercise?.format === 'words') {
-        const pool = [...new Set([...PRACTICE_WORDS, ...TOP])].filter(w => grams.some(pair => w.includes(pair)));
+        // Spec C4: the Bigrams trail is the chunks' home — its words carry ing / ion / tion / nce / ted.
+        const pool = [...new Set(CHUNKS.flatMap(c => CARRIERS[c.ngram] ?? []))].filter(w => fits(w, allowed));
         const pick = sampler(pool, heat, opts.pairHeat);
         return balancedFill(len, () => pick(r), r);
       }
@@ -311,6 +320,25 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
   }
 }
 
+/** Spec B3: an etude — everyday words carrying `target` from the research set, short carriers first, with a neutral
+ * common word after every two carriers so the line reads as language (carriers ≥ 2/3 of the words). Null when fewer
+ * than four carriers are typeable, so the caller falls back to the ordinary generator. */
+export function etude(target: string, allowed: Set<string>, len: number, r: Rng): string | null {
+  // Research carriers first; when the early key set is too small, supplement them with ordinary
+  // typeable vocabulary so a movement drill never falls through to words that omit its target.
+  const research = (CARRIERS[target] ?? []).filter(w => fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
+  const fallback = [...new Set([...PRACTICE_WORDS, ...TOP, ...WORDS])]
+    .filter(w => w.includes(target) && fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
+  const carriers = [...new Set([...research, ...fallback])].sort((a, b) => a.length - b.length);
+  if (carriers.length < 2) return null;
+  const neutral = TOP.filter(w => w.length <= 5 && !w.includes(target) && fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
+  const words: string[] = [];
+  for (let i = 0, c = 0; words.join(' ').length < len; i++) {
+    words.push(i % 3 === 2 && neutral.length ? pickOne(neutral, r) : carriers[c++ % carriers.length]!);
+  }
+  return words.join(' ');
+}
+
 /** Generate varied practice while guaranteeing evidence for every introduced key.
  * Checkpoints revisit the complete chapter vocabulary; characters never escape
  * the cumulative set. Coverage is explicit rather than left to random chance.
@@ -323,7 +351,15 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     if (!text || ![...text].every(c => allowed.has(c))) throw new Error(`Invalid authored exercise for ${trail.id}`);
     return text;
   }
-  let text = trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts);
+  if (opts.exercise?.target && opts.exercise.format === 'movement') {
+    const text = transitionLoop(opts.exercise.target, opts.exercise.length);
+    if (![...text].every(c => allowed.has(c))) throw new Error(`Transition target ${opts.exercise.target} is not unlocked in ${trail.id}`);
+    return text;
+  }
+  // Spec B3: a words exercise with a target is that target's etude when enough carriers are typeable; otherwise the
+  // ordinary words generator. Either way the lesson's new keys are still guaranteed below.
+  const research = opts.exercise?.target && opts.exercise.format === 'words' ? etude(opts.exercise.target, allowed, opts.exercise.length, rng(opts.seed)) : null;
+  let text = research ?? (trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts));
   if (opts.exercise && trail.checkpoint && trail.id !== 'flow-checkpoint') {
     const pangram = readablePhrases(allowed).find(p => [...LETTERS].every(k => p.toLowerCase().includes(k)));
     if (pangram) text = pangram + ' ' + text;

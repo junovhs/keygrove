@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { TRAILS, STAGES, allowedChars, trailById } from '../curriculum';
-import { generate, generateDrill, wordBank } from './textgen';
+import { etude, generate, generateDrill, wordBank } from './textgen';
+import { rng } from './rng';
+import { lessonExercises, loop } from '../curriculum/lesson-flow';
 
 describe('textgen', () => {
   it('every trail × stage × 50 seeds only uses unlocked keys and is non-trivial', () => {
@@ -33,6 +35,23 @@ describe('textgen', () => {
     expect(wordBank(trailById('home-words')).length).toBeGreaterThanOrEqual(24);
     expect(wordBank(trailById('anchors')).length).toBe(0);
   });
+  it('new keys are found before assessed practice, and their word line concentrates them before prose', () => {
+    for (const t of TRAILS.filter(t => t.newKeys && ['rhythm', 'words'].includes(t.kind))) {
+      const first = lessonExercises(t)[0]!;
+      expect(first.assessment, t.id).toBe('guided');
+      for (const k of t.newKeys) expect([...(first.text ?? '')].filter(c => c === k).length, `${t.id} warm-up for ${k}`).toBeGreaterThanOrEqual(4);
+    }
+    for (const id of ['index-reach', 'core-words'] as const) {
+      const t = trailById(id)!, ex = lessonExercises(t).find(e => e.format === 'words')!;
+      const words = generate(t, 'words', { exercise: ex, seed: 11 }).split(' ');
+      const share = words.filter(w => [...t.newKeys].some(k => w.includes(k))).length / words.length;
+      expect(share, id).toBeGreaterThanOrEqual(0.6);
+    }
+    const roots = lessonExercises(trailById('anchors')!);
+    expect(roots).toHaveLength(5);
+    expect(roots[1]).toMatchObject({ name: 'Take a gentle keyboard tour', assessment: 'guided' });
+    for (const k of 'abcdefghijklmnopqrstuvwxyz') expect(roots[1]!.text, k).toContain(k);
+  });
   it('heat pulls hot-key words in', () => {
     const t = trailById('home-words');
     const count = (heat: Record<string, number>) => { let k = 0, n = 0; for (let s = 0; s < 200; s++) { const txt = generate(t, 'words', { seed: s, heat }); n += txt.length; k += [...txt].filter((c) => c === 'g').length; } return k / n; };
@@ -64,4 +83,70 @@ it('a warm-up stays short and covers every selected key, including rare letters'
     for (const k of 'qjzx') expect([...text].filter(c => c === k).length).toBeGreaterThanOrEqual(2);
     expect(text.length).toBeLessThan(150);
   }
+});
+
+it('lesson 2 actually connects D/K with the F/J landmarks named in its instructions', () => {
+  const t = trailById('inner-pair')!;
+  const ex = lessonExercises(t);
+  const connect = generate(t, 'mix', { exercise: ex[1]!, seed: 1 });
+  const carry = generate(t, 'mix', { exercise: ex[3]!, seed: 1 });
+  for (const k of 'dfjk') { expect(connect, k).toContain(k); expect(carry, k).toContain(k); }
+});
+
+describe('transition loop (spec B1, CURR-39)', () => {
+  it('a target loop is only its two letters and spaces, both directions, about the exercise length', () => {
+    const t = trailById('index-up')!; // R U taught: M (lesson 5) and U are both unlocked, so `mu` is eligible
+    const text = generate(t, 'mix', { exercise: loop('mu'), seed: 3 });
+    expect(text).toMatch(/^[mu ]+$/);
+    expect(text).toContain('mu'); expect(text).toContain('um'); expect(text).toContain('mum');
+    expect(text.length).toBeGreaterThanOrEqual(20); expect(text.length).toBeLessThanOrEqual(28);
+    expect(generate(t, 'mix', { exercise: loop('mu'), seed: 9 })).toBe(text); // no randomness: the loop is the same every time
+  });
+  it('lesson 3 rehearses the E/D target without abandoning the matching I/K movement; locked targets are refused', () => {
+    const ex = lessonExercises(trailById('middle-up')!)[1]!;
+    expect(ex).toMatchObject({ name: 'Middle fingers up and home', target: 'ed', format: 'movement' });
+    expect(ex.assessment).toBeUndefined();
+    const text = generate(trailById('middle-up')!, 'mix', { exercise: ex });
+    expect(text).toContain('ed'); expect(text).toContain('de'); expect(text).toContain('ik'); expect(text).toContain('ki');
+    expect(() => generate(trailById('anchors')!, 'mix', { exercise: loop('ed') })).toThrow(/not unlocked/);
+    expect(() => loop('qa')).toThrow(/Unknown transition target/);
+  });
+});
+
+describe('etudes (spec B3/C4, CURR-41)', () => {
+  const full = allowedChars(trailById('flow-checkpoint')!);
+  const carrierShare = (text: string, target: string) => { const ws = text.split(' '); return ws.filter(w => w.includes(target)).length / ws.length; };
+  it('carries the target in at least two thirds of its words, from the research set, short carriers first', () => {
+    for (const target of ['mu', 'ed', 'ion']) {
+      const text = etude(target, full, 44, rng(1))!;
+      expect(text, target).toBeTruthy();
+      expect(carrierShare(text, target), target).toBeGreaterThanOrEqual(0.6);
+      expect(text.split(' ')[0]!.length, target).toBeLessThanOrEqual(text.split(' ')[1]!.length);
+      expect(text.length).toBeGreaterThanOrEqual(44); expect(text.length).toBeLessThan(60);
+    }
+  });
+  it('supplements sparse early research carriers with ordinary words instead of dropping the trained target', () => {
+    expect(etude('mu', allowedChars(trailById('core-words')!), 40, rng(1))).toBeNull(); // U is not unlocked yet
+    const t = trailById('middle-up')!, ex = lessonExercises(t).find(e => e.format === 'words')!;
+    expect(ex.target).toBe('ed');
+    const text = generate(t, 'words', { exercise: ex, seed: 1 });
+    expect(text).toContain('ed');
+    expect(text.split(' ').filter(w => w.includes('ed')).length / text.split(' ').length).toBeGreaterThanOrEqual(0.6);
+    expect(text).not.toContain('jeff');
+  });
+  it('the Bigrams trail and the wired lessons draw their words from the chunk sets', () => {
+    const t = trailById('bigrams')!, ex = lessonExercises(t).find(e => e.format === 'words')!;
+    const chunks = ['ing', 'ion', 'tion', 'nce', 'ted'];
+    for (const w of generate(t, 'words', { exercise: ex, seed: 2 }).split(' ')) expect(chunks.some(c => w.includes(c)), w).toBe(true);
+    for (const [id, target] of [['home-words', 'ing'], ['index-stretch-up', 'nce'], ['ring-up', 'ion']] as const) {
+      const tr = trailById(id)!, e = lessonExercises(tr).find(x => x.format === 'words')!;
+      expect(e.target).toBe(target);
+      // The raw etude is ≥ 2/3 carriers; the lesson's new keys are then guaranteed too, so at least half the words carry the chunk.
+      expect(carrierShare(generate(tr, 'words', { exercise: e, seed: 3 }), target), id).toBeGreaterThanOrEqual(0.5);
+    }
+  });
+  it("a coach transition drill on a research target is that target's etude", () => {
+    const text = generateDrill('transition', ['m', 'u'], trailById('home-words')!, { seed: 1 });
+    expect(carrierShare(text, 'mu')).toBeGreaterThanOrEqual(0.6);
+  });
 });

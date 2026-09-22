@@ -1,4 +1,6 @@
-import { lessonExercises, type LessonExercise } from './curriculum/lesson-flow';
+import { lessonExercises, type LessonExercise, type SlotPick } from './curriculum/lesson-flow';
+import { nextPractice } from './engine/next-practice';
+import { beatInterval, evenness, onBeat } from './engine/beat';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
@@ -8,7 +10,7 @@ import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, fingerOf, 
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
-import { classifyRun, rollTally } from './engine/errors';
+import { missedTarget, classifyRun, rollTally } from './engine/errors';
 import { applyRun, currentStage, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { recordPerformance } from './engine/learning';
@@ -40,6 +42,65 @@ let signedIn = accountService !== null && hasStoredSession(accountService);
 let state: SaveV6 = signedIn ? load() : loadGuest();
 if (!signedIn) clearStored();
 setMethod(state.settings.method);
+
+/**
+ * Dev-only experience journal. Add ?dev=1 to any build to keep an exact, session-scoped
+ * record of the prompts shown and the strokes/results produced. Nothing is sent anywhere.
+ * Console: keygrove.dev.report() / keygrove.dev.clear()
+ */
+const devTraceEnabled = new URLSearchParams(location.search).has('dev');
+const DEV_TRACE_KEY = 'keygrove.dev-runs.v1';
+const devRuns: unknown[] = (() => {
+  if (!devTraceEnabled) return [];
+  try { const x = JSON.parse(sessionStorage.getItem(DEV_TRACE_KEY) ?? '[]'); return Array.isArray(x) ? x : []; }
+  catch { return []; }
+})();
+function devHandLoad(text: string): { left: number; right: number; thumb: number; unknown: number } {
+  const out = { left: 0, right: 0, thumb: 0, unknown: 0 };
+  for (const ch of text) {
+    const f = fingerOf(ch.toLowerCase());
+    if (!f) out.unknown++;
+    else if (f === 'thumb') out.thumb++;
+    else if (f.startsWith('l')) out.left++;
+    else if (f.startsWith('r')) out.right++;
+    else out.unknown++;
+  }
+  return out;
+}
+function devBigrams(text: string): string[] {
+  return text.toLowerCase().split(/[^a-z]+/).flatMap((w) => Array.from({ length: Math.max(0, w.length - 1) }, (_, i) => w.slice(i, i + 2)));
+}
+function devPreparation(lessonId: string, text: string) {
+  const previous = devRuns.filter((r: any) => r?.lesson?.id === lessonId).map((r: any) => String(r.prompt ?? ''));
+  const seenBigrams = new Set(previous.flatMap(devBigrams));
+  const seenKeys = new Set(previous.join('').toLowerCase().replace(/[^a-z]/g, ''));
+  const grams = devBigrams(text);
+  const prepared = grams.filter((g) => seenBigrams.has(g)).length;
+  const keys = [...text.toLowerCase()].filter((c) => /[a-z]/.test(c));
+  const novelKeys = [...new Set(keys.filter((c) => !seenKeys.has(c)))];
+  const novelBigrams = [...new Set(grams.filter((g) => !seenBigrams.has(g)))];
+  return {
+    bigramOccurrences: grams.length,
+    preparedBigramOccurrences: prepared,
+    preparedBigramShare: grams.length ? Math.round((prepared / grams.length) * 1000) / 1000 : 1,
+    novelKeys,
+    novelBigrams,
+  };
+}
+function devRecord(record: Record<string, unknown>): void {
+  if (!devTraceEnabled) return;
+  devRuns.push(record);
+  try { sessionStorage.setItem(DEV_TRACE_KEY, JSON.stringify(devRuns)); } catch { /* console trace still works */ }
+  console.info('[KeyGrove dev run]', record);
+}
+function devReport(): string {
+  return JSON.stringify({ schema: 1, exportedAt: new Date().toISOString(), method: activeMethod().id, runs: devRuns }, null, 2);
+}
+function clearDevReport(): void {
+  devRuns.length = 0;
+  try { sessionStorage.removeItem(DEV_TRACE_KEY); } catch { /* no-op */ }
+}
+
 /** Keep the current course durable, including during an optional replay. */
 function store(): void { const copy = replayReturn ? { ...state, trail: replayReturn } : state; if (signedIn) persist(copy); else saveGuest(copy); }
 let keys = KeyModel.fromJSON(state.keys, state.confusions);
@@ -57,7 +118,24 @@ let replayReturn: string | null = null;
 let completionHome = false;
 let runTrail = currentTrail(state);
 let runStage: StageName = 'drill';
-let runExercise: LessonExercise = lessonExercises(runTrail)[0]!;
+/** Slot 2's target for the lesson in progress, chosen once so it holds across the lesson's exercises (spec D5). */
+let slotPick: { trail: string; pick: SlotPick | null } | null = null;
+const pickFor = (t: Trail): SlotPick | undefined => {
+  if (!slotPick || slotPick.trail !== t.id) slotPick = { trail: t.id, pick: nextPractice(trans, new Set([...allowedChars(t)].filter((k) => k.length === 1 && k === k.toLowerCase())), Date.now(), t.newKeys) };
+  return slotPick.pick ?? undefined;
+};
+let runExercise: LessonExercise = lessonExercises(runTrail, pickFor(runTrail))[0]!;
+/** Steady beat (spec B2): a soft pulse at the learner's own pace while a beat exercise is on screen; nothing is timed against it. */
+let pulse: { timer: number; t0: number; interval: number } | null = null;
+function startPulse(): void {
+  stopPulse();
+  if (mode.kind !== 'trail' || !runExercise.beat) return;
+  const interval = beatInterval(trans.reference()), t0 = performance.now();
+  const dot = $('beatDot'); dot.hidden = false; dot.style.setProperty('--fill', '0');
+  const tick = () => { sound.play('step', 0.6); dot.classList.remove('tick'); void dot.offsetWidth; dot.classList.add('tick'); };
+  pulse = { timer: window.setInterval(tick, interval), t0, interval };
+}
+function stopPulse(): void { if (pulse) window.clearInterval(pulse.timer); pulse = null; $('beatDot').hidden = true; }
 let runExerciseIndex = 0;
 let beforeMastery: Record<string, number> = {};
 /** The briefing being read before this run, if any; `seenBriefs` keeps each exercise to one briefing per session. */
@@ -80,7 +158,7 @@ const focusPair = (): FingerPair | null => (mode.kind === 'remedial' ? mode.pair
 function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); store(); sync.wrote(); }
 /** Account adoption resets the active passage so strokes from two accounts never mix. */
 function adopt(next: SaveV6): void {
-  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); gate = null; replayReturn = null; setMethod(state.settings.method); store(); syncSettingsUi();
+  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); slotPick = null; gate = null; replayReturn = null; setMethod(state.settings.method); store(); syncSettingsUi();
   mode = { kind: 'trail' }; resetRun(); if (courseComplete(state)) showCompletion();
 }
 
@@ -101,8 +179,9 @@ function resetRun(): void {
   completionHome = false;
   $('result').querySelector<HTMLElement>('.score')!.hidden = false;
   runTrail = trail(); runStage = stageName();
-  runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail)[runExerciseIndex]!;
+  runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail, pickFor(runTrail))[runExerciseIndex]!;
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
+  startPulse();
   practice = null; fingerPassed = false;
   helpVisible = mode.kind !== 'trail' || runExercise.guidance !== 'on-demand';
   run = new Run(makeText()); outcome = null; decisions = [];
@@ -443,7 +522,8 @@ function typeKey(k: string): void {
   if (!last.correct && !guided()) sound.play('miss');
   else if (last.correct && last.key === ' ') sound.play('word', 1, 1 + Math.min(run.combo, 40) * 0.004);
   else if (last.correct) sound.play('key');
-  if (r === 'done') { canvasPrompt?.onComplete(); return finish(); }
+  if (pulse && last.correct) $('beatDot').style.setProperty('--fill', onBeat(performance.now(), pulse.t0, pulse.interval).toFixed(2));
+  if (r === 'done') { canvasPrompt?.onComplete(); stopPulse(); return finish(); }
   prompt(); metrics(); keymap(); nextVisual();
 }
 function abort(): void { if (run.status !== 'playing') return; sound.play('error'); toast('Run stopped.'); resetRun(); }
@@ -494,14 +574,21 @@ function finish(): void {
   const newly = guided() ? [] : [...allowedChars(t)].filter(k => k === k.toLowerCase()).filter(k => keys.mastery(k) >= MASTERED && (beforeMastery[k] ?? 0) < MASTERED);
   $('resultMastery').textContent = newly.length ? `Settled this time: ${newly.map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}` : `${run.hits} characters typed · ${run.errors === 0 ? 'no missed keys' : `${run.errors} missed ${run.errors === 1 ? 'key' : 'keys'}`}`;
   if (guided()) $('resultMastery').textContent = 'Slow is welcome. Let your hands stay easy.';
+  // Spec F5: a beat run is judged for evenness only — one word and three bars, never a number.
+  if (runExercise.beat) { const e = evenness(run.strokes.slice(1).filter(x => x.correct).map(x => x.latencyMs)); $('resultMastery').textContent = `${e.word} ${e.bars}`; }
   $('result').querySelector<HTMLElement>('.score')!.hidden = guided();
   const earned = outcome?.firstClear && t.checkpoint;
   const k = keepsakeFor(t.grove);
   $('resultObject').innerHTML = earned ? `${objectArt(k)}<span class="eyebrow">Yours to keep</span><h3>${escapeHtml(k.name)}</h3><p>${escapeHtml(k.line)}</p>` : '';
   $('resultObject').hidden = !earned;
   $('result').classList.toggle('with-object', !!earned);
+  // Spec B4: the closing prose is not built around the target; if the target slipped there, say so once and move on (D5 brings it back).
+  const target = slotPick?.trail === t.id ? slotPick.pick?.target : undefined;
+  if (mode.kind === 'trail' && runExercise.format === 'passage' && target && missedTarget(run.text, run.strokes, target)) copy += ` ${target[0]!.toUpperCase()} then ${target[1]!.toUpperCase()} slipped in the sentence — it will come back.`;
   $('resultTitle').textContent = title; $('resultCopy').textContent = copy;
   $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%';
+  // Spec F4: pace is shown in exactly one place — the Flow chapter's checkpoint card — as information, never a target.
+  $('resultWpm').parentElement!.hidden = !(mode.kind === 'trail' && t.id === 'flow-checkpoint');
   $('resultOffer').hidden = !gate;
   $('resultOffer').textContent = gate ? `Up next: ${gate.title}. A short practice, then back here.` : '';
   $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Relaxed hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
@@ -513,6 +600,33 @@ function finish(): void {
     $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my course';
   }
   if (mode.kind === 'explore') { $('nextAction').textContent = 'Try this key again'; $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my lesson'; }
+  devRecord({
+    at: new Date().toISOString(),
+    mode: mode.kind,
+    lesson: { id: t.id, name: t.name, grove: t.grove, number: pathIndex(t), newKeys: t.newKeys, checkpoint: !!t.checkpoint },
+    exercise: {
+      index: runExerciseIndex + 1,
+      total: lessonExercises(t, pickFor(t)).length,
+      name: runExercise.name,
+      stage: runExercise.stage,
+      format: runExercise.format,
+      target: runExercise.target ?? null,
+      beat: !!runExercise.beat,
+      guided: guided(),
+      instruction: resolveCopy(runExercise.instruction),
+    },
+    selection: slotPick?.trail === t.id ? slotPick.pick : null,
+    prompt: run.text,
+    promptHandLoad: devHandLoad(run.text),
+    preparation: devPreparation(t.id, run.text),
+    allowedChars: [...allowedChars(t)],
+    result: {
+      hits: run.hits, attempts: run.attempts, errors: run.errors, maxCombo: run.maxCombo,
+      elapsedMs: run.elapsed(now()), wpm: m.wpm, acc: m.acc, rhythm: run.rhythm(),
+      passed: outcome?.passed ?? null, firstClear: outcome?.firstClear ?? null,
+    },
+    strokes: run.strokes.map((s) => ({ ...s })),
+  });
   // The result's chime, a beat after the passage's own burst: the keepsake sparkle outranks a lesson clear outranks a pass.
   const chime: CueName = mode.kind === 'remedial' ? (fingerPassed ? 'complete' : 'settle') : earned ? 'sparkle' : outcome?.firstClear ? 'clear' : outcome?.passed ? 'complete' : 'settle';
   setTimeout(() => sound.play(chime), 260);
@@ -524,6 +638,7 @@ function finish(): void {
 // ---- grove map ---------------------------------------------------------------------
 let mapKeys: ((e: KeyboardEvent) => void) | null = null;
 function openMap(showObjects = false): void {
+  stopPulse();
   if (run.status === 'playing') resetRun();
   sound.play('open');
   arena().classList.remove('result-mode', 'focus-mode'); arena().classList.add('map-mode');
@@ -538,7 +653,7 @@ function openMap(showObjects = false): void {
   if (showObjects) { $('collectionTitle').tabIndex = -1; $('collectionTitle').focus(); $('collectionTitle').scrollIntoView({ block: 'start' }); }
 }
 function selectLesson(t: Trail): void { sound.play('select'); replayReturn = isCleared(state, t.id) ? courseFrontier().id : null; state.trail = t.id; mode = { kind: 'trail' }; gate = null; closeMap(); resetRun(); }
-function closeMap(): void { sound.play('close'); arena().classList.remove('map-mode'); document.body.classList.remove('showing-book'); mapKeys = null; if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); $(completionHome || run.status === 'complete' ? 'resultTitle' : 'lessonTitle').focus(); }
+function closeMap(): void { sound.play('close'); arena().classList.remove('map-mode'); document.body.classList.remove('showing-book'); mapKeys = null; if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else { render(); startPulse(); } $(completionHome || run.status === 'complete' ? 'resultTitle' : 'lessonTitle').focus(); }
 
 // ---- focus / remedial ----------------------------------------------------------
 function openFocus(): void {
@@ -640,7 +755,7 @@ function switchMethod(methodId: string): void {
     const j = keys.toJSON();
     for (const k of moved) delete j.keys[k];
     for (const pair of Object.keys(state.transitions)) if ([...pair].some(k => moved.includes(k))) delete state.transitions[pair];
-    keys = KeyModel.fromJSON(j.keys, j.confusions); trans = TransitionModel.fromJSON(state.transitions);
+    keys = KeyModel.fromJSON(j.keys, j.confusions); trans = TransitionModel.fromJSON(state.transitions); slotPick = null;
   }
   state.settings.method = methodId; state.settings.onboarded = true; setMethod(methodId); save(); syncSettingsUi();
   mode = { kind: 'trail' }; resetRun(); toast(`Method: ${activeMethod().name}`);
@@ -663,7 +778,7 @@ $<HTMLInputElement>('importFile').onchange = async (e) => {
   input.value = '';
 };
 function applyImport(raw: unknown): void {
-  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); mode = { kind: 'trail' }; gate = null; replayReturn = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); toast('Progress restored.');
+  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); slotPick = null; mode = { kind: 'trail' }; gate = null; replayReturn = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); toast('Progress restored.');
 }
 $('resetBtn').onclick = () => {
   if (!confirm('Reset all your progress? Every lesson, keepsake and practice record will be gone' + (signedIn ? ' from your account too.' : '.'))) return;
@@ -750,5 +865,11 @@ Object.defineProperty(window, 'keygrove', {
     signedIn: () => signedIn,
     sounds: () => played.slice(),
     sound,
+    dev: Object.freeze({
+      enabled: devTraceEnabled,
+      report: devReport,
+      clear: clearDevReport,
+      runs: () => structuredClone(devRuns),
+    }),
   }),
 });

@@ -10,5 +10,5 @@ export function recordPerformance(run: Run, keys: KeyModel, transitions: Transit
   const consecutive = prev?.correct && prev.index === last.index - 1 && prev.index >= assistedThrough;
   const timed = consecutive && prev.key !== ' ' && last.key !== ' ' && last.latencyMs > 0 && last.latencyMs < 2000;
   keys.record(last.key, last.correct, timed ? last.latencyMs : null, now, last.correct ? undefined : last.typed);
-  if (consecutive) transitions.record(prev.key, last.key, last.correct, last.latencyMs);
+  if (consecutive) transitions.record(prev.key, last.key, last.correct, last.latencyMs, now);
 }

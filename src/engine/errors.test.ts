@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RELAXED_QWERTY, TRADITIONAL } from '../curriculum/method';
 import { decide, type RunSummary } from './coach';
-import { classifyMiss, classifyRun, dominant, explain, isNeighbour, rollTally } from './errors';
+import { classifyMiss, classifyRun, dominant, explain, isNeighbour, missedTarget, rollTally } from './errors';
 import { KeyModel } from './keymodel';
 import { Run } from './run';
 
@@ -16,7 +16,7 @@ describe('error classification (§29)', () => {
     expect(isNeighbour('r', 'g')).toBe(false);
     expect(isNeighbour('q', 'q')).toBe(false);
   });
-  it('finger-confusion: same finger, different key, under the active method', () => {
+  it('same-finger slip: wanted and typed keys share a finger under the active method', () => {
     expect(classifyMiss('c', 0, 'g', RELAXED_QWERTY)).toBe('finger'); // C is left index in Relaxed
     expect(classifyMiss('c', 0, 'g', TRADITIONAL)).toBe('other');     // C is left middle in Traditional
     expect(classifyMiss('u', 0, 'm', RELAXED_QWERTY)).toBe('finger');
@@ -61,6 +61,8 @@ describe('error classification (§29)', () => {
     expect(dominant(t)).toMatchObject({ cls: 'anticipation', count: 3, total: 4 });
     expect(dominant({ ...t, neighbour: 3 })).toBeNull();
     expect(explain({ ...t, neighbour: 3 })).toBeNull();
+    // DEC-15: same-finger misses are described as a pattern, never as which finger was used.
+    expect(explain({ ...t, anticipation: 0, finger: 3 })).toBe('Mostly same-finger slips — a nearby key that shares a finger with the one wanted; check which key that finger reaches for.');
     const rolled = rollTally(t, { ...t, anticipation: 1, neighbour: 0 });
     expect(rolled.anticipation).toBeCloseTo(3 * 0.7 + 1);
     expect(rolled.neighbour).toBeCloseTo(0.7);
@@ -86,5 +88,13 @@ describe('coach reads the error classes', () => {
     expect(decide(quiet(), base(), T0 + 60_000)).toEqual([]);
     const errors = { ...rollTally(undefined, classifyRun('', [])), anticipation: 2 };
     expect(decide(quiet(), base({ errors }), T0 + 60_000)).toEqual([]);
+  });
+  it('missedTarget: the pair slipped only when its second key was mistyped right after its first (spec B4)', () => {
+    const text = 'much music', at = (i: number, typed: string) => ({ key: text[i]!, typed, index: i, correct: typed === text[i], latencyMs: 300 });
+    const clean = [...text].map((_, i) => at(i, text[i]!));
+    expect(missedTarget(text, clean, 'mu')).toBe(false);
+    expect(missedTarget(text, [...clean.slice(0, 1), at(1, 'y'), ...clean.slice(2)], 'mu')).toBe(true);
+    expect(missedTarget(text, [...clean.slice(0, 2), at(2, 'x'), ...clean.slice(3)], 'mu')).toBe(false); // the C after MU slipped, not MU
+    expect(missedTarget('the cat', [...'the cat'].map((c, i) => ({ key: c, typed: 'x', index: i, correct: false, latencyMs: 300 })), 'mu')).toBe(false);
   });
 });

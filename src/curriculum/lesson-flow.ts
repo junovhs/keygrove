@@ -1,4 +1,6 @@
 import type { StageName, Trail } from './types';
+import { fingerOf } from './method';
+import { TECHNICAL_TRANSITIONS } from './movements';
 
 /** A finite visible step; guided discovery is separate from assessed performance. */
 export interface LessonExercise {
@@ -13,9 +15,38 @@ export interface LessonExercise {
   guidance?: 'on-demand';
   /** Earlier movements receiving deliberate attention again in this exercise. */
   focusKeys?: string;
+  /** A transition loop (spec B1): the one technical transition this exercise isolates, from movements.ts. */
+  target?: string;
+  /** Steady beat (spec B2): the loop typed to a soft pulse at the learner's own pace, judged for evenness only. */
+  beat?: true;
 }
+/** Spec B1: the target both ways with a rest between — `ed de ded ed de ded …` — only its two letters and spaces, about `len` characters. */
+export function transitionLoop(target: string, len: number): string {
+  const [a, b] = [target[0]!, target[1]!];
+  const units = [a + b, b + a, a + b + a];
+  let text = '';
+  for (let i = 0; text.length + units[i % 3]!.length + 1 <= len + 1; i++) text += (text ? ' ' : '') + units[i % 3];
+  return text;
+}
+
 const move = (name: string, stage: StageName, instruction: string, length = 24): LessonExercise => ({ name, stage, format: 'movement', instruction, length });
 const use = (name: string, format: 'words' | 'passage', instruction: string, length: number, independent = false): LessonExercise => ({ name, stage: 'words', format, instruction, length, ...(independent ? { guidance: 'on-demand' as const } : {}) });
+const ROW = (k: string): string => 'qwertyuiop'.includes(k) ? 'top row' : 'zxcvbnm'.includes(k) ? 'bottom row' : 'home row';
+/** Spec B1: a target typed both ways with a rest between, assessed, no speed. The line names the mechanics under the active method, never the finger used (DEC-15). */
+export function loop(target: string): LessonExercise {
+  const t = TECHNICAL_TRANSITIONS.find((x) => x.bigram === target);
+  if (!t) throw new Error(`Unknown transition target ${target}`);
+  const [a, b] = [target[0]!, target[1]!];
+  const sameFinger = fingerOf(a) === fingerOf(b);
+  const rows = ROW(a) === ROW(b) ? `along the ${ROW(a)}` : `${ROW(a)} to ${ROW(b)}`;
+  const how = sameFinger ? `Same finger, ${rows}. Let the finger travel; do not reset to its home key between.` : `Two fingers, ${rows}. Let the second finger prepare while the first presses.`;
+  return { name: `Connect ${a.toUpperCase()} and ${b.toUpperCase()}`, stage: 'mix', format: 'movement', instruction: how, length: 24, target, focusKeys: target };
+}
+/** Spec B2: the same phrase to a quiet pulse; guided (DEC-11) — finishing is completing — and judged only for evenness. */
+export function beat(target: string): LessonExercise {
+  const text = transitionLoop(target, 24);
+  return { name: 'Keep it even', stage: 'mix', format: 'movement', instruction: 'A quiet pulse at your own pace. Land each press near it; nothing is timed and nothing is scored.', length: text.length, assessment: 'guided', guidedKeys: target, text, target, focusKeys: target, beat: true };
+}
 const guide = (name: string, keys: string, text: string, instruction: string, format: LessonExercise['format'] = 'movement'): LessonExercise => ({ name, guidedKeys: keys, text, instruction, assessment: 'guided', stage: 'drill', format, length: text.length });
 
 /** Small planned visits connect today's attention to the wider instrument; never random novelty. */
@@ -28,20 +59,27 @@ const VISITS: Readonly<Record<string, LessonExercise>> = {
   'index-up': guide('Visit the number row', '47', '44774747', '4 uses your {4}; 7 your {7}. Try the farther reach slowly, with a small hand adjustment.'),
 };
 
+/** Spec C4: the chunks enter as words at the first lesson where their letters exist (ing at N T, nce at C Y, ion at W O);
+ * those lessons' words carry the chunk. Every other lesson's words follow slot 2's target (spec B3). */
+const CHUNK_LESSON: Readonly<Record<string, string>> = { 'home-words': 'ing', 'index-stretch-up': 'nce', 'ring-up': 'ion' };
+/** Slot 2's target and form, chosen per learner by the D5 rule (engine/next-practice); absent = no evidence, the shipped default. */
+export interface SlotPick { target: string; form: 'loop' | 'beat' }
+
 /** Passes advance immediately; discovery never adds an accuracy or speed requirement. */
-export function lessonExercises(t: Trail): readonly LessonExercise[] {
+export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExercise[] {
   if (t.checkpoint) return [use('Chapter passage', 'passage', 'Read a word ahead. Connect familiar movements at whatever pace stays comfortable.', t.length, t.grove === 'flow')];
   if (t.id === 'anchors') return [
     guide('Find F and J deliberately', 'fj', 'ffjjfjfj', 'Feel the bumps: F with your {f}, J with your {j}. Press lightly. There is no score here.'),
+    guide('Take a gentle keyboard tour', 'abcdefghijklmnopqrstuvwxyz;', 'asdf gh jkl; qwer ty uiop zxcv bnm', 'A quick map, not a test. Keep F and J as landmarks; touch each key once with the shown finger. You do not need to remember them yet.'),
     move('Alternate hands', 'mix', 'Let one hand prepare while the other presses. F and J help you find your bearings.', 16),
     VISITS.anchors!,
     move('Meet Space', 'words', 'Either thumb presses Space between these short groups. Take as much time as you need.', 24),
   ];
   if (t.id === 'inner-pair') return [
     guide('Find D and K deliberately', 'dk', 'ddkkdkdk', 'D uses your {d}; K your {k}. Keep the press small and easy.'),
-    move('Connect four fingers', 'mix', 'Connect D/K with F/J. Prepare the next finger; do not hold the others rigid.', 24),
+    { name: 'Connect four fingers', stage: 'mix', format: 'movement', instruction: 'Connect D/K with F/J. Prepare the next finger; do not hold the others rigid.', length: 23, text: 'df jk fd kj dfjk kjfd' },
     VISITS['inner-pair']!,
-    move('Carry the coordination', 'mix', 'Read one short group ahead. Slow, accurate movement counts fully.', 32),
+    { name: 'Carry the coordination', stage: 'mix', format: 'movement', instruction: 'Read one short group ahead. Slow, accurate movement counts fully.', length: 31, text: 'dfjk kjfd fdjk jkdf dfkj kjdf' },
   ];
   if (t.newKeys && ['rhythm', 'words'].includes(t.kind)) {
     const names = [...t.newKeys].map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' and ');
@@ -49,8 +87,15 @@ export function lessonExercises(t: Trail): readonly LessonExercise[] {
     const visits = VISITS[t.id] ? [VISITS[t.id]!] : [];
     return [
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
-      move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
-      use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40),
+      // Spec C3/D5: slot 2 isolates the learner's chosen target; without evidence, lesson 3 still meets `ed` (spec C1) and the
+      // first two lessons keep the generic loop.
+      pick ? (pick.form === 'beat' ? beat(pick.target) : t.id === 'middle-up' && (pick.target === 'ed' || pick.target === 'de')
+        ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves E↔D while right middle moves I↔K. Keep both movements small and even.', length: 26, target: pick.target, focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
+        : loop(pick.target))
+        : t.id === 'middle-up'
+          ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves E↔D while right middle moves I↔K. Keep both movements small and even.', length: 26, target: 'ed', focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
+          : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
+      { ...use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), ...(CHUNK_LESSON[t.id] ? { target: CHUNK_LESSON[t.id] } : pick ? { target: pick.target } : t.id === 'middle-up' ? { target: 'ed' } : {}) },
       ...visits,
       use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48),
     ];

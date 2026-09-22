@@ -32,7 +32,15 @@ describe('transition model (§25)', () => {
     expect(m.mastery('zz')).toBe(0);
     const back = TransitionModel.fromJSON(JSON.parse(JSON.stringify(m.toJSON())));
     expect(back.mastery('th')).toBeCloseTo(m.mastery('th'));
-    expect(TransitionModel.fromJSON({ 'a b': { seen: 3 }, xyz: {}, ab: { seen: 2, hits: 9 } }).toJSON()).toEqual({ ab: { err: 0, lat: 0, lat2: 0, seen: 2, hits: 2 } });
+    expect(TransitionModel.fromJSON({ 'a b': { seen: 3 }, xyz: {}, ab: { seen: 2, hits: 9 } }).toJSON()).toEqual({ ab: { err: 0, lat: 0, lat2: 0, seen: 2, hits: 2, last: 0 } });
+  });
+  it('remembers when a pair was last practised (spec C6/D5); an older save loads with last = 0', () => {
+    const m = new TransitionModel();
+    m.record('e', 'd', true, 300, 1_700_000_000_000);
+    expect(m.stat('ed')!.last).toBe(1_700_000_000_000);
+    m.record('e', 'd', false, null, 1_700_000_005_000);
+    expect(m.stat('ed')!.last).toBe(1_700_000_005_000);
+    expect(TransitionModel.fromJSON({ ed: { err: 0, lat: 300, lat2: 90_000, seen: 4, hits: 4 } }).stat('ed')!.last).toBe(0);
   });
   it('coach: the weakest pair becomes a transition drill offer', () => {
     const T0 = 1_700_000_000_000;

@@ -1,0 +1,48 @@
+# provisional=true — until learner error/hesitation data exists (DEC-16)
+# stability=universal
+# core_rank=60
+# purpose=coverage check, not isolated drills
+bigram,rank_books,rank_web,rank_subtlex,share_books,movement_class,relaxed_class,also_technical,stability,provisional
+th,1,2,1,0.03556,alternate_hands,alternate_hands,False,universal,True
+he,2,5,2,0.03075,alternate_hands,alternate_hands,False,universal,True
+in,3,1,4,0.02433,same_hand_different_fingers,same_hand_different_fingers,True,universal,True
+er,4,3,6,0.02048,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+an,5,6,8,0.01985,alternate_hands,alternate_hands,False,universal,True
+re,6,4,5,0.01854,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+on,7,7,11,0.01758,same_hand_different_fingers,same_hand_different_fingers,True,universal,True
+at,8,11,10,0.01487,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+en,9,14,23,0.01454,alternate_hands,alternate_hands,False,universal,True
+nd,10,18,19,0.01352,alternate_hands,alternate_hands,False,universal,True
+ti,11,12,54,0.01343,alternate_hands,alternate_hands,False,universal,True
+es,12,8,28,0.01339,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+or,13,9,20,0.01277,alternate_hands,alternate_hands,False,universal,True
+te,14,10,31,0.01205,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+of,15,38,58,0.01175,alternate_hands,alternate_hands,False,universal,True
+ed,16,22,37,0.01168,same_finger_different_key,same_finger_different_key,True,universal,True
+is,17,23,18,0.01128,alternate_hands,alternate_hands,False,universal,True
+it,18,20,12,0.01123,alternate_hands,alternate_hands,False,universal,True
+al,19,19,27,0.01087,alternate_hands,alternate_hands,False,universal,True
+ar,20,16,26,0.01075,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+st,21,13,21,0.01053,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+to,22,17,13,0.01041,alternate_hands,alternate_hands,False,universal,True
+nt,23,15,50,0.01041,alternate_hands,alternate_hands,False,universal,True
+ng,24,25,14,0.00953,alternate_hands,alternate_hands,False,universal,True
+se,25,21,29,0.00932,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+ha,26,44,9,0.00926,alternate_hands,alternate_hands,False,universal,True
+as,27,39,36,0.00871,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+ou,28,26,3,0.00870,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+le,30,27,32,0.00829,alternate_hands,alternate_hands,False,universal,True
+ve,31,41,22,0.00825,same_hand_different_fingers,same_hand_different_fingers,True,universal,True
+co,32,28,51,0.00794,alternate_hands,alternate_hands,False,universal,True
+me,33,29,15,0.00793,alternate_hands,alternate_hands,False,universal,True
+hi,35,55,17,0.00763,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+ri,36,31,53,0.00728,alternate_hands,alternate_hands,False,universal,True
+ne,39,30,33,0.00692,alternate_hands,alternate_hands,False,universal,True
+ea,40,24,25,0.00688,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+li,43,37,49,0.00624,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+ll,45,50,16,0.00577,same_key,same_key,False,universal,True
+om,49,47,46,0.00546,same_hand_different_fingers,same_hand_different_fingers,True,universal,True
+ur,50,52,47,0.00543,alternate_hands,alternate_hands,False,universal,True
+ca,51,51,55,0.00538,same_hand_different_fingers,same_hand_different_fingers,False,universal,True
+el,52,49,48,0.00530,alternate_hands,alternate_hands,False,universal,True
+ho,58,57,38,0.00485,same_hand_different_fingers,same_hand_different_fingers,False,universal,True

@@ -55,6 +55,7 @@ export function classifyMiss(text: string, i: number, typed: string, method?: Ty
   for (let d = 1; d <= 3; d++) { const c = (text[i + d] ?? '').toLowerCase(); if (!c || c === ' ') break; if (c === t) return 'anticipation'; }
   if (isNeighbour(w, t)) return 'neighbour';
   const fw = fingerOf(w, method), ft = fingerOf(t, method);
+  // 'finger' = the wanted and typed keys share an assigned finger; a pattern, not a claim about which finger pressed.
   if (fw && ft && fw === ft && fw !== 'thumb') return 'finger';
   return 'other';
 }
@@ -82,7 +83,7 @@ export function rollTally(rolling: Partial<ErrorTally> | undefined, run: ErrorTa
 const COPY: Record<ErrorClass, string> = {
   anticipation: 'you are reading ahead of your hands',
   neighbour: 'the finger lands a key over',
-  finger: 'the right finger, the wrong key',
+  finger: 'a nearby key that shares a finger with the one wanted; check which key that finger reaches for',
   repetition: 'a key is getting doubled',
   omission: 'doubled letters are losing one',
   timing: 'the right key, after a pause',
@@ -103,5 +104,12 @@ export function explain(t: ErrorTally): string | null {
   const d = dominant(t);
   if (!d) return null;
   const all = d.count === d.total;
-  return `${all ? 'All' : 'Mostly'} ${d.cls === 'finger' ? 'finger-confusion' : d.cls} errors — ${COPY[d.cls]}.`;
+  // DEC-15: the class is named by what was observed (two keys under one finger), never by which finger was used.
+  return `${all ? 'All' : 'Mostly'} ${d.cls === 'finger' ? 'same-finger slips' : d.cls + ' errors'} — ${COPY[d.cls]}.`;
+}
+
+/** Spec B4/D4: did the lesson's target pair slip in this run — a wrong key where the text read the pair's second letter right after its first? */
+export function missedTarget(text: string, strokes: readonly Keystroke[], target: string): boolean {
+  const t = text.toLowerCase(), [a, b] = [target[0]!, target[1]!];
+  return strokes.some((s) => !s.correct && s.index > 0 && t[s.index] === b && t[s.index - 1] === a);
 }
