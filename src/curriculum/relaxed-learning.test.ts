@@ -11,18 +11,32 @@ it('visits above and below in the first two lessons, and practices the lower row
   expect(lessonExercises(trailById('core-words')).some(e => e.assessment !== 'guided' && generate(trailById('core-words'), e.stage, { exercise: e, seed: 2 }).includes('v'))).toBe(true);
 });
 
+/** North star / DEC-10: the whole keyboard is shown early. Lesson 1's one guided, unscored tour is the single deliberate
+ * exception to the small-visit bound; it is exposure, not a memory test, and never evidence (DEC-11). */
+const isKeyboardTour = (trailId: string, name: string) => trailId === 'anchors' && name === 'Take a gentle keyboard tour';
+
 it('bounds visits, introduces before assessment, and ends each finite lesson with assessed application', () => {
   for (const t of TRAILS) {
     const exercises = lessonExercises(t);
     expect(exercises.length).toBeLessThanOrEqual(5);
     expect(exercises.at(-1)!.assessment).toBeUndefined();
     if (t.newKeys || t.shift) expect(exercises[0]!.assessment).toBe('guided');
-    for (const e of exercises.filter(e => e.assessment === 'guided')) {
+    for (const e of exercises.filter(e => e.assessment === 'guided' && !isKeyboardTour(t.id, e.name))) {
       const unfamiliar = [...(e.guidedKeys ?? '')].filter(k => !allowedChars(t).has(k));
       expect(new Set(unfamiliar).size).toBeLessThanOrEqual(2);
       expect(e.text!.length).toBeLessThanOrEqual(32);
     }
   }
+});
+
+it('lesson 1 tours the whole keyboard once, guided and unscored, right after finding F and J', () => {
+  const exercises = lessonExercises(trailById('anchors'));
+  const tours = exercises.filter(e => isKeyboardTour('anchors', e.name));
+  expect(tours).toHaveLength(1);
+  expect(exercises[1]).toBe(tours[0]);
+  expect(tours[0]!.assessment).toBe('guided');
+  for (const k of 'abcdefghijklmnopqrstuvwxyz') expect(tours[0]!.text).toContain(k);
+  expect(MAIN_TRAILS.flatMap(t => lessonExercises(t)).filter(e => e.name === tours[0]!.name)).toHaveLength(1);
 });
 
 it('later transfer invites independent recall with metadata that keeps help available', () => {

@@ -57,7 +57,9 @@ describe('transition model (§25)', () => {
     const text = generateDrill('transition', ['t', 'h'], flow, { seed: 7 });
     const words = text.split(' ');
     expect(words.length).toBeGreaterThan(4);
-    expect(words.every((w) => w.includes('th'))).toBe(true);
+    // Spec B3 etude: a neutral common word after every two carriers, so carriers are at least 2/3 of the line.
+    expect(words.filter((w) => w.includes('th')).length).toBeGreaterThanOrEqual(Math.floor((words.length * 2) / 3));
+    expect(words.slice(0, 2).every((w) => w.includes('th'))).toBe(true);
     const drill = generate(flow, 'drill', { seed: 3, weakPairs: ['th', 'rf'] });
     expect(drill.split(' ').every((w) => w === 'th' || w === 'rf')).toBe(true);
     expect(generate(flow, 'drill', { seed: 3 })).not.toBe(drill);

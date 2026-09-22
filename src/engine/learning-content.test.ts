@@ -23,13 +23,15 @@ it('every planned exercise covers its assessed focus or explicitly guided keys, 
     }
   }
 });
-it('introduces Space deliberately after the first three short landmark exercises', () => {
+it('introduces Space deliberately after the short landmark exercises (the guided keyboard tour groups keys by row)', () => {
   const t = trailById('anchors'), exercises = lessonExercises(t);
-  for (const exercise of exercises.slice(0, 3)) {
+  const space = exercises.findIndex(e => e.name === 'Meet Space');
+  expect(space).toBe(exercises.length - 1);
+  for (const exercise of exercises.slice(0, space).filter(e => e.name !== 'Take a gentle keyboard tour')) {
     const text = generate(t, exercise.stage, { exercise, seed: 3 });
     expect(text).not.toContain(' '); expect(text.length).toBeLessThanOrEqual(30);
   }
-  const last = exercises[3]!;
+  const last = exercises[space]!;
   const text = generate(t, last.stage, { exercise: last, seed: 3 });
   expect(text).toContain(' ');
   expect(text.split(' ').slice(0, -1).every(w => w.length === 6)).toBe(true);

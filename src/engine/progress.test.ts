@@ -3,26 +3,32 @@ import { fresh, sanitize } from '../state/save';
 import { applyRun, currentStage, currentTrail, exerciseIndex, groveOpen } from './progress';
 import { lessonExercises } from '../curriculum/lesson-flow';
 import { mergeProgress } from '../state/progress-sync';
+import { trailById } from '../curriculum';
 import { KeyModel } from './keymodel';
 const T = 1_700_000_000_000;
+const ANCHORS = lessonExercises(trailById('anchors'));
+/** Guided steps always pass (DEC-11), so the first accuracy gate is the first assessed exercise. */
+const FIRST_ASSESSED = ANCHORS.findIndex((e) => e.assessment !== 'guided');
 const sample = (acc = 100) => ({ hits: 40, attempts: 40, maxCombo: 40, wpm: 8, acc, rhythm: 0.2, now: T });
 describe('visible exercises: every pass means progress', () => {
   it('advances each named exercise exactly once, then opens the next lesson', () => {
     const s = fresh(), m = new KeyModel();
-    for (let i = 0; i < 4; i++) {
+    const n = ANCHORS.length;
+    for (let i = 0; i < n; i++) {
       expect(exerciseIndex(s)).toBe(i);
       const result = applyRun(s, m, sample(90));
-      expect(result).toMatchObject({ passed: true, firstClear: i === 3, blockers: [], exercise: { index: i, total: 4 } });
+      expect(result).toMatchObject({ passed: true, firstClear: i === n - 1, blockers: [], exercise: { index: i, total: n } });
       expect(s.lessonSteps.anchors).toBe(i + 1);
-      expect(s.trail).toBe(i === 3 ? 'inner-pair' : 'anchors');
+      expect(s.trail).toBe(i === n - 1 ? 'inner-pair' : 'anchors');
     }
   });
   it('fails only the current exercise and never repeats already-passed exercises', () => {
-    const s = fresh(), m = new KeyModel(); applyRun(s, m, sample());
+    const s = fresh(), m = new KeyModel();
+    for (let i = 0; i < FIRST_ASSESSED; i++) applyRun(s, m, sample());
     expect(applyRun(s, m, sample(89))).toMatchObject({ passed: false, blockers: ['89% accuracy; 90% needed to continue'] });
-    expect(exerciseIndex(s)).toBe(1);
+    expect(exerciseIndex(s)).toBe(FIRST_ASSESSED);
     expect(applyRun(s, m, sample(90)).passed).toBe(true);
-    expect(exerciseIndex(s)).toBe(2);
+    expect(exerciseIndex(s)).toBe(FIRST_ASSESSED + 1);
   });
   it('cannot skip application based on high mastery or hold a pass because of low mastery', () => {
     const s = fresh(), m = new KeyModel(); s.trail = 'middle-up';
@@ -44,7 +50,7 @@ describe('visible exercises: every pass means progress', () => {
   });
   it('a failed replay and absence never revoke earned clears', () => {
     const s = fresh(), m = new KeyModel();
-    for (let i = 0; i < 4; i++) applyRun(s, m, sample());
+    for (let i = 0; i < ANCHORS.length; i++) applyRun(s, m, sample());
     s.trail = 'anchors'; applyRun(s, m, { ...sample(20), now: T + 90 * 86400000 });
     expect(s.trails.anchors!.cleared).toBe(true);
   });
