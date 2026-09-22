@@ -107,3 +107,9 @@ export function explain(t: ErrorTally): string | null {
   // DEC-15: the class is named by what was observed (two keys under one finger), never by which finger was used.
   return `${all ? 'All' : 'Mostly'} ${d.cls === 'finger' ? 'same-finger slips' : d.cls + ' errors'} — ${COPY[d.cls]}.`;
 }
+
+/** Spec B4/D4: did the lesson's target pair slip in this run — a wrong key where the text read the pair's second letter right after its first? */
+export function missedTarget(text: string, strokes: readonly Keystroke[], target: string): boolean {
+  const t = text.toLowerCase(), [a, b] = [target[0]!, target[1]!];
+  return strokes.some((s) => !s.correct && s.index > 0 && t[s.index] === b && t[s.index - 1] === a);
+}

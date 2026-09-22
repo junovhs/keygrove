@@ -10,7 +10,7 @@ import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, fingerOf, 
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
-import { classifyRun, rollTally } from './engine/errors';
+import { missedTarget, classifyRun, rollTally } from './engine/errors';
 import { applyRun, currentStage, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { recordPerformance } from './engine/learning';
@@ -523,8 +523,13 @@ function finish(): void {
   $('resultObject').innerHTML = earned ? `${objectArt(k)}<span class="eyebrow">Yours to keep</span><h3>${escapeHtml(k.name)}</h3><p>${escapeHtml(k.line)}</p>` : '';
   $('resultObject').hidden = !earned;
   $('result').classList.toggle('with-object', !!earned);
+  // Spec B4: the closing prose is not built around the target; if the target slipped there, say so once and move on (D5 brings it back).
+  const target = slotPick?.trail === t.id ? slotPick.pick?.target : undefined;
+  if (mode.kind === 'trail' && runExercise.format === 'passage' && target && missedTarget(run.text, run.strokes, target)) copy += ` ${target[0]!.toUpperCase()} then ${target[1]!.toUpperCase()} slipped in the sentence — it will come back.`;
   $('resultTitle').textContent = title; $('resultCopy').textContent = copy;
   $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%';
+  // Spec F4: pace is shown in exactly one place — the Flow chapter's checkpoint card — as information, never a target.
+  $('resultWpm').parentElement!.hidden = !(mode.kind === 'trail' && t.id === 'flow-checkpoint');
   $('resultOffer').hidden = !gate;
   $('resultOffer').textContent = gate ? `Up next: ${gate.title}. A short practice, then back here.` : '';
   $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Relaxed hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
