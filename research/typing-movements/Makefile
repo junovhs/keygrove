@@ -1,6 +1,6 @@
 .RECIPEPREFIX := >
 
-.PHONY: all download analyze clean-results sources
+.PHONY: all download analyze export clean-results sources
 
 all: download analyze
 
@@ -11,6 +11,9 @@ analyze:
 >python3 ./scripts/analyze_norvig.py
 >python3 ./scripts/analyze_cross_corpus.py
 >python3 ./scripts/build_candidates.py
+
+export:
+>python3 ./scripts/export_movements.py
 
 clean-results:
 >rm -rf outputs

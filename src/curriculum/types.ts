@@ -54,3 +54,23 @@ export interface Gate {
   star3Rhythm: 0.8;
   swiftWpm: number;
 }
+
+/** Bigram movement class under one typing method (research/typing-movements, movement-atlas v2). */
+export type MovementClass = 'alternate_hands' | 'same_hand_different_fingers' | 'same_finger_different_key' | 'same_key';
+/** One of the v1 technical targets exported from the research candidate sets (provisional, DEC-16). */
+export interface TechnicalTransition {
+  bigram: string;
+  /** Smallest share of all bigram occurrences across the three corpora. */
+  minShare: number;
+  stability: 'universal';
+  classByMethod: Readonly<Record<string, MovementClass>>;
+  /** Key-to-key travel in key widths when both keys share a finger under Traditional; 0 otherwise. */
+  sameFingerTravel: number;
+}
+/** A common 3–4 letter chunk practised only inside words in v1. */
+export interface Chunk {
+  ngram: string;
+  minShare: number;
+  stability: 'universal' | 'two-corpus';
+  features: readonly string[];
+}
