@@ -30,6 +30,11 @@ describe('next-lesson rule (scaffold D5)', () => {
     practised(m, 'ed', { agoDays: 8 }); practised(m, 'de', { lat: 500 }); practised(m, 'mu', { lat: 450 }); practised(m, 'um');
     expect(nextPractice(m, keys('ring-pair'), NOW)!.target).toBe('ed');
   });
+  it('a new-key lesson only gives slot 2 to a technical target that uses one of those new keys', () => {
+    expect(nextPractice(new TransitionModel(), keys('middle-up'), NOW, 'ei')!.target).toBe('ed');
+    expect(nextPractice(new TransitionModel(), keys('index-reach'), NOW, 'gh')).toBeNull(); // rehearse G/H instead of old E/D
+    expect(nextPractice(new TransitionModel(), keys('index-up'), NOW, 'ru')!.target).toBe('mu'); // U unlocks MU/UM
+  });
   it('accurate but uneven → beat; otherwise loop', () => {
     const m = baseline();
     practised(m, 'ed', { lat: 300, jitter: 250 }); practised(m, 'de'); practised(m, 'mu'); practised(m, 'um');

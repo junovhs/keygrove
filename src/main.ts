@@ -42,6 +42,45 @@ let signedIn = accountService !== null && hasStoredSession(accountService);
 let state: SaveV6 = signedIn ? load() : loadGuest();
 if (!signedIn) clearStored();
 setMethod(state.settings.method);
+
+/**
+ * Dev-only experience journal. Add ?dev=1 to any build to keep an exact, session-scoped
+ * record of the prompts shown and the strokes/results produced. Nothing is sent anywhere.
+ * Console: keygrove.dev.report() / keygrove.dev.clear()
+ */
+const devTraceEnabled = new URLSearchParams(location.search).has('dev');
+const DEV_TRACE_KEY = 'keygrove.dev-runs.v1';
+const devRuns: unknown[] = (() => {
+  if (!devTraceEnabled) return [];
+  try { const x = JSON.parse(sessionStorage.getItem(DEV_TRACE_KEY) ?? '[]'); return Array.isArray(x) ? x : []; }
+  catch { return []; }
+})();
+function devHandLoad(text: string): { left: number; right: number; thumb: number; unknown: number } {
+  const out = { left: 0, right: 0, thumb: 0, unknown: 0 };
+  for (const ch of text) {
+    const f = fingerOf(ch.toLowerCase());
+    if (!f) out.unknown++;
+    else if (f === 'thumb') out.thumb++;
+    else if (f.startsWith('l')) out.left++;
+    else if (f.startsWith('r')) out.right++;
+    else out.unknown++;
+  }
+  return out;
+}
+function devRecord(record: Record<string, unknown>): void {
+  if (!devTraceEnabled) return;
+  devRuns.push(record);
+  try { sessionStorage.setItem(DEV_TRACE_KEY, JSON.stringify(devRuns)); } catch { /* console trace still works */ }
+  console.info('[KeyGrove dev run]', record);
+}
+function devReport(): string {
+  return JSON.stringify({ schema: 1, exportedAt: new Date().toISOString(), method: activeMethod().id, runs: devRuns }, null, 2);
+}
+function clearDevReport(): void {
+  devRuns.length = 0;
+  try { sessionStorage.removeItem(DEV_TRACE_KEY); } catch { /* no-op */ }
+}
+
 /** Keep the current course durable, including during an optional replay. */
 function store(): void { const copy = replayReturn ? { ...state, trail: replayReturn } : state; if (signedIn) persist(copy); else saveGuest(copy); }
 let keys = KeyModel.fromJSON(state.keys, state.confusions);
@@ -62,7 +101,7 @@ let runStage: StageName = 'drill';
 /** Slot 2's target for the lesson in progress, chosen once so it holds across the lesson's exercises (spec D5). */
 let slotPick: { trail: string; pick: SlotPick | null } | null = null;
 const pickFor = (t: Trail): SlotPick | undefined => {
-  if (!slotPick || slotPick.trail !== t.id) slotPick = { trail: t.id, pick: nextPractice(trans, new Set([...allowedChars(t)].filter((k) => k.length === 1 && k === k.toLowerCase())), Date.now()) };
+  if (!slotPick || slotPick.trail !== t.id) slotPick = { trail: t.id, pick: nextPractice(trans, new Set([...allowedChars(t)].filter((k) => k.length === 1 && k === k.toLowerCase())), Date.now(), t.newKeys) };
   return slotPick.pick ?? undefined;
 };
 let runExercise: LessonExercise = lessonExercises(runTrail, pickFor(runTrail))[0]!;
@@ -541,6 +580,32 @@ function finish(): void {
     $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my course';
   }
   if (mode.kind === 'explore') { $('nextAction').textContent = 'Try this key again'; $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my lesson'; }
+  devRecord({
+    at: new Date().toISOString(),
+    mode: mode.kind,
+    lesson: { id: t.id, name: t.name, grove: t.grove, number: pathIndex(t), newKeys: t.newKeys, checkpoint: !!t.checkpoint },
+    exercise: {
+      index: runExerciseIndex + 1,
+      total: lessonExercises(t, pickFor(t)).length,
+      name: runExercise.name,
+      stage: runExercise.stage,
+      format: runExercise.format,
+      target: runExercise.target ?? null,
+      beat: !!runExercise.beat,
+      guided: guided(),
+      instruction: resolveCopy(runExercise.instruction),
+    },
+    selection: slotPick?.trail === t.id ? slotPick.pick : null,
+    prompt: run.text,
+    promptHandLoad: devHandLoad(run.text),
+    allowedChars: [...allowedChars(t)],
+    result: {
+      hits: run.hits, attempts: run.attempts, errors: run.errors, maxCombo: run.maxCombo,
+      elapsedMs: run.elapsed(now()), wpm: m.wpm, acc: m.acc, rhythm: run.rhythm(),
+      passed: outcome?.passed ?? null, firstClear: outcome?.firstClear ?? null,
+    },
+    strokes: run.strokes.map((s) => ({ ...s })),
+  });
   // The result's chime, a beat after the passage's own burst: the keepsake sparkle outranks a lesson clear outranks a pass.
   const chime: CueName = mode.kind === 'remedial' ? (fingerPassed ? 'complete' : 'settle') : earned ? 'sparkle' : outcome?.firstClear ? 'clear' : outcome?.passed ? 'complete' : 'settle';
   setTimeout(() => sound.play(chime), 260);
@@ -779,5 +844,11 @@ Object.defineProperty(window, 'keygrove', {
     signedIn: () => signedIn,
     sounds: () => played.slice(),
     sound,
+    dev: Object.freeze({
+      enabled: devTraceEnabled,
+      report: devReport,
+      clear: clearDevReport,
+      runs: () => structuredClone(devRuns),
+    }),
   }),
 });

@@ -35,6 +35,23 @@ describe('textgen', () => {
     expect(wordBank(trailById('home-words')).length).toBeGreaterThanOrEqual(24);
     expect(wordBank(trailById('anchors')).length).toBe(0);
   });
+  it('new keys are found before assessed practice, and their word line concentrates them before prose', () => {
+    for (const t of TRAILS.filter(t => t.newKeys && ['rhythm', 'words'].includes(t.kind))) {
+      const first = lessonExercises(t)[0]!;
+      expect(first.assessment, t.id).toBe('guided');
+      for (const k of t.newKeys) expect([...(first.text ?? '')].filter(c => c === k).length, `${t.id} warm-up for ${k}`).toBeGreaterThanOrEqual(4);
+    }
+    for (const id of ['index-reach', 'core-words'] as const) {
+      const t = trailById(id)!, ex = lessonExercises(t).find(e => e.format === 'words')!;
+      const words = generate(t, 'words', { exercise: ex, seed: 11 }).split(' ');
+      const share = words.filter(w => [...t.newKeys].some(k => w.includes(k))).length / words.length;
+      expect(share, id).toBeGreaterThanOrEqual(0.6);
+    }
+    const roots = lessonExercises(trailById('anchors')!);
+    expect(roots).toHaveLength(5);
+    expect(roots[1]).toMatchObject({ name: 'Take a gentle keyboard tour', assessment: 'guided' });
+    for (const k of 'abcdefghijklmnopqrstuvwxyz') expect(roots[1]!.text, k).toContain(k);
+  });
   it('heat pulls hot-key words in', () => {
     const t = trailById('home-words');
     const count = (heat: Record<string, number>) => { let k = 0, n = 0; for (let s = 0; s < 200; s++) { const txt = generate(t, 'words', { seed: s, heat }); n += txt.length; k += [...txt].filter((c) => c === 'g').length; } return k / n; };

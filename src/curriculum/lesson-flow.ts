@@ -70,6 +70,7 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
   if (t.checkpoint) return [use('Chapter passage', 'passage', 'Read a word ahead. Connect familiar movements at whatever pace stays comfortable.', t.length, t.grove === 'flow')];
   if (t.id === 'anchors') return [
     guide('Find F and J deliberately', 'fj', 'ffjjfjfj', 'Feel the bumps: F with your {f}, J with your {j}. Press lightly. There is no score here.'),
+    guide('Take a gentle keyboard tour', 'abcdefghijklmnopqrstuvwxyz;', 'asdf gh jkl; qwer ty uiop zxcv bnm', 'A quick map, not a test. Keep F and J as landmarks; touch each key once with the shown finger. You do not need to remember them yet.'),
     move('Alternate hands', 'mix', 'Let one hand prepare while the other presses. F and J help you find your bearings.', 16),
     VISITS.anchors!,
     move('Meet Space', 'words', 'Either thumb presses Space between these short groups. Take as much time as you need.', 24),

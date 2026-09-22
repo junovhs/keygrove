@@ -230,7 +230,11 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
   }
   if (exercise?.format === 'words' && trail.kind === 'words') {
     const familiar = PRACTICE_WORDS.filter(w => w.length >= 2 && fits(w, allowed));
-    const pool = familiar.length ? familiar : bank;
+    // If this lesson just taught keys, make the word line actually use them heavily before prose transfer.
+    // A research etude (handled above) wins when present; otherwise this is the warm-up -> words bridge.
+    const focus = [...(exercise.focusKeys ?? trail.newKeys)].filter(k => k !== ' ');
+    const focused = focus.length ? familiar.filter(w => focus.some(k => w.includes(k.toLowerCase()))) : [];
+    const pool = focused.length >= 4 ? focused : familiar.length ? familiar : bank;
     const pick = sampler(pool, heat, opts.pairHeat);
     return balancedFill(len, () => pick(r), r);
   }

@@ -11,6 +11,8 @@ import type { TransitionModel } from './transitions';
  *   stale    = eligible unseen for > STALE_DAYS    → else the weakest of these
  *   target   = … else the weakest eligible
  *   form     = 'beat' when accurate but uneven, else 'loop'
+ *   new keys  = when a lesson introduces keys, only a target touching one of those keys may take slot 2;
+ *               otherwise return null and let the lesson rehearse its new movement instead.
  *
  * Thresholds are provisional until learner data exists (DEC-16).
  */
@@ -23,8 +25,12 @@ const ELIGIBLE_AT: Readonly<Record<string, number>> = Object.fromEntries(TECHNIC
   t.bigram, MAIN_TRAILS.findIndex((tr) => { const a = allowedChars(tr); return a.has(t.bigram[0]!) && a.has(t.bigram[1]!); }),
 ]));
 
-export function nextPractice(trans: TransitionModel, unlocked: ReadonlySet<string>, now = Date.now()): Pick | null {
-  const eligible = TECHNICAL_TRANSITIONS.map((t) => t.bigram).filter((b) => unlocked.has(b[0]!) && unlocked.has(b[1]!));
+export function nextPractice(trans: TransitionModel, unlocked: ReadonlySet<string>, now = Date.now(), lessonNewKeys = ''): Pick | null {
+  let eligible = TECHNICAL_TRANSITIONS.map((t) => t.bigram).filter((b) => unlocked.has(b[0]!) && unlocked.has(b[1]!));
+  if (lessonNewKeys) {
+    const freshKeys = new Set([...lessonNewKeys.toLowerCase()]);
+    eligible = eligible.filter((b) => freshKeys.has(b[0]!) || freshKeys.has(b[1]!));
+  }
   if (!eligible.length) return null;
   const fresh = eligible.filter((b) => !trans.stat(b));
   const stale = eligible.filter((b) => trans.stat(b) && now - trans.stat(b)!.last > STALE_DAYS * 86_400_000);
