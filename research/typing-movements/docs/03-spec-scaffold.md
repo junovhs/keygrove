@@ -300,25 +300,35 @@ Avoid elaborate economies unless they prove necessary.
 
 # H. Research decisions
 
+Answered 2026-09-22 (SPEC-04). Settled provisionally by `docs/04-movement-vocabulary-checkpoint.md`; not reopened here. Each answer points at the artefact.
+
 ## H1. Corpus stability
 
-**Question:** Which high-value transitions remain important across Google Books, web text, and SUBTLEX-US?
+`outputs/cross-corpus-stability.md`, `outputs/tables/*_cross_corpus.csv`. At bigram level "which corpus" barely matters: no Google Books top-200 bigram falls out of the top-300 elsewhere. 25 of the top-30 same-finger transitions are universal; the top nine (`ed de ce ec tr un lo ol rt`) hold their order in all three corpora. Trigrams diverge (62 book artefacts, mostly Latinate or function-word chunks).
 
 ## H2. Technical vocabulary
 
-**Question:** What compact set of transitions deserves first-class curriculum status?
+`outputs/candidates/technical_transitions.csv` (40, provisional). v1 uses 11: `ed de ce ec tr un lo ol rt mu um` — the stable same-finger nine plus the `mu/um` pair. The other 29 rows (row jumps, stretches, pinky reaches) stay in the CSV, unused.
 
 ## H3. Gesture vocabulary
 
-**Question:** What compact set of 3–4 character gestures deserves first-class curriculum status?
+`outputs/candidates/gestures.csv` (30 + 10, provisional). v1 uses four chunks as *words only*: `ing`, `ion/tion`, `nce`, `ted`. No isolated gesture practice.
 
 ## H4. Practice words
 
-**Question:** What words provide the best natural practice for each technical target?
+`outputs/candidates/practice_words.csv` — up to 12 everyday words per target (SUBTLEX ≥ ~5/million, ≥ 100 films, mostly lower-case, no names/profanity/contraction stems), short carriers first. Good enough to ship; not proven to be good drill words.
 
 ## H5. Learner data
 
-**Question:** Once real learner data exists, which research assumptions should be replaced with empirical error/hesitation measurements?
+Replace, in this order, when the signal exists (all from `TransitionModel` unless noted):
+
+| assumption | minimum learner signal |
+|---|---|
+| the 11-target set (membership) | `err` and `slowness` per target over ≥ 6 seen, across ≥ 30 learners: any target nobody finds hard leaves; any universal bigram many find hard enters |
+| stability thresholds N = 200 / 500 / 30 | none — these only ever mattered for selection; learner data replaces the whole selection step |
+| loop-vs-beat rule (`err ≤ 0.1` and uneven) | evenness term of `mastery` before vs after a beat exercise |
+| practice-word floor and ordering | per-word `err` in etudes (needs no new field; per-run `KeyModel`/`TransitionModel` already see it) |
+| any mechanical-class weighting | never introduce one before the row above exists (DEC-16) |
 
 ---
 
@@ -326,13 +336,38 @@ Avoid elaborate economies unless they prove necessary.
 
 ## I1. What is explicitly not in v1?
 
-Answer this aggressively.
+**Definitely in v1:** the 40-lesson course as shipped; one Continue; the three forms as lesson ingredients (B); the 11 targets in slot 2 and the four chunks as words (C); the D5 rule with one new field; keepsakes and the map as they are; accounts and cross-device sync; the manual; audio cues and the toggle; the settings that exist.
+
+**Definitely out:** rewards, streaks shown as pressure, currencies, dashboards, live WPM, difficulty readouts, mode menus, correction modes, Backspace lessons, keyboard shortcuts, geometry profiles, audio-reactive text, isolated gesture loops, the other 29 technical rows, 4-gram gestures, Relaxed-specific target sets, any composite difficulty score.
+
+**Open BACKLOG verdicts (Progression v1 / Accounts v1):**
+
+| issue | verdict | action |
+|---|---|---|
+| REND-03 audio-reactive prompt | remove | declined — decoration that pulls attention from the text (I3) |
+| CURR-05 Code grove snippet bank | freeze | shelved — the optional grove that shipped stays; no expansion |
+| CURR-16 correction modes | remove | declined — settings for their own sake; Backspace is out of v1 (C7) |
+| CURR-17 keyboard geometry profiles | freeze | shelved — real need for some keyboards, not a v1 problem |
+| ACCT-04 shared account package | keep (later) | unchanged — infrastructure, no learner surface |
+
+**Shipped features:** finger courses, extra practice, coach drills, explore-a-key — **keep, frozen** (not expanded into modes; DEC-14). Relaxed learning plan: CURR-36 keep (saves must not lose credit); CURR-31/35 freeze pending the CURR build issues.
 
 ## I2. What can be added later without changing the core model?
 
+Only things that read existing fields or fill an existing slot: tuning the D5 thresholds; swapping which 11 targets; a chunk loop if D4 shows a chunk never settles; per-run target stats for D4; a Relaxed target set from the same CSV's `relaxed_class` column; more practice words. Each is a data change or a one-field change, not a screen.
+
 ## I3. What would make the product feel like work rather than practice?
 
-Use this as a deletion test.
+Deletion test — reject any CURR/UI issue that answers **yes** to one of these:
+
+1. Does it add a screen between opening the app and the first keystroke?
+2. Does it ask the learner to choose a mode, target, or difficulty?
+3. Does it show a number the learner is meant to raise (WPM, level, XP, score)?
+4. Does it make stopping feel like abandoning something (streak, "unfinished", nag)?
+5. Does it add a setting whose only justification is that someone might want it?
+6. Does it add a lesson form beyond loop / beat / words / prose?
+7. Does it assert difficulty or mastery the learner cannot feel in their own hands?
+8. Would deleting it change nothing a learner would notice in a week?
 
 ---
 
