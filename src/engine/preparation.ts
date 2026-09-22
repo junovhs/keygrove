@@ -12,6 +12,7 @@ export function wordBigrams(text: string): string[] {
   return text.toLowerCase().split(/[^a-z]+/).flatMap((w) => Array.from({ length: Math.max(0, w.length - 1) }, (_, i) => w.slice(i, i + 2)));
 }
 
+/** One exercise's bigram occurrences split three ways, with rounded shares and the distinct novel bigrams. */
 export interface Preparation {
   bigramOccurrences: number;
   warmedNow: number;
@@ -25,6 +26,7 @@ export interface Preparation {
 
 const share = (n: number, of: number) => (of ? Math.round((n / of) * 1000) / 1000 : 0);
 
+/** Classify each within-word bigram of `text`: warmed (in `warmed`) before known (in `known`) before novel. */
 export function classifyPreparation(text: string, warmed: ReadonlySet<string>, known: ReadonlySet<string>): Preparation {
   const grams = wordBigrams(text);
   let warmedNow = 0, knownAlready = 0;
