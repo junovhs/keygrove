@@ -6,7 +6,7 @@ keep the two in step until they are consolidated into a shared package.
 
 ## Where accounts live
 
-Keygrove uses the **shared Strange Systems Supabase project** —
+KeyJam uses the **shared Strange Systems Supabase project** —
 `fhedwkbaujiivemneefg` — the same one behind CropASAP, No Ceremony and
 AIfoodpal. One login works across all of them, and `auth.users` is one list of
 people. The browser-safe URL and publishable key are committed in
@@ -18,7 +18,7 @@ chunk by Vite (a dynamic `import()` in `loadClient`) and fetched only on
 Sign in, a stored session, or an emailed link. Guest pages make no request
 after load.
 
-Keygrove progress lives with the account. The device (`src/state/save.ts`)
+KeyJam progress lives with the account. The device (`src/state/save.ts`)
 only ever holds the signed-in account's copy; a guest's grove is in memory and
 the nav says "Not saved — sign in to keep your progress" — see *Progress sync*
 below.
@@ -33,7 +33,7 @@ sentence every Strange Systems app uses:
 | --- | --- |
 | `marketing_opt_in` | `true` / `false` |
 | `marketing_opt_in_at` | ISO time of the tick, `null` when off |
-| `marketing_source` | `keygrove` |
+| `marketing_source` | `keygrove` (the original product id, kept so the list stays continuous) |
 | `marketing_consent_text` | the sentence they ticked |
 
 The person can change it any time from **Your account**. Export the list from
@@ -52,9 +52,9 @@ order by opted_in_at;
 Only ever mail confirmed addresses, and honour the box: an unticked box is an
 unsubscribe.
 
-## Dashboard steps for Keygrove
+## Dashboard steps for KeyJam
 
-1. **Redirect URLs** (Authentication → URL Configuration): add Keygrove's
+1. **Redirect URLs** (Authentication → URL Configuration): add KeyJam's
    production origin and `/**` under it, the way `https://cropasap.vercel.app/`
    and `https://cropasap.vercel.app/**` are listed. Until then a confirmation
    or reset link lands on the project's site URL (AIfoodpal) instead of here.

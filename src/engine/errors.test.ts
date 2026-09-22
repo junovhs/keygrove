@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RELAXED_QWERTY, TRADITIONAL } from '../curriculum/method';
+import { TRADITIONAL } from '../curriculum/method';
 import { decide, type RunSummary } from './coach';
 import { classifyMiss, classifyRun, dominant, explain, isNeighbour, missedTarget, rollTally } from './errors';
 import { KeyModel } from './keymodel';
@@ -17,15 +17,15 @@ describe('error classification (§29)', () => {
     expect(isNeighbour('q', 'q')).toBe(false);
   });
   it('same-finger slip: wanted and typed keys share a finger under the active method', () => {
-    expect(classifyMiss('c', 0, 'g', RELAXED_QWERTY)).toBe('finger'); // C is left index in Relaxed
-    expect(classifyMiss('c', 0, 'g', TRADITIONAL)).toBe('other');     // C is left middle in Traditional
-    expect(classifyMiss('u', 0, 'm', RELAXED_QWERTY)).toBe('finger');
+    expect(classifyMiss('r', 0, 'v', TRADITIONAL)).toBe('finger'); // R and V share the left index and are not adjacent
+    expect(classifyMiss('c', 0, 'g', TRADITIONAL)).toBe('other');  // C is left middle
+    expect(classifyMiss('u', 0, 'm', TRADITIONAL)).toBe('finger');
     expect(classifyMiss('q', 0, 'p')).toBe('other');
   });
   it('anticipation: a later character typed early (form → from)', () => {
     expect(classifyMiss('form', 1, 'r')).toBe('anticipation');
     expect(classifyMiss('the cat', 0, 'e')).toBe('anticipation');
-    expect(classifyMiss('the cat', 2, 'c', RELAXED_QWERTY)).toBe('other'); // across the space is not reading ahead (C and E share a finger under Traditional)
+    expect(classifyMiss('the cat', 2, 'c', TRADITIONAL)).not.toBe('anticipation'); // across the space is not reading ahead
   });
   it('repetition: the previous character again (thee); omission: a doubled letter dropped (al for all)', () => {
     expect(classifyMiss('the', 2, 'h')).toBe('repetition');
@@ -48,11 +48,11 @@ describe('error classification (§29)', () => {
     expect(r.type('f', 300)).toBe('ok');
     expect(r.type('r', 600)).toBe('miss');
     expect(r.type('o', 900)).toBe('ok'); r.type('r', 1200); r.type('m', 1500);
-    const one = classifyRun(r.text, r.strokes, RELAXED_QWERTY);
+    const one = classifyRun(r.text, r.strokes, TRADITIONAL);
     expect(one.anticipation).toBe(1);
     expect(explain(one)).toBeNull(); // one miss is not a pattern
     r.type(' ', 1800); r.type('f', 2100); r.type('r', 2400); r.type('o', 2700); r.type('r', 3000); r.type('m', 3300);
-    const tally = classifyRun(r.text, r.strokes, RELAXED_QWERTY);
+    const tally = classifyRun(r.text, r.strokes, TRADITIONAL);
     expect(tally.anticipation).toBe(2);
     expect(explain(tally)).toBe('All anticipation errors — you are reading ahead of your hands.');
   });

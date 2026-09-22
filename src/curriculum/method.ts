@@ -1,6 +1,6 @@
 /**
- * Canonical typing-method tables (docs/typing-method-spec.md §44–46, §63).
- * Nothing else in the app may hard-code key→finger. A change to a core assignment is a new version.
+ * Canonical typing-method tables (DEC-17). Nothing else in the app may hard-code key→finger; a change to a core
+ * assignment is a new version. METHODS lists every official method: add a table there and Settings offers it.
  */
 export type Hand = 'left' | 'right';
 export type FingerName = 'pinky' | 'ring' | 'middle' | 'index' | 'thumb';
@@ -26,20 +26,15 @@ const COMMON: Record<string, FingerId> = {
   ' ': 'thumb', ...NUMBERS, ...RIGHT_PINKY_EXTRAS,
 };
 
-export const RELAXED_QWERTY: TypingMethod = {
-  id: 'relaxed-qwerty@1.0', name: 'Relaxed QWERTY', version: '1.0',
-  assignments: { ...COMMON, z: 'lr', x: 'lm', c: 'li', b: 'ri' },
-  shift: 'opposite', space: 'either',
-  blurb: 'Normal QWERTY keys and familiar touch-typing principles, but the hands move naturally instead of being forced into rigid columns. The lower-left row follows the keyboard\'s stagger: Z ring, X middle, C index; B is right index.',
-};
 export const TRADITIONAL: TypingMethod = {
   id: 'traditional@1.0', name: 'Traditional touch typing', version: '1.0',
   assignments: { ...COMMON, z: 'lp', x: 'lr', c: 'lm', b: 'li' },
   shift: 'opposite', space: 'either',
-  blurb: 'Conventional column assignments: Z pinky, X ring, C middle, B left index. For typists with established muscle memory.',
+  blurb: 'Conventional column assignments: each finger owns a slanted column, F and J are landmarks, Shift is on the opposite hand.',
 };
-export const METHODS: readonly TypingMethod[] = [TRADITIONAL, RELAXED_QWERTY];
-/** DEC-12: Traditional by default; Relaxed QWERTY stays selectable. A stored choice always wins. */
+/** Every official method, default first. With one entry Settings hides the method control; a second entry brings it back. */
+export const METHODS: readonly TypingMethod[] = [TRADITIONAL];
+/** DEC-17: Traditional is the default. A stored choice of any listed method always wins. */
 export const DEFAULT_METHOD_ID = TRADITIONAL.id;
 /** Keys whose finger differs between two methods: the evidence a switch must reset. */
 export const reassignedKeys = (a: TypingMethod, b: TypingMethod): string[] => Object.keys(a.assignments).filter((k) => a.assignments[k] !== b.assignments[k]);

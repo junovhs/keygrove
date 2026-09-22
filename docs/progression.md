@@ -1,6 +1,6 @@
-# KeyGrove — course progression
+# KeyJam — course progression
 
-*KeyGrove is the working name.* Current implementation contract under Ishoo DEC-10 (instrument-style practice), DEC-11 (guided vs assessed evidence), DEC-12 (Traditional default), DEC-13 (research-chosen movements) and DEC-14 (small surface). Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
+Current implementation contract under Ishoo DEC-10 (instrument-style practice), DEC-11 (guided vs assessed evidence), DEC-17 (standard touch typing), DEC-13 (research-chosen movements) and DEC-14 (small surface). Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
 
 ## One course, one next action
 
@@ -86,7 +86,7 @@ Each Chapter 1 lesson opens with an authored briefing. Its first step is interac
 
 ## The lesson shell
 
-Traditional touch typing is the default (DEC-12). Settings → Method switches to Relaxed QWERTY and back; the reassigned keys lose their evidence and earned lessons stay. The text box carries a restart icon and, while idle, a "Begin typing when you're ready · any key" cue that fades on the first keystroke without moving the text. Any key moves on from a result. Extra practice (finger courses) sits at the start of the main navigation.
+Standard touch typing is the method taught (DEC-17). The method framework stays for future official methods: with more than one, Settings → Method switches between them and resets only the evidence for keys whose finger changed, keeping earned lessons. With one method the control is hidden. The text box carries a restart icon and, while idle, a "Begin typing when you're ready · any key" cue that fades on the first keystroke without moving the text. Any key moves on from a result. Extra practice (finger courses) sits at the start of the main navigation.
 
 ## Hand and finger load
 

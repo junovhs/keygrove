@@ -1,6 +1,4 @@
-# KeyGrove north star
-
-*KeyGrove is the working name; the final product name is undecided.*
+# KeyJam north star
 
 **Duolingo for typing, taught the way a classical guitarist learns a piece.**
 
@@ -21,6 +19,6 @@ Every exercise prepares the next one. The learner should feel that we did the re
 
 **Honest.** Guided steps have no score. Practice has a visible accuracy target and passing advances immediately. Slow practice counts fully. No speed gates, and progress is never revoked. A keyboard cannot see which finger pressed a key, so we teach the intended finger and never claim to detect it.
 
-**The whole keyboard is visible early.** Attention and independence are what progress. Traditional touch typing is the default; Relaxed QWERTY remains an opt-in method.
+**The whole keyboard is visible early.** Attention and independence are what progress. We teach standard touch typing.
 
 Speed is measured, not chased. We expect it to follow from accuracy, control and familiarity, but we promise no particular outcome. We judge the course by comfortable practice, accurate transfer to unfamiliar text, and the learner's willingness to return.

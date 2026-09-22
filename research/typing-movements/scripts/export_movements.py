@@ -93,7 +93,7 @@ for t in TARGETS:
     r = technical[t]
     add(
         f"  {{ bigram: {ts_str(t)}, minShare: {float(r['min_share']):.5f}, stability: {ts_str(r['stability'])}, "
-        f"classByMethod: {{ 'traditional@1.0': {ts_str(r['movement_class'])}, 'relaxed-qwerty@1.0': {ts_str(r['relaxed_class'])} }}, "
+        f"classByMethod: {{ 'traditional@1.0': {ts_str(r['movement_class'])} }}, "
         f"sameFingerTravel: {float(r['same_finger_travel']) if r['same_finger_travel'] else 0:.2f} }},"
     )
 add("];")

@@ -42,6 +42,10 @@ export const fresh = (): SaveV6 => ({
   transitions: {},
 });
 
+/** Methods the app no longer offers (DEC-17): id → the keys whose finger differed from the default method. A save that
+ * names one moves to the default; evidence for those keys is reset and its finger-course credit carries over. */
+export const RETIRED_METHODS: Readonly<Record<string, readonly string[]>> = { 'relaxed-qwerty@1.0': ['z', 'x', 'c', 'b'] };
+
 const num = (v: unknown, max = Infinity): number => Math.min(max, Math.max(0, Number(v) || 0));
 const int = (v: unknown, max: number) => Math.floor(num(v, max));
 
@@ -83,14 +87,21 @@ export function sanitize(x: unknown): SaveV6 {
     }
   }
   if (o.fingerCourses && typeof o.fingerCourses === 'object') {
+    const stored = o.fingerCourses as Record<string, unknown>;
     for (const method of METHODS) for (const finger of new Set(Object.values(method.assignments))) {
       if (finger === 'thumb') continue;
       const id = `${method.id}/${finger}`;
-      const value = (o.fingerCourses as Record<string, unknown>)[id];
-      if (typeof value === 'number' && Number.isFinite(value)) s.fingerCourses[id] = int(value, 10);
+      // A retired method's credit for the same finger carries over to the default method: earned levels are never revoked.
+      const values = [stored[id], ...(method.id === DEFAULT_METHOD_ID ? Object.keys(RETIRED_METHODS).map((r) => stored[`${r}/${finger}`]) : [])]
+        .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+      if (values.length) s.fingerCourses[id] = int(Math.max(...values), 10);
     }
   }
+  const storedMethod = (o.settings && typeof o.settings === 'object' ? (o.settings as Record<string, unknown>).method : undefined);
+  const moved = typeof storedMethod === 'string' ? RETIRED_METHODS[storedMethod] ?? [] : [];
   const km = KeyModel.fromJSON(o.keys, o.confusions).toJSON();
+  // Evidence gathered under a retired method's finger for a key no longer describes the learner's movement.
+  for (const k of moved) delete km.keys[k];
   s.keys = km.keys; s.confusions = km.confusions;
   const q = (o.stats && typeof o.stats === 'object' ? o.stats : {}) as Record<string, unknown>;
   for (const k of ['runs', 'chars', 'attempts', 'bestWpm', 'bestAcc', 'xp', 'days', 'bestCombo'] as const) s.stats[k] = num(q[k]);
@@ -103,6 +114,7 @@ export function sanitize(x: unknown): SaveV6 {
   const er = (o.errors && typeof o.errors === 'object' ? o.errors : {}) as Record<string, unknown>;
   for (const c of ERROR_CLASSES) s.errors[c] = num(er[c], 999);
   s.transitions = TransitionModel.fromJSON(o.transitions).toJSON();
+  for (const pair of Object.keys(s.transitions)) if ([...pair].some((k) => moved.includes(k))) delete s.transitions[pair];
   return s;
 }
 

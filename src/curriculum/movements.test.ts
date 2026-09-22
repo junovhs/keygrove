@@ -44,7 +44,6 @@ describe('movement vocabulary (generated, v1 cut — DOCS-04, scaffold H2–H4)'
       expect(t.minShare).toBeCloseTo(Number(r.min_share), 5);
       expect(t.stability).toBe(r.stability);
       expect(t.classByMethod['traditional@1.0']).toBe(r.movement_class);
-      expect(t.classByMethod['relaxed-qwerty@1.0']).toBe(r.relaxed_class);
       expect(t.sameFingerTravel).toBeCloseTo(Number(r.same_finger_travel || 0), 2);
     }
     const gest = Object.fromEntries(csv(gesturesCsv).map((r) => [r.gesture, r]));

@@ -5,44 +5,44 @@
 # stretch_reach=1.5
 # cap=40
 # admission_order=all same_finger first, then min share across corpora
-bigram,reasons,finger_from,finger_to,movement_class,row_from,row_to,same_finger_travel,reach_from,reach_to,relaxed_class,relaxed_reasons,rank_books,rank_web,rank_subtlex,sf_rank_books,sf_rank_web,sf_rank_subtlex,min_share,also_core,stability,stability_note,provisional
-ed,same_finger,L-middle,L-middle,same_finger_different_key,top,home,1.03,1.03,0.00,same_finger_different_key,same_finger,16,22,37,1,1,1,0.00703,True,universal,,True
-de,same_finger,L-middle,L-middle,same_finger_different_key,home,top,1.03,0.00,1.03,same_finger_different_key,same_finger,34,33,67,2,2,3,0.00439,False,universal,,True
-lo,same_finger,R-ring,R-ring,same_finger_different_key,home,top,1.03,0.00,1.03,same_finger_different_key,same_finger,77,76,64,7,6,2,0.00387,False,universal,,True
-ce,same_finger;same_hand_row_jump,L-middle,L-middle,same_finger_different_key,bottom,top,2.14,1.12,1.03,same_hand_different_fingers,same_hand_row_jump,42,48,78,3,4,4,0.00354,False,universal,,True
-un,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,top,bottom,2.02,1.03,1.12,same_finger_different_key,same_finger;same_hand_row_jump,76,90,89,6,9,5,0.00330,False,universal,,True
-ol,same_finger,R-ring,R-ring,same_finger_different_key,top,home,1.03,1.03,0.00,same_finger_different_key,same_finger,86,86,104,8,8,7,0.00274,False,universal,,True
-tr,same_finger,L-index,L-index,same_finger_different_key,top,top,1.00,1.25,1.03,same_finger_different_key,same_finger,68,79,115,5,7,9,0.00253,False,universal,,True
-ec,same_finger;same_hand_row_jump,L-middle,L-middle,same_finger_different_key,top,bottom,2.14,1.03,1.12,same_hand_different_fingers,same_hand_row_jump,60,46,121,4,3,10,0.00243,False,universal,,True
-rt,same_finger,L-index,L-index,same_finger_different_key,top,top,1.00,1.03,1.25,same_finger_different_key,same_finger,87,66,127,9,5,11,0.00234,False,universal,,True
-fr,same_finger,L-index,L-index,same_finger_different_key,home,top,1.03,0.00,1.03,same_finger_different_key,same_finger,129,135,140,10,10,13,0.00181,False,universal,,True
-gr,same_finger,L-index,L-index,same_finger_different_key,home,top,1.60,1.00,1.03,same_finger_different_key,same_finger,135,157,168,11,12,16,0.00122,False,universal,,True
-br,same_finger;stretch;same_hand_row_jump,L-index,L-index,same_finger_different_key,bottom,top,2.66,1.80,1.03,alternate_hands,stretch,188,206,176,14,15,17,0.00112,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
-mu,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.14,1.12,1.03,same_finger_different_key,same_finger;same_hand_row_jump,187,223,190,13,21,19,0.00100,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
-ny,same_finger;stretch;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.14,1.12,1.60,same_finger_different_key,same_finger;stretch;same_hand_row_jump,197,211,147,16,18,14,0.00098,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
-ki,same_finger,R-middle,R-middle,same_finger_different_key,home,top,1.03,0.00,1.03,same_finger_different_key,same_finger,198,186,114,17,14,8,0.00098,False,universal,,True
-um,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,top,bottom,2.14,1.03,1.12,same_finger_different_key,same_finger;same_hand_row_jump,169,175,212,12,13,21,0.00080,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
-ft,same_finger,L-index,L-index,same_finger_different_key,home,top,1.25,0.00,1.25,same_finger_different_key,same_finger,219,151,220,18,11,22,0.00067,False,universal,bigram class web-leaning at N=200; universal within the same-finger top-30,True
-rg,same_finger,L-index,L-index,same_finger_different_key,top,home,1.60,1.03,1.00,same_finger_different_key,same_finger,194,219,223,15,20,23,0.00065,False,universal,bigram class book-leaning at N=200; universal within the same-finger top-30,True
-my,same_finger;stretch;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.66,1.12,1.60,same_finger_different_key,same_finger;stretch;same_hand_row_jump,236,268,100,22,27,6,0.00062,False,universal,bigram class conversational-leaning at N=200; universal within the same-finger top-30,True
-ju,same_finger,R-index,R-index,same_finger_different_key,home,top,1.03,0.00,1.03,same_finger_different_key,same_finger,239,273,133,23,28,12,0.00059,False,universal,bigram class conversational-leaning at N=200; universal within the same-finger top-30,True
-nu,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.02,1.12,1.03,same_finger_different_key,same_finger;same_hand_row_jump,221,207,231,19,16,25,0.00058,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
-hu,same_finger,R-index,R-index,same_finger_different_key,home,top,1.25,1.00,1.03,same_finger_different_key,same_finger,223,280,193,20,30,20,0.00057,False,universal,bigram class conversational-leaning at N=200; universal within the same-finger top-30,True
-rv,same_finger;same_hand_row_jump,L-index,L-index,same_finger_different_key,top,bottom,2.14,1.03,1.12,same_finger_different_key,same_finger;same_hand_row_jump,227,213,271,21,19,28,0.00029,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
-ws,same_finger,L-ring,L-ring,same_finger_different_key,top,home,1.03,1.03,0.00,same_finger_different_key,same_finger,266,234,272,26,22,29,0.00029,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
-rf,same_finger,L-index,L-index,same_finger_different_key,top,home,1.03,1.03,0.00,same_finger_different_key,same_finger,269,261,279,27,26,30,0.00027,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
-in,same_hand_row_jump,R-middle,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,same_hand_different_fingers,same_hand_row_jump,3,1,4,,,,0.02021,True,universal,,True
-on,same_hand_row_jump,R-ring,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,same_hand_different_fingers,same_hand_row_jump,7,7,11,,,,0.01506,True,universal,,True
-ve,same_hand_row_jump,L-index,L-middle,same_hand_different_fingers,bottom,top,,1.12,1.03,same_hand_different_fingers,same_hand_row_jump,31,41,22,,,,0.00635,True,universal,,True
-om,same_hand_row_jump,R-ring,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,same_hand_different_fingers,same_hand_row_jump,49,47,46,,,,0.00546,True,universal,,True
-no,same_hand_row_jump,R-index,R-ring,same_hand_different_fingers,bottom,top,,1.12,1.03,same_hand_different_fingers,same_hand_row_jump,62,70,24,,,,0.00459,False,universal,,True
-be,stretch;same_hand_row_jump,L-index,L-middle,same_hand_different_fingers,bottom,top,,1.80,1.03,alternate_hands,stretch,46,78,40,,,,0.00408,False,universal,,True
-pe,weak_finger_reach,R-pinky,L-middle,alternate_hands,top,top,,1.03,1.03,alternate_hands,weak_finger_reach,59,81,83,,,,0.00344,False,universal,,True
-mo,same_hand_row_jump,R-index,R-ring,same_hand_different_fingers,bottom,top,,1.12,1.03,same_hand_different_fingers,same_hand_row_jump,94,94,96,,,,0.00316,False,universal,,True
-mi,same_hand_row_jump,R-index,R-middle,same_hand_different_fingers,bottom,top,,1.12,1.03,same_hand_different_fingers,same_hand_row_jump,98,104,105,,,,0.00273,False,universal,,True
-ni,same_hand_row_jump,R-index,R-middle,same_hand_different_fingers,bottom,top,,1.12,1.03,same_hand_different_fingers,same_hand_row_jump,92,80,118,,,,0.00247,False,universal,,True
-ry,stretch,L-index,R-index,alternate_hands,top,top,,1.03,1.60,alternate_hands,stretch,116,121,92,,,,0.00241,False,universal,,True
-ly,stretch,R-ring,R-index,same_hand_different_fingers,home,top,,0.00,1.60,same_hand_different_fingers,stretch,69,122,94,,,,0.00241,False,universal,,True
-pl,weak_finger_reach,R-pinky,R-ring,same_hand_different_fingers,top,home,,1.03,0.00,same_hand_different_fingers,weak_finger_reach,111,115,126,,,,0.00236,False,universal,,True
-im,same_hand_row_jump,R-middle,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,same_hand_different_fingers,same_hand_row_jump,97,126,93,,,,0.00232,False,universal,,True
-ab,stretch,L-pinky,L-index,same_hand_different_fingers,home,bottom,,0.00,1.80,alternate_hands,stretch,120,127,119,,,,0.00230,False,universal,,True
+bigram,reasons,finger_from,finger_to,movement_class,row_from,row_to,same_finger_travel,reach_from,reach_to,rank_books,rank_web,rank_subtlex,sf_rank_books,sf_rank_web,sf_rank_subtlex,min_share,also_core,stability,stability_note,provisional
+ed,same_finger,L-middle,L-middle,same_finger_different_key,top,home,1.03,1.03,0.00,16,22,37,1,1,1,0.00703,True,universal,,True
+de,same_finger,L-middle,L-middle,same_finger_different_key,home,top,1.03,0.00,1.03,34,33,67,2,2,3,0.00439,False,universal,,True
+lo,same_finger,R-ring,R-ring,same_finger_different_key,home,top,1.03,0.00,1.03,77,76,64,7,6,2,0.00387,False,universal,,True
+ce,same_finger;same_hand_row_jump,L-middle,L-middle,same_finger_different_key,bottom,top,2.14,1.12,1.03,42,48,78,3,4,4,0.00354,False,universal,,True
+un,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,top,bottom,2.02,1.03,1.12,76,90,89,6,9,5,0.00330,False,universal,,True
+ol,same_finger,R-ring,R-ring,same_finger_different_key,top,home,1.03,1.03,0.00,86,86,104,8,8,7,0.00274,False,universal,,True
+tr,same_finger,L-index,L-index,same_finger_different_key,top,top,1.00,1.25,1.03,68,79,115,5,7,9,0.00253,False,universal,,True
+ec,same_finger;same_hand_row_jump,L-middle,L-middle,same_finger_different_key,top,bottom,2.14,1.03,1.12,60,46,121,4,3,10,0.00243,False,universal,,True
+rt,same_finger,L-index,L-index,same_finger_different_key,top,top,1.00,1.03,1.25,87,66,127,9,5,11,0.00234,False,universal,,True
+fr,same_finger,L-index,L-index,same_finger_different_key,home,top,1.03,0.00,1.03,129,135,140,10,10,13,0.00181,False,universal,,True
+gr,same_finger,L-index,L-index,same_finger_different_key,home,top,1.60,1.00,1.03,135,157,168,11,12,16,0.00122,False,universal,,True
+br,same_finger;stretch;same_hand_row_jump,L-index,L-index,same_finger_different_key,bottom,top,2.66,1.80,1.03,188,206,176,14,15,17,0.00112,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
+mu,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.14,1.12,1.03,187,223,190,13,21,19,0.00100,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
+ny,same_finger;stretch;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.14,1.12,1.60,197,211,147,16,18,14,0.00098,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
+ki,same_finger,R-middle,R-middle,same_finger_different_key,home,top,1.03,0.00,1.03,198,186,114,17,14,8,0.00098,False,universal,,True
+um,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,top,bottom,2.14,1.03,1.12,169,175,212,12,13,21,0.00080,False,universal,bigram class unstable at N=200; universal within the same-finger top-30,True
+ft,same_finger,L-index,L-index,same_finger_different_key,home,top,1.25,0.00,1.25,219,151,220,18,11,22,0.00067,False,universal,bigram class web-leaning at N=200; universal within the same-finger top-30,True
+rg,same_finger,L-index,L-index,same_finger_different_key,top,home,1.60,1.03,1.00,194,219,223,15,20,23,0.00065,False,universal,bigram class book-leaning at N=200; universal within the same-finger top-30,True
+my,same_finger;stretch;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.66,1.12,1.60,236,268,100,22,27,6,0.00062,False,universal,bigram class conversational-leaning at N=200; universal within the same-finger top-30,True
+ju,same_finger,R-index,R-index,same_finger_different_key,home,top,1.03,0.00,1.03,239,273,133,23,28,12,0.00059,False,universal,bigram class conversational-leaning at N=200; universal within the same-finger top-30,True
+nu,same_finger;same_hand_row_jump,R-index,R-index,same_finger_different_key,bottom,top,2.02,1.12,1.03,221,207,231,19,16,25,0.00058,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
+hu,same_finger,R-index,R-index,same_finger_different_key,home,top,1.25,1.00,1.03,223,280,193,20,30,20,0.00057,False,universal,bigram class conversational-leaning at N=200; universal within the same-finger top-30,True
+rv,same_finger;same_hand_row_jump,L-index,L-index,same_finger_different_key,top,bottom,2.14,1.03,1.12,227,213,271,21,19,28,0.00029,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
+ws,same_finger,L-ring,L-ring,same_finger_different_key,top,home,1.03,1.03,0.00,266,234,272,26,22,29,0.00029,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
+rf,same_finger,L-index,L-index,same_finger_different_key,top,home,1.03,1.03,0.00,269,261,279,27,26,30,0.00027,False,universal,bigram class below-cut at N=200; universal within the same-finger top-30,True
+in,same_hand_row_jump,R-middle,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,3,1,4,,,,0.02021,True,universal,,True
+on,same_hand_row_jump,R-ring,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,7,7,11,,,,0.01506,True,universal,,True
+ve,same_hand_row_jump,L-index,L-middle,same_hand_different_fingers,bottom,top,,1.12,1.03,31,41,22,,,,0.00635,True,universal,,True
+om,same_hand_row_jump,R-ring,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,49,47,46,,,,0.00546,True,universal,,True
+no,same_hand_row_jump,R-index,R-ring,same_hand_different_fingers,bottom,top,,1.12,1.03,62,70,24,,,,0.00459,False,universal,,True
+be,stretch;same_hand_row_jump,L-index,L-middle,same_hand_different_fingers,bottom,top,,1.80,1.03,46,78,40,,,,0.00408,False,universal,,True
+pe,weak_finger_reach,R-pinky,L-middle,alternate_hands,top,top,,1.03,1.03,59,81,83,,,,0.00344,False,universal,,True
+mo,same_hand_row_jump,R-index,R-ring,same_hand_different_fingers,bottom,top,,1.12,1.03,94,94,96,,,,0.00316,False,universal,,True
+mi,same_hand_row_jump,R-index,R-middle,same_hand_different_fingers,bottom,top,,1.12,1.03,98,104,105,,,,0.00273,False,universal,,True
+ni,same_hand_row_jump,R-index,R-middle,same_hand_different_fingers,bottom,top,,1.12,1.03,92,80,118,,,,0.00247,False,universal,,True
+ry,stretch,L-index,R-index,alternate_hands,top,top,,1.03,1.60,116,121,92,,,,0.00241,False,universal,,True
+ly,stretch,R-ring,R-index,same_hand_different_fingers,home,top,,0.00,1.60,69,122,94,,,,0.00241,False,universal,,True
+pl,weak_finger_reach,R-pinky,R-ring,same_hand_different_fingers,top,home,,1.03,0.00,111,115,126,,,,0.00236,False,universal,,True
+im,same_hand_row_jump,R-middle,R-index,same_hand_different_fingers,top,bottom,,1.03,1.12,97,126,93,,,,0.00232,False,universal,,True
+ab,stretch,L-pinky,L-index,same_hand_different_fingers,home,bottom,,0.00,1.80,120,127,119,,,,0.00230,False,universal,,True

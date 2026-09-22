@@ -1,4 +1,4 @@
-/* Keygrove's palette on dopedocs' --dd-* namespace. Loaded by the in-app
+/* KeyJam's palette on dopedocs' --dd-* namespace. Loaded by the in-app
    panel through the bundle and by the static /docs pages by link, so the two
    surfaces match. Values are literal: the static pages never load index.html. */
 :root {

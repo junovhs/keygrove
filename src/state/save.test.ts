@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { KEY, fresh, freshProgress, load, loadGuest, saveGuest, migrateV4, sanitize, save } from './save';
+import { KEY, RETIRED_METHODS, fresh, freshProgress, load, loadGuest, saveGuest, migrateV4, sanitize, save } from './save';
+import { DEFAULT_METHOD_ID } from '../curriculum/method';
 
 const V4 = {
   selected: 'top', completed: ['home', 'reach'], focus: 'all',
@@ -108,5 +109,38 @@ describe('credit passing attempts held by the old hidden gates', () => {
     old.trails.anchors = { ...freshProgress(), runs: 1, cleared: true, bestAcc: 80 };
     expect(sanitize(old).trail).toBe('anchors');
     expect(sanitize(old).trails.anchors!.cleared).toBe(true);
+  });
+});
+
+describe('retired typing methods (DEC-17)', () => {
+  const retired = Object.keys(RETIRED_METHODS)[0]!;
+  const stat = { err: 0.1, lat: 300, seen: 40, last: 1_700_000_000_000 };
+  const old = {
+    v: 6, trail: 'core-words', trails: { anchors: { runs: 3, cleared: true, stars: 1, bestWpm: 20, bestAcc: 98, fails: 0, recent: [98], cleanStreak: 0 } },
+    lessonSteps: { anchors: 5, 'core-words': 1 },
+    keys: { f: stat, z: stat, x: stat, c: stat, b: stat },
+    transitions: { fj: { err: 0, lat: 200, lat2: 40000, seen: 10, hits: 10, last: 1 }, cd: { err: 0, lat: 200, lat2: 40000, seen: 10, hits: 10, last: 1 }, ab: { err: 0, lat: 200, lat2: 40000, seen: 10, hits: 10, last: 1 } },
+    fingerCourses: { [`${retired}/li`]: 6, [`${DEFAULT_METHOD_ID}/li`]: 2, [`${retired}/rp`]: 3 },
+    settings: { guideStrong: false, reviewOn: true, codeGrove: false, method: retired, onboarded: true },
+  };
+  it('moves to the default method, resetting only the keys whose finger differed', () => {
+    const s = sanitize(old);
+    expect(s.settings.method).toBe(DEFAULT_METHOD_ID);
+    expect(Object.keys(s.keys).sort()).toEqual(['f']);
+    expect(Object.keys(s.transitions)).toEqual(['fj']);
+  });
+  it('keeps lessons and carries finger-course credit over (never revoked)', () => {
+    const s = sanitize(old);
+    expect(s.trails.anchors!.cleared).toBe(true);
+    expect(s.lessonSteps).toMatchObject({ anchors: 5, 'core-words': 1 });
+    expect(s.trail).toBe('core-words');
+    expect(s.fingerCourses[`${DEFAULT_METHOD_ID}/li`]).toBe(6);
+    expect(s.fingerCourses[`${DEFAULT_METHOD_ID}/rp`]).toBe(3);
+    expect(Object.keys(s.fingerCourses).some((k) => k.startsWith(retired))).toBe(false);
+  });
+  it('a save already on the default method is untouched', () => {
+    const s = sanitize({ ...old, settings: { ...old.settings, method: DEFAULT_METHOD_ID } });
+    expect(Object.keys(s.keys).sort()).toEqual(['b', 'c', 'f', 'x', 'z']);
+    expect(Object.keys(s.transitions).sort()).toEqual(['ab', 'cd', 'fj']);
   });
 });

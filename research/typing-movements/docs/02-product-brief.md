@@ -1,10 +1,10 @@
-# KeyGrove — Product Brief
+# KeyJam — Product Brief
 
 ## 1. Product idea
 
-KeyGrove teaches typing more like a serious physical skill than a speed game.
+KeyJam teaches typing more like a serious physical skill than a speed game.
 
-Traditional typing software often emphasizes key memorization, repetitive letter drills, or WPM. KeyGrove instead treats fluent typing as a learned vocabulary of physical movements.
+Traditional typing software often emphasizes key memorization, repetitive letter drills, or WPM. KeyJam instead treats fluent typing as a learned vocabulary of physical movements.
 
 A useful mental model is classical guitar:
 

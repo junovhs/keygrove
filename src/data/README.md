@@ -6,4 +6,4 @@
   personal use; **for a commercial release, replace with a permissively licensed list** (e.g. a SCOWL/wordfreq
   derivative) — the generator only needs an ordered array of lowercase words.
 - `top200.json` — the first 200 entries of the same list, used by the Flow grove.
-- `sentences.json`, `quotes.json`, `code.json` — hand-authored for Keygrove (public domain / pangrams).
+- `sentences.json`, `quotes.json`, `code.json` — hand-authored for KeyJam (public domain / pangrams).

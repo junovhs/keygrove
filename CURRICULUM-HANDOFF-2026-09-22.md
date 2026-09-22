@@ -1,10 +1,10 @@
-# KeyGrove curriculum handoff — 2026-09-22
+# KeyJam curriculum handoff — 2026-09-22
 
 > **Status, end of 2026-09-22:** the recommended order below has been carried out. Test suite green again, keyboard tour kept (CURR-48). Trace reports warmed-now / known-already / novel (CURR-49). Every new-key lesson now has one headline movement running drill → words → phrase; unrelated visits and junk fillers are gone (CURR-50). The words line warmed by its own lesson rose from 6% to about 27% on average (no threshold set). Still open in Ishoo's *Lesson coherence* plan: CURR-51 (one research-derived vocabulary) and CURR-52 (interactive briefings for chapters 2–4). Next: replay Chapters 1–2 with `?dev=1`. The rest of this document is the original handoff, kept as written.
 
 ## Why this work exists
 
-We have been tightening KeyGrove around one teaching idea:
+We have been tightening KeyJam around one teaching idea:
 
 > Typing is a physical skill. Difficult movements should be isolated, practiced deliberately, then used immediately in real words and ordinary language.
 
@@ -69,11 +69,11 @@ Major pieces already shipped include:
 
 The dev trace can be exported with:
 
-`keygrove.dev.report()`
+`keyjam.dev.report()`
 
 and cleared with:
 
-`keygrove.dev.clear()`
+`keyjam.dev.clear()`
 
 It records prompts, lesson/exercise metadata, target selection, hand load, keystrokes, timing, errors, result metrics, and now within-lesson preparation data.
 
@@ -250,7 +250,7 @@ Prefer the smallest rule that makes the lesson feel intentional.
 
 The current question is no longer:
 
-> Which movements should KeyGrove teach?
+> Which movements should KeyJam teach?
 
 We have enough of that for v1.
 

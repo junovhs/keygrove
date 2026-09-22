@@ -4,44 +4,44 @@
 # fourgram_n=300
 # cap=30 trigrams + 10 4-grams
 # admission_order=min share across corpora
-gesture,length,features,fingers,rows,relaxed_features,rank_books,rank_web,rank_subtlex,min_share,stability,provisional
-the,3,double_row_change,L-index R-index L-middle,top home top,double_row_change,1,1,2,0.01364,universal,True
-ing,3,double_row_change,R-middle R-index L-index,top bottom home,double_row_change,3,2,3,0.00726,universal,True
-and,3,double_row_change,L-pinky R-index L-middle,home bottom home,double_row_change,2,3,8,0.00722,universal,True
-ent,3,double_row_change,L-middle R-index L-index,top bottom top,double_row_change,6,6,42,0.00315,universal,True
-ion,3,redirect,R-middle R-ring R-index,top top bottom,redirect,4,4,46,0.00274,universal,True
-com,3,double_row_change,L-middle R-ring R-index,bottom top bottom,double_row_change,36,15,39,0.00263,universal,True
-are,3,redirect,L-pinky L-index L-middle,home top top,redirect,29,25,23,0.00235,universal,True
-ate,3,redirect,L-pinky L-index L-middle,home top top,redirect,14,10,62,0.00227,universal,True
-thi,3,double_row_change,L-index R-index R-middle,top home top,double_row_change,27,29,6,0.00222,universal,True
-rea,3,outward_roll,L-index L-middle L-pinky,top top home,outward_roll,35,30,33,0.00221,universal,True
-sta,3,redirect;double_row_change,L-ring L-index L-pinky,home top home,redirect;double_row_change,41,31,64,0.00215,universal,True
-ear,3,redirect;double_row_change,L-middle L-pinky L-index,top home top,redirect;double_row_change,45,37,53,0.00200,universal,True
-his,3,double_row_change,R-index R-middle L-ring,home top home,double_row_change,15,40,12,0.00194,universal,True
-ers,3,redirect,L-middle L-index L-ring,top top home,redirect,25,11,88,0.00188,universal,True
-est,3,redirect;double_row_change,L-middle L-ring L-index,top home top,redirect;double_row_change,40,14,95,0.00184,universal,True
-ive,3,double_row_change,R-middle L-index L-middle,top bottom top,double_row_change,32,51,68,0.00174,universal,True
-nce,3,contains_same_finger,R-index L-middle L-middle,bottom bottom top,,21,43,106,0.00167,universal,True
-ine,3,double_row_change,R-middle R-index L-middle,top bottom top,double_row_change,53,38,108,0.00163,universal,True
-res,3,outward_roll,L-index L-middle L-ring,top top home,outward_roll,17,12,109,0.00163,universal,True
-ome,3,double_row_change,R-ring R-index L-middle,top bottom top,double_row_change,55,57,15,0.00163,universal,True
-art,3,contains_same_finger,L-pinky L-index L-index,home top top,contains_same_finger,79,60,114,0.00159,universal,True
-ste,3,redirect,L-ring L-index L-middle,home top top,redirect,87,61,111,0.00159,universal,True
-ted,3,contains_same_finger,L-index L-middle L-middle,top top home,contains_same_finger,24,41,131,0.00146,universal,True
-ide,3,contains_same_finger;double_row_change,R-middle L-middle L-middle,top home top,contains_same_finger;double_row_change,66,68,125,0.00146,universal,True
-one,3,double_row_change,R-ring R-index L-middle,top bottom top,double_row_change,47,71,24,0.00145,universal,True
-eve,3,double_row_change,L-middle L-index L-middle,top bottom top,double_row_change,37,76,29,0.00141,universal,True
-ist,3,double_row_change,R-middle L-ring L-index,top home top,double_row_change,44,34,136,0.00141,universal,True
-int,3,double_row_change,R-middle R-index L-index,top bottom top,double_row_change,39,19,140,0.00136,universal,True
-con,3,double_row_change,L-middle R-ring R-index,bottom top bottom,double_row_change,16,24,144,0.00135,universal,True
-men,3,double_row_change,R-index L-middle R-index,bottom top bottom,double_row_change,22,20,149,0.00133,universal,True
-that,4,double_row_change,L-index R-index L-pinky L-index,top home home top,double_row_change,3,,1,0.00531,two-corpus,True
-ther,4,double_row_change,L-index R-index L-middle L-index,top home top top,double_row_change,4,,5,0.00445,two-corpus,True
-tion,4,redirect,L-index R-middle R-ring R-index,top top top bottom,redirect,1,,23,0.00338,two-corpus,True
-this,4,double_row_change,L-index R-index R-middle L-ring,top home top home,double_row_change,8,,6,0.00254,two-corpus,True
-ting,4,double_row_change,L-index R-middle R-index L-index,top top bottom home,double_row_change,12,,32,0.00213,two-corpus,True
-from,4,contains_same_finger;double_row_change,L-index L-index R-ring R-index,home top top bottom,contains_same_finger;double_row_change,10,,48,0.00189,two-corpus,True
-have,4,redirect;double_row_change,R-index L-pinky L-index L-middle,home home bottom top,redirect;double_row_change,17,,9,0.00187,two-corpus,True
-othe,4,double_row_change,R-ring L-index R-index L-middle,top top home top,double_row_change,18,,36,0.00179,two-corpus,True
-ight,4,double_row_change,R-middle L-index R-index L-index,top home home top,double_row_change,19,,7,0.00177,two-corpus,True
-ever,4,double_row_change,L-middle L-index L-middle L-index,top bottom top top,double_row_change,21,,15,0.00166,two-corpus,True
+gesture,length,features,fingers,rows,rank_books,rank_web,rank_subtlex,min_share,stability,provisional
+the,3,double_row_change,L-index R-index L-middle,top home top,1,1,2,0.01364,universal,True
+ing,3,double_row_change,R-middle R-index L-index,top bottom home,3,2,3,0.00726,universal,True
+and,3,double_row_change,L-pinky R-index L-middle,home bottom home,2,3,8,0.00722,universal,True
+ent,3,double_row_change,L-middle R-index L-index,top bottom top,6,6,42,0.00315,universal,True
+ion,3,redirect,R-middle R-ring R-index,top top bottom,4,4,46,0.00274,universal,True
+com,3,double_row_change,L-middle R-ring R-index,bottom top bottom,36,15,39,0.00263,universal,True
+are,3,redirect,L-pinky L-index L-middle,home top top,29,25,23,0.00235,universal,True
+ate,3,redirect,L-pinky L-index L-middle,home top top,14,10,62,0.00227,universal,True
+thi,3,double_row_change,L-index R-index R-middle,top home top,27,29,6,0.00222,universal,True
+rea,3,outward_roll,L-index L-middle L-pinky,top top home,35,30,33,0.00221,universal,True
+sta,3,redirect;double_row_change,L-ring L-index L-pinky,home top home,41,31,64,0.00215,universal,True
+ear,3,redirect;double_row_change,L-middle L-pinky L-index,top home top,45,37,53,0.00200,universal,True
+his,3,double_row_change,R-index R-middle L-ring,home top home,15,40,12,0.00194,universal,True
+ers,3,redirect,L-middle L-index L-ring,top top home,25,11,88,0.00188,universal,True
+est,3,redirect;double_row_change,L-middle L-ring L-index,top home top,40,14,95,0.00184,universal,True
+ive,3,double_row_change,R-middle L-index L-middle,top bottom top,32,51,68,0.00174,universal,True
+nce,3,contains_same_finger,R-index L-middle L-middle,bottom bottom top,21,43,106,0.00167,universal,True
+ine,3,double_row_change,R-middle R-index L-middle,top bottom top,53,38,108,0.00163,universal,True
+res,3,outward_roll,L-index L-middle L-ring,top top home,17,12,109,0.00163,universal,True
+ome,3,double_row_change,R-ring R-index L-middle,top bottom top,55,57,15,0.00163,universal,True
+art,3,contains_same_finger,L-pinky L-index L-index,home top top,79,60,114,0.00159,universal,True
+ste,3,redirect,L-ring L-index L-middle,home top top,87,61,111,0.00159,universal,True
+ted,3,contains_same_finger,L-index L-middle L-middle,top top home,24,41,131,0.00146,universal,True
+ide,3,contains_same_finger;double_row_change,R-middle L-middle L-middle,top home top,66,68,125,0.00146,universal,True
+one,3,double_row_change,R-ring R-index L-middle,top bottom top,47,71,24,0.00145,universal,True
+eve,3,double_row_change,L-middle L-index L-middle,top bottom top,37,76,29,0.00141,universal,True
+ist,3,double_row_change,R-middle L-ring L-index,top home top,44,34,136,0.00141,universal,True
+int,3,double_row_change,R-middle R-index L-index,top bottom top,39,19,140,0.00136,universal,True
+con,3,double_row_change,L-middle R-ring R-index,bottom top bottom,16,24,144,0.00135,universal,True
+men,3,double_row_change,R-index L-middle R-index,bottom top bottom,22,20,149,0.00133,universal,True
+that,4,double_row_change,L-index R-index L-pinky L-index,top home home top,3,,1,0.00531,two-corpus,True
+ther,4,double_row_change,L-index R-index L-middle L-index,top home top top,4,,5,0.00445,two-corpus,True
+tion,4,redirect,L-index R-middle R-ring R-index,top top top bottom,1,,23,0.00338,two-corpus,True
+this,4,double_row_change,L-index R-index R-middle L-ring,top home top home,8,,6,0.00254,two-corpus,True
+ting,4,double_row_change,L-index R-middle R-index L-index,top top bottom home,12,,32,0.00213,two-corpus,True
+from,4,contains_same_finger;double_row_change,L-index L-index R-ring R-index,home top top bottom,10,,48,0.00189,two-corpus,True
+have,4,redirect;double_row_change,R-index L-pinky L-index L-middle,home home bottom top,17,,9,0.00187,two-corpus,True
+othe,4,double_row_change,R-ring L-index R-index L-middle,top top home top,18,,36,0.00179,two-corpus,True
+ight,4,double_row_change,R-middle L-index R-index L-index,top home home top,19,,7,0.00177,two-corpus,True
+ever,4,double_row_change,L-middle L-index L-middle L-index,top bottom top top,21,,15,0.00166,two-corpus,True

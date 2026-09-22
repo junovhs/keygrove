@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Relaxed QWERTY — learn to type on an ordinary keyboard with a relaxed, stable method: 36 guided lessons, accuracy before speed.">
-<title>RQWERTY · Relaxed QWERTY</title>
+<meta name="description" content="KeyJam — learn to type in short lessons that practise the movements English actually uses: 36 guided lessons, accuracy before speed.">
+<title>KeyJam</title>
 <style>
 :root{
   --bg:#f7f5f1;
@@ -341,8 +341,8 @@ kbd{font:inherit}
     <div class="shell-inner">
     <div class="brand-block">
       <!-- The brand mark returns to the current lesson; About & docs (dopedocs) is its own link beside it. -->
-      <button id="brandHome" class="brand" type="button" aria-label="Back to your current lesson">Relaxed QWERTY</button>
-      <button id="docsOpen" class="brand-hint" type="button" aria-label="About Relaxed QWERTY and documentation" aria-expanded="false">ⓘ About &amp; docs</button>
+      <button id="brandHome" class="brand" type="button" aria-label="Back to your current lesson">KeyJam</button>
+      <button id="docsOpen" class="brand-hint" type="button" aria-label="About KeyJam and documentation" aria-expanded="false">ⓘ About &amp; docs</button>
     </div>
     <nav class="nav" aria-label="Primary">
       <button id="focusNav" class="nav-cta" type="button">Extra practice</button>
@@ -479,11 +479,11 @@ kbd{font:inherit}
   <div class="modalbox">
     <span class="eyebrow">Utility</span>
     <h2 id="settingsTitle">Make yourself comfortable.</h2>
-    <p>Progress saves in this browser. A new account keeps your current progress and syncs it across devices. An existing account opens its own course. Export a backup any time; Reset clears everything (and asks twice). <b>Method</b> chooses which finger owns each key — Relaxed QWERTY (Z ring, X middle, C index, B right index) or traditional touch typing.</p>
+    <p>Progress saves in this browser. A new account keeps your current progress and syncs it across devices. An existing account opens its own course. Export a backup any time; Reset clears everything (and asks twice).<span id="methodNote" hidden> <b>Method</b> chooses which finger owns each key.</span></p>
     <div class="modal-actions">
       <button class="primary" id="exportBtn" type="button">Export</button>
       <button id="importBtn" type="button">Import</button>
-      <button id="methodBtn" type="button">Method: Traditional touch typing</button>
+      <button id="methodBtn" type="button" hidden>Method: Traditional touch typing</button>
       <button id="codeBtn" type="button">Code grove: off</button>
       <button class="danger" id="resetBtn" type="button">Reset</button>
       <button id="closeSettings" type="button">Close</button>

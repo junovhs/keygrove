@@ -111,10 +111,8 @@ def table(z: str, x: str, c: str, b: str) -> dict[str, tuple[str, str]]:
 
 
 FINGERS = {
-    # DEC-12: Traditional is the default table and defines mechanical class.
+    # DEC-17: traditional touch typing defines mechanical class.
     "traditional": table(("L", "pinky"), ("L", "ring"), ("L", "middle"), ("L", "index")),
-    # Relaxed QWERTY 1.0: Z ring, X middle, C index, B right index.
-    "relaxed": table(("L", "ring"), ("L", "middle"), ("L", "index"), ("R", "index")),
 }
 
 HOME_KEY = {
@@ -437,10 +435,10 @@ write_csv(
     "core_transitions.csv",
     {"stability": "universal", "core_rank": CORE_RANK, "purpose": "coverage check, not isolated drills"},
     ["bigram", "rank_books", "rank_web", "rank_subtlex", "share_books", "movement_class",
-     "relaxed_class", "also_technical", "stability", "provisional"],
+     "also_technical", "stability", "provisional"],
     [
         [r["ngram"], r["rank_books"], r["rank_web"], r["rank_subtlex"], f"{r['share_books']:.5f}",
-         movement_class(r["ngram"]), movement_class(r["ngram"], "relaxed"),
+         movement_class(r["ngram"]),
          r["ngram"] in technical_set, "universal", True]
         for r in core
     ],
@@ -452,14 +450,13 @@ write_csv(
      "bigram_n": BIGRAM_N, "same_finger_n": SAME_FINGER_N, "stretch_reach": STRETCH_REACH,
      "cap": TECHNICAL_CAP, "admission_order": "all same_finger first, then min share across corpora"},
     ["bigram", "reasons", "finger_from", "finger_to", "movement_class", "row_from", "row_to",
-     "same_finger_travel", "reach_from", "reach_to", "relaxed_class", "relaxed_reasons",
+     "same_finger_travel", "reach_from", "reach_to",
      "rank_books", "rank_web", "rank_subtlex", "sf_rank_books", "sf_rank_web", "sf_rank_subtlex",
      "min_share", "also_core", "stability", "stability_note", "provisional"],
     [
         [bg, ";".join(reasons), label(bg[0]), label(bg[1]), movement_class(bg),
          ROW_NAME[KEYS[bg[0]]["y"]], ROW_NAME[KEYS[bg[1]]["y"]], sf_travel(bg),
          f"{home_reach(bg[0]):.2f}", f"{home_reach(bg[1]):.2f}",
-         movement_class(bg, "relaxed"), ";".join(mechanical_reasons(bg, "relaxed")),
          r["rank_books"], r["rank_web"], r["rank_subtlex"],
          *(same_finger[bg][f"rank_{c}"] if bg in same_finger else "" for c in CORPORA),
          f"{min(r[f'share_{c}'] for c in CORPORA):.5f}", bg in core_set, "universal", note, True]
@@ -473,17 +470,17 @@ write_csv(
      "trigram_n": TRIGRAM_N, "fourgram_n": FOURGRAM_N,
      "cap": f"{GESTURE_TRIGRAM_CAP} trigrams + {GESTURE_FOURGRAM_CAP} 4-grams",
      "admission_order": "min share across corpora"},
-    ["gesture", "length", "features", "fingers", "rows", "relaxed_features",
+    ["gesture", "length", "features", "fingers", "rows",
      "rank_books", "rank_web", "rank_subtlex", "min_share", "stability", "provisional"],
     [
         [g, 3, ";".join(feats), " ".join(label(c) for c in g),
-         " ".join(ROW_NAME[KEYS[c]["y"]] for c in g), ";".join(gesture_features(g, "relaxed")),
+         " ".join(ROW_NAME[KEYS[c]["y"]] for c in g),
          r["rank_books"], r["rank_web"], r["rank_subtlex"],
          f"{min(r[f'share_{c}'] for c in CORPORA):.5f}", "universal", True]
         for g, r, feats in gesture_tri
     ] + [
         [g, 4, ";".join(feats), " ".join(label(c) for c in g),
-         " ".join(ROW_NAME[KEYS[c]["y"]] for c in g), ";".join(gesture_features(g, "relaxed")),
+         " ".join(ROW_NAME[KEYS[c]["y"]] for c in g),
          rb, "", rs, f"{min(share4_books[g], share4_sub[g]):.5f}", "two-corpus", True]
         for g, rb, rs, feats in gesture_four
     ],
@@ -559,9 +556,7 @@ add("admitted only when stable across corpora (DEC-16). Every set is")
 add("**provisional until learner data** — no composite difficulty score is")
 add("computed, and nothing here is a lesson order.")
 add("")
-add("Finger table: Traditional (DEC-12 default) defines class and reasons; the")
-add("Relaxed QWERTY 1.0 class is carried as a second column (Z ring, X middle,")
-add("C index, B right index).")
+add("Finger table: traditional touch typing (DEC-17) defines class and reasons.")
 add("")
 add("## Sets")
 add("")
@@ -605,14 +600,14 @@ add(f"up to the cap of {TECHNICAL_CAP} go to the other reasons by worst-case cor
 add("share. Cut by the cap: `"
     + " ".join(bg for bg, *_ in technical_cut) + "`.")
 add("")
-add("| bigram | reasons | fingers | class | travel | reach | relaxed class | rank b/w/s | SF rank b/w/s | min share |")
-add("|:---:|---|---|---|---:|---:|---|---|---|---:|")
+add("| bigram | reasons | fingers | class | travel | reach | rank b/w/s | SF rank b/w/s | min share |")
+add("|:---:|---|---|---|---:|---:|---|---|---:|")
 for bg, r, reasons, note in technical:
     sfr = same_finger.get(bg)
     add(
         f"| `{bg}` | {', '.join(reasons)} | {label(bg[0])} → {label(bg[1])} | {movement_class(bg)} | "
         f"{sf_travel(bg) or '—'} | {home_reach(bg[0]):.2f} + {home_reach(bg[1]):.2f} | "
-        f"{movement_class(bg, 'relaxed')} | {r['rank_books']}/{r['rank_web']}/{r['rank_subtlex']} | "
+        f"{r['rank_books']}/{r['rank_web']}/{r['rank_subtlex']} | "
         + (f"{sfr['rank_books']}/{sfr['rank_web']}/{sfr['rank_subtlex']}" if sfr else "—")
         + f" | {100 * min(r[f'share_{c}'] for c in CORPORA):.3f}% |"
     )
@@ -630,13 +625,6 @@ if exceptions:
     for bg, note in exceptions:
         add(f"- `{bg}` — {note}")
     add("")
-relaxed_changes = [
-    bg for bg, *_ in technical if movement_class(bg) != movement_class(bg, "relaxed")
-]
-add("Under the Relaxed table the class changes for: `"
-    + (" ".join(relaxed_changes) or "none") + "`. The set is selected on the")
-add("Traditional table (DEC-12); a Relaxed-specific selection is a later step.")
-add("")
 
 add("## Gestures")
 add("")
@@ -652,19 +640,19 @@ add("4-grams have no Norvig web table, so their stability is `two-corpus`")
 add(f"(top-{FOURGRAM_N} in both Google Books and SUBTLEX-US) — a stated exception,")
 add("weaker than the three-corpus `universal` of the trigrams.")
 add("")
-add("| gesture | features | fingers | rows | relaxed features | rank b/w/s | min share |")
-add("|:---:|---|---|---|---|---|---:|")
+add("| gesture | features | fingers | rows | rank b/w/s | min share |")
+add("|:---:|---|---|---|---|---:|")
 for g, r, feats in gesture_tri:
     add(
         f"| `{g}` | {', '.join(feats)} | {' '.join(label(c) for c in g)} | "
-        f"{' '.join(ROW_NAME[KEYS[c]['y']] for c in g)} | {', '.join(gesture_features(g, 'relaxed')) or '—'} | "
+        f"{' '.join(ROW_NAME[KEYS[c]['y']] for c in g)} | "
         f"{r['rank_books']}/{r['rank_web']}/{r['rank_subtlex']} | "
         f"{100 * min(r[f'share_{c}'] for c in CORPORA):.3f}% |"
     )
 for g, rb, rs, feats in gesture_four:
     add(
         f"| `{g}` | {', '.join(feats)} | {' '.join(label(c) for c in g)} | "
-        f"{' '.join(ROW_NAME[KEYS[c]['y']] for c in g)} | {', '.join(gesture_features(g, 'relaxed')) or '—'} | "
+        f"{' '.join(ROW_NAME[KEYS[c]['y']] for c in g)} | "
         f"{rb}/—/{rs} | {100 * min(share4_books[g], share4_sub[g]):.3f}% |"
     )
 add("")

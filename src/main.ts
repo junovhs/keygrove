@@ -6,7 +6,7 @@ import { fingerPractice, completeFingerPractice, type FingerPractice } from './e
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
 import { fingers, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
-import { METHODS, RELAXED_QWERTY, TRADITIONAL, activeMethod, baseKey, fingerOf, isShifted, reassignedKeys, setMethod } from './curriculum/method';
+import { METHODS, activeMethod, baseKey, fingerOf, isShifted, reassignedKeys, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
@@ -47,7 +47,7 @@ setMethod(state.settings.method);
 /**
  * Dev-only experience journal. Add ?dev=1 to any build to keep an exact, session-scoped
  * record of the prompts shown and the strokes/results produced. Nothing is sent anywhere.
- * Console: keygrove.dev.report() / keygrove.dev.clear()
+ * Console: keyjam.dev.report() / keyjam.dev.clear()
  */
 const devTraceEnabled = new URLSearchParams(location.search).has('dev');
 const DEV_TRACE_KEY = 'keygrove.dev-runs.v1';
@@ -78,7 +78,7 @@ function devRecord(record: Record<string, unknown>): void {
   if (!devTraceEnabled) return;
   devRuns.push(record);
   try { sessionStorage.setItem(DEV_TRACE_KEY, JSON.stringify(devRuns)); } catch { /* console trace still works */ }
-  console.info('[KeyGrove dev run]', record);
+  console.info('[KeyJam dev run]', record);
 }
 function devReport(): string {
   return JSON.stringify({ schema: 1, exportedAt: new Date().toISOString(), method: activeMethod().id, runs: devRuns }, null, 2);
@@ -579,7 +579,7 @@ function finish(): void {
   $('resultWpm').parentElement!.hidden = !(mode.kind === 'trail' && t.id === 'flow-checkpoint');
   $('resultOffer').hidden = !gate;
   $('resultOffer').textContent = gate ? `Up next: ${gate.title}. A short practice, then back here.` : '';
-  $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Relaxed hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
+  $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Calm hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
   $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${outcome.exercise.nextName ?? trail().name}` : `Retry: ${t.name}`;
   $('skipPractice').hidden = !gate;
   $('skipPractice').textContent = 'Try the passage instead';
@@ -735,7 +735,7 @@ function showSettings(): void { sound.play('open'); settingsModal().classList.ad
 $('settingsTopBtn').onclick = showSettings;
 $('closeSettings').onclick = () => { sound.play('close'); settingsModal().classList.remove('open'); };
 settingsModal().onclick = (e) => { if (e.target === settingsModal()) settingsModal().classList.remove('open'); };
-// ---- Method: Traditional by default (DEC-12); Settings toggles to Relaxed QWERTY and back --------
+// ---- Method (DEC-17): Traditional by default; with more than one official method Settings cycles through them --------
 function switchMethod(methodId: string): void {
   if (state.settings.method !== methodId) {
     // Only the reassigned keys need fresh evidence. Earned chapters stay earned.
@@ -748,13 +748,13 @@ function switchMethod(methodId: string): void {
   state.settings.method = methodId; state.settings.onboarded = true; setMethod(methodId); save(); syncSettingsUi();
   mode = { kind: 'trail' }; resetRun(); toast(`Method: ${activeMethod().name}`);
 }
-$('methodBtn').onclick = () => switchMethod(activeMethod().id === RELAXED_QWERTY.id ? TRADITIONAL.id : RELAXED_QWERTY.id);
+$('methodBtn').onclick = () => switchMethod(METHODS[(METHODS.findIndex((m) => m.id === activeMethod().id) + 1) % METHODS.length]!.id);
 
 $('codeBtn').onclick = () => { state.settings.codeGrove = !state.settings.codeGrove; sound.play(state.settings.codeGrove ? 'toggle-on' : 'toggle-off'); save(); $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off'); toast(state.settings.codeGrove ? 'Code grove will appear after the Bark checkpoint.' : 'Code grove hidden.'); };
 $('exportBtn').onclick = () => {
   save();
   const u = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })), a = document.createElement('a');
-  a.href = u; a.download = 'keygrove-backup.json'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+  a.href = u; a.download = 'keyjam-backup.json'; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000);
 };
 $('importBtn').onclick = () => $('importFile').click();
 $<HTMLInputElement>('importFile').onchange = async (e) => {
@@ -775,6 +775,9 @@ $('resetBtn').onclick = () => {
 function syncSettingsUi(): void {
   $('codeBtn').textContent = 'Code grove: ' + (state.settings.codeGrove ? 'on' : 'off');
   $('methodBtn').textContent = 'Method: ' + activeMethod().name;
+  // One official method: nothing to choose, so neither the control nor its explanation is shown.
+  $('methodBtn').hidden = METHODS.length < 2;
+  $('methodNote').hidden = METHODS.length < 2;
   setMethod(state.settings.method);
 }
 setInterval(() => { if (run.status === 'playing') metrics(); }, 450);
@@ -841,8 +844,8 @@ sound.wire(
 );
 const played: string[] = [];
 sound.onPlay = (name) => { played.push(name); if (played.length > 200) played.shift(); };
-Object.defineProperty(window, 'keygrove', {
-  value: Object.freeze({
+/** Console and test hooks, as `keyjam` (the product) and `keygrove` (the original repository name, kept for scripts). */
+const consoleApi = Object.freeze({
     snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, exercise: runExercise, guided: guided(), helpVisible, outcome, decisions, gate, brief: brief ? { title: brief.briefing.title, step: brief.step, tip: brief.briefing.tips[brief.step]!.title } : null, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
     import: (raw: unknown) => applyImport(raw),
     openMap,
@@ -861,5 +864,5 @@ Object.defineProperty(window, 'keygrove', {
       /** Read-only view of the screen for scripted play-throughs (?dev=1 only). */
       current: () => (devTraceEnabled ? { status: run.status, text: run.text, briefing: !!brief } : null),
     }),
-  }),
 });
+for (const name of ['keyjam', 'keygrove']) Object.defineProperty(window, name, { value: consoleApi });

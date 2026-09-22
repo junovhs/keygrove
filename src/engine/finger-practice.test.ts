@@ -102,8 +102,6 @@ it('retains partial passes through reload and sync without making progress visib
   const merged = mergeProgress(reloaded, remote);
   expect(pairCompleted(merged.fingerCourses, index)).toBe(1);
   expect(merged.trail).toBe('anchors'); expect(merged.trails).toEqual({});
-  setMethod(METHODS[1]!.id);
-  expect(pairCompleted(merged.fingerCourses, index)).toBe(0);
 });
 
 it('preserves older unequal side courses and only makes their shared levels available', () => {

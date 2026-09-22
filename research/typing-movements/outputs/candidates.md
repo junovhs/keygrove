@@ -5,9 +5,7 @@ admitted only when stable across corpora (DEC-16). Every set is
 **provisional until learner data** — no composite difficulty score is
 computed, and nothing here is a lesson order.
 
-Finger table: Traditional (DEC-12 default) defines class and reasons; the
-Relaxed QWERTY 1.0 class is carried as a second column (Z ring, X middle,
-C index, B right index).
+Finger table: traditional touch typing (DEC-17) defines class and reasons.
 
 ## Sets
 
@@ -48,48 +46,48 @@ is admitted first (DEC-13 names it as the unit to teach); the remaining places
 up to the cap of 40 go to the other reasons by worst-case corpus
 share. Cut by the cap: `ev ay pr pa bo op ct po bu ap bl yo ba up ey ep ex pi sp ty cr bi mp ys by`.
 
-| bigram | reasons | fingers | class | travel | reach | relaxed class | rank b/w/s | SF rank b/w/s | min share |
-|:---:|---|---|---|---:|---:|---|---|---|---:|
-| `ed` | same_finger | L-middle → L-middle | same_finger_different_key | 1.03 | 1.03 + 0.00 | same_finger_different_key | 16/22/37 | 1/1/1 | 0.703% |
-| `de` | same_finger | L-middle → L-middle | same_finger_different_key | 1.03 | 0.00 + 1.03 | same_finger_different_key | 34/33/67 | 2/2/3 | 0.439% |
-| `lo` | same_finger | R-ring → R-ring | same_finger_different_key | 1.03 | 0.00 + 1.03 | same_finger_different_key | 77/76/64 | 7/6/2 | 0.387% |
-| `ce` | same_finger, same_hand_row_jump | L-middle → L-middle | same_finger_different_key | 2.14 | 1.12 + 1.03 | same_hand_different_fingers | 42/48/78 | 3/4/4 | 0.354% |
-| `un` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.02 | 1.03 + 1.12 | same_finger_different_key | 76/90/89 | 6/9/5 | 0.330% |
-| `ol` | same_finger | R-ring → R-ring | same_finger_different_key | 1.03 | 1.03 + 0.00 | same_finger_different_key | 86/86/104 | 8/8/7 | 0.274% |
-| `tr` | same_finger | L-index → L-index | same_finger_different_key | 1.00 | 1.25 + 1.03 | same_finger_different_key | 68/79/115 | 5/7/9 | 0.253% |
-| `ec` | same_finger, same_hand_row_jump | L-middle → L-middle | same_finger_different_key | 2.14 | 1.03 + 1.12 | same_hand_different_fingers | 60/46/121 | 4/3/10 | 0.243% |
-| `rt` | same_finger | L-index → L-index | same_finger_different_key | 1.00 | 1.03 + 1.25 | same_finger_different_key | 87/66/127 | 9/5/11 | 0.234% |
-| `fr` | same_finger | L-index → L-index | same_finger_different_key | 1.03 | 0.00 + 1.03 | same_finger_different_key | 129/135/140 | 10/10/13 | 0.181% |
-| `gr` | same_finger | L-index → L-index | same_finger_different_key | 1.60 | 1.00 + 1.03 | same_finger_different_key | 135/157/168 | 11/12/16 | 0.122% |
-| `br` | same_finger, stretch, same_hand_row_jump | L-index → L-index | same_finger_different_key | 2.66 | 1.80 + 1.03 | alternate_hands | 188/206/176 | 14/15/17 | 0.112% |
-| `mu` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.14 | 1.12 + 1.03 | same_finger_different_key | 187/223/190 | 13/21/19 | 0.100% |
-| `ny` | same_finger, stretch, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.14 | 1.12 + 1.60 | same_finger_different_key | 197/211/147 | 16/18/14 | 0.098% |
-| `ki` | same_finger | R-middle → R-middle | same_finger_different_key | 1.03 | 0.00 + 1.03 | same_finger_different_key | 198/186/114 | 17/14/8 | 0.098% |
-| `um` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.14 | 1.03 + 1.12 | same_finger_different_key | 169/175/212 | 12/13/21 | 0.080% |
-| `ft` | same_finger | L-index → L-index | same_finger_different_key | 1.25 | 0.00 + 1.25 | same_finger_different_key | 219/151/220 | 18/11/22 | 0.067% |
-| `rg` | same_finger | L-index → L-index | same_finger_different_key | 1.60 | 1.03 + 1.00 | same_finger_different_key | 194/219/223 | 15/20/23 | 0.065% |
-| `my` | same_finger, stretch, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.66 | 1.12 + 1.60 | same_finger_different_key | 236/268/100 | 22/27/6 | 0.062% |
-| `ju` | same_finger | R-index → R-index | same_finger_different_key | 1.03 | 0.00 + 1.03 | same_finger_different_key | 239/273/133 | 23/28/12 | 0.059% |
-| `nu` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.02 | 1.12 + 1.03 | same_finger_different_key | 221/207/231 | 19/16/25 | 0.058% |
-| `hu` | same_finger | R-index → R-index | same_finger_different_key | 1.25 | 1.00 + 1.03 | same_finger_different_key | 223/280/193 | 20/30/20 | 0.057% |
-| `rv` | same_finger, same_hand_row_jump | L-index → L-index | same_finger_different_key | 2.14 | 1.03 + 1.12 | same_finger_different_key | 227/213/271 | 21/19/28 | 0.029% |
-| `ws` | same_finger | L-ring → L-ring | same_finger_different_key | 1.03 | 1.03 + 0.00 | same_finger_different_key | 266/234/272 | 26/22/29 | 0.029% |
-| `rf` | same_finger | L-index → L-index | same_finger_different_key | 1.03 | 1.03 + 0.00 | same_finger_different_key | 269/261/279 | 27/26/30 | 0.027% |
-| `in` | same_hand_row_jump | R-middle → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | same_hand_different_fingers | 3/1/4 | — | 2.021% |
-| `on` | same_hand_row_jump | R-ring → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | same_hand_different_fingers | 7/7/11 | — | 1.506% |
-| `ve` | same_hand_row_jump | L-index → L-middle | same_hand_different_fingers | — | 1.12 + 1.03 | same_hand_different_fingers | 31/41/22 | — | 0.635% |
-| `om` | same_hand_row_jump | R-ring → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | same_hand_different_fingers | 49/47/46 | — | 0.546% |
-| `no` | same_hand_row_jump | R-index → R-ring | same_hand_different_fingers | — | 1.12 + 1.03 | same_hand_different_fingers | 62/70/24 | — | 0.459% |
-| `be` | stretch, same_hand_row_jump | L-index → L-middle | same_hand_different_fingers | — | 1.80 + 1.03 | alternate_hands | 46/78/40 | — | 0.408% |
-| `pe` | weak_finger_reach | R-pinky → L-middle | alternate_hands | — | 1.03 + 1.03 | alternate_hands | 59/81/83 | — | 0.344% |
-| `mo` | same_hand_row_jump | R-index → R-ring | same_hand_different_fingers | — | 1.12 + 1.03 | same_hand_different_fingers | 94/94/96 | — | 0.316% |
-| `mi` | same_hand_row_jump | R-index → R-middle | same_hand_different_fingers | — | 1.12 + 1.03 | same_hand_different_fingers | 98/104/105 | — | 0.273% |
-| `ni` | same_hand_row_jump | R-index → R-middle | same_hand_different_fingers | — | 1.12 + 1.03 | same_hand_different_fingers | 92/80/118 | — | 0.247% |
-| `ry` | stretch | L-index → R-index | alternate_hands | — | 1.03 + 1.60 | alternate_hands | 116/121/92 | — | 0.241% |
-| `ly` | stretch | R-ring → R-index | same_hand_different_fingers | — | 0.00 + 1.60 | same_hand_different_fingers | 69/122/94 | — | 0.241% |
-| `pl` | weak_finger_reach | R-pinky → R-ring | same_hand_different_fingers | — | 1.03 + 0.00 | same_hand_different_fingers | 111/115/126 | — | 0.236% |
-| `im` | same_hand_row_jump | R-middle → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | same_hand_different_fingers | 97/126/93 | — | 0.232% |
-| `ab` | stretch | L-pinky → L-index | same_hand_different_fingers | — | 0.00 + 1.80 | alternate_hands | 120/127/119 | — | 0.230% |
+| bigram | reasons | fingers | class | travel | reach | rank b/w/s | SF rank b/w/s | min share |
+|:---:|---|---|---|---:|---:|---|---|---:|
+| `ed` | same_finger | L-middle → L-middle | same_finger_different_key | 1.03 | 1.03 + 0.00 | 16/22/37 | 1/1/1 | 0.703% |
+| `de` | same_finger | L-middle → L-middle | same_finger_different_key | 1.03 | 0.00 + 1.03 | 34/33/67 | 2/2/3 | 0.439% |
+| `lo` | same_finger | R-ring → R-ring | same_finger_different_key | 1.03 | 0.00 + 1.03 | 77/76/64 | 7/6/2 | 0.387% |
+| `ce` | same_finger, same_hand_row_jump | L-middle → L-middle | same_finger_different_key | 2.14 | 1.12 + 1.03 | 42/48/78 | 3/4/4 | 0.354% |
+| `un` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.02 | 1.03 + 1.12 | 76/90/89 | 6/9/5 | 0.330% |
+| `ol` | same_finger | R-ring → R-ring | same_finger_different_key | 1.03 | 1.03 + 0.00 | 86/86/104 | 8/8/7 | 0.274% |
+| `tr` | same_finger | L-index → L-index | same_finger_different_key | 1.00 | 1.25 + 1.03 | 68/79/115 | 5/7/9 | 0.253% |
+| `ec` | same_finger, same_hand_row_jump | L-middle → L-middle | same_finger_different_key | 2.14 | 1.03 + 1.12 | 60/46/121 | 4/3/10 | 0.243% |
+| `rt` | same_finger | L-index → L-index | same_finger_different_key | 1.00 | 1.03 + 1.25 | 87/66/127 | 9/5/11 | 0.234% |
+| `fr` | same_finger | L-index → L-index | same_finger_different_key | 1.03 | 0.00 + 1.03 | 129/135/140 | 10/10/13 | 0.181% |
+| `gr` | same_finger | L-index → L-index | same_finger_different_key | 1.60 | 1.00 + 1.03 | 135/157/168 | 11/12/16 | 0.122% |
+| `br` | same_finger, stretch, same_hand_row_jump | L-index → L-index | same_finger_different_key | 2.66 | 1.80 + 1.03 | 188/206/176 | 14/15/17 | 0.112% |
+| `mu` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.14 | 1.12 + 1.03 | 187/223/190 | 13/21/19 | 0.100% |
+| `ny` | same_finger, stretch, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.14 | 1.12 + 1.60 | 197/211/147 | 16/18/14 | 0.098% |
+| `ki` | same_finger | R-middle → R-middle | same_finger_different_key | 1.03 | 0.00 + 1.03 | 198/186/114 | 17/14/8 | 0.098% |
+| `um` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.14 | 1.03 + 1.12 | 169/175/212 | 12/13/21 | 0.080% |
+| `ft` | same_finger | L-index → L-index | same_finger_different_key | 1.25 | 0.00 + 1.25 | 219/151/220 | 18/11/22 | 0.067% |
+| `rg` | same_finger | L-index → L-index | same_finger_different_key | 1.60 | 1.03 + 1.00 | 194/219/223 | 15/20/23 | 0.065% |
+| `my` | same_finger, stretch, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.66 | 1.12 + 1.60 | 236/268/100 | 22/27/6 | 0.062% |
+| `ju` | same_finger | R-index → R-index | same_finger_different_key | 1.03 | 0.00 + 1.03 | 239/273/133 | 23/28/12 | 0.059% |
+| `nu` | same_finger, same_hand_row_jump | R-index → R-index | same_finger_different_key | 2.02 | 1.12 + 1.03 | 221/207/231 | 19/16/25 | 0.058% |
+| `hu` | same_finger | R-index → R-index | same_finger_different_key | 1.25 | 1.00 + 1.03 | 223/280/193 | 20/30/20 | 0.057% |
+| `rv` | same_finger, same_hand_row_jump | L-index → L-index | same_finger_different_key | 2.14 | 1.03 + 1.12 | 227/213/271 | 21/19/28 | 0.029% |
+| `ws` | same_finger | L-ring → L-ring | same_finger_different_key | 1.03 | 1.03 + 0.00 | 266/234/272 | 26/22/29 | 0.029% |
+| `rf` | same_finger | L-index → L-index | same_finger_different_key | 1.03 | 1.03 + 0.00 | 269/261/279 | 27/26/30 | 0.027% |
+| `in` | same_hand_row_jump | R-middle → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | 3/1/4 | — | 2.021% |
+| `on` | same_hand_row_jump | R-ring → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | 7/7/11 | — | 1.506% |
+| `ve` | same_hand_row_jump | L-index → L-middle | same_hand_different_fingers | — | 1.12 + 1.03 | 31/41/22 | — | 0.635% |
+| `om` | same_hand_row_jump | R-ring → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | 49/47/46 | — | 0.546% |
+| `no` | same_hand_row_jump | R-index → R-ring | same_hand_different_fingers | — | 1.12 + 1.03 | 62/70/24 | — | 0.459% |
+| `be` | stretch, same_hand_row_jump | L-index → L-middle | same_hand_different_fingers | — | 1.80 + 1.03 | 46/78/40 | — | 0.408% |
+| `pe` | weak_finger_reach | R-pinky → L-middle | alternate_hands | — | 1.03 + 1.03 | 59/81/83 | — | 0.344% |
+| `mo` | same_hand_row_jump | R-index → R-ring | same_hand_different_fingers | — | 1.12 + 1.03 | 94/94/96 | — | 0.316% |
+| `mi` | same_hand_row_jump | R-index → R-middle | same_hand_different_fingers | — | 1.12 + 1.03 | 98/104/105 | — | 0.273% |
+| `ni` | same_hand_row_jump | R-index → R-middle | same_hand_different_fingers | — | 1.12 + 1.03 | 92/80/118 | — | 0.247% |
+| `ry` | stretch | L-index → R-index | alternate_hands | — | 1.03 + 1.60 | 116/121/92 | — | 0.241% |
+| `ly` | stretch | R-ring → R-index | same_hand_different_fingers | — | 0.00 + 1.60 | 69/122/94 | — | 0.241% |
+| `pl` | weak_finger_reach | R-pinky → R-ring | same_hand_different_fingers | — | 1.03 + 0.00 | 111/115/126 | — | 0.236% |
+| `im` | same_hand_row_jump | R-middle → R-index | same_hand_different_fingers | — | 1.03 + 1.12 | 97/126/93 | — | 0.232% |
+| `ab` | stretch | L-pinky → L-index | same_hand_different_fingers | — | 0.00 + 1.80 | 120/127/119 | — | 0.230% |
 
 ### Why `mu` is in and `qa` is out
 
@@ -113,9 +111,6 @@ Rows admitted on same-finger evidence rather than the plain bigram class:
 - `ws` — bigram class below-cut at N=200; universal within the same-finger top-30
 - `rf` — bigram class below-cut at N=200; universal within the same-finger top-30
 
-Under the Relaxed table the class changes for: `ce ec br be ab`. The set is selected on the
-Traditional table (DEC-12); a Relaxed-specific selection is a later step.
-
 ## Gestures
 
 Features (union over the 3-letter windows of a chunk):
@@ -134,48 +129,48 @@ Features (union over the 3-letter windows of a chunk):
 (top-300 in both Google Books and SUBTLEX-US) — a stated exception,
 weaker than the three-corpus `universal` of the trigrams.
 
-| gesture | features | fingers | rows | relaxed features | rank b/w/s | min share |
-|:---:|---|---|---|---|---|---:|
-| `the` | double_row_change | L-index R-index L-middle | top home top | double_row_change | 1/1/2 | 1.364% |
-| `ing` | double_row_change | R-middle R-index L-index | top bottom home | double_row_change | 3/2/3 | 0.726% |
-| `and` | double_row_change | L-pinky R-index L-middle | home bottom home | double_row_change | 2/3/8 | 0.722% |
-| `ent` | double_row_change | L-middle R-index L-index | top bottom top | double_row_change | 6/6/42 | 0.315% |
-| `ion` | redirect | R-middle R-ring R-index | top top bottom | redirect | 4/4/46 | 0.274% |
-| `com` | double_row_change | L-middle R-ring R-index | bottom top bottom | double_row_change | 36/15/39 | 0.263% |
-| `are` | redirect | L-pinky L-index L-middle | home top top | redirect | 29/25/23 | 0.235% |
-| `ate` | redirect | L-pinky L-index L-middle | home top top | redirect | 14/10/62 | 0.227% |
-| `thi` | double_row_change | L-index R-index R-middle | top home top | double_row_change | 27/29/6 | 0.222% |
-| `rea` | outward_roll | L-index L-middle L-pinky | top top home | outward_roll | 35/30/33 | 0.221% |
-| `sta` | redirect, double_row_change | L-ring L-index L-pinky | home top home | redirect, double_row_change | 41/31/64 | 0.215% |
-| `ear` | redirect, double_row_change | L-middle L-pinky L-index | top home top | redirect, double_row_change | 45/37/53 | 0.200% |
-| `his` | double_row_change | R-index R-middle L-ring | home top home | double_row_change | 15/40/12 | 0.194% |
-| `ers` | redirect | L-middle L-index L-ring | top top home | redirect | 25/11/88 | 0.188% |
-| `est` | redirect, double_row_change | L-middle L-ring L-index | top home top | redirect, double_row_change | 40/14/95 | 0.184% |
-| `ive` | double_row_change | R-middle L-index L-middle | top bottom top | double_row_change | 32/51/68 | 0.174% |
-| `nce` | contains_same_finger | R-index L-middle L-middle | bottom bottom top | — | 21/43/106 | 0.167% |
-| `ine` | double_row_change | R-middle R-index L-middle | top bottom top | double_row_change | 53/38/108 | 0.163% |
-| `res` | outward_roll | L-index L-middle L-ring | top top home | outward_roll | 17/12/109 | 0.163% |
-| `ome` | double_row_change | R-ring R-index L-middle | top bottom top | double_row_change | 55/57/15 | 0.163% |
-| `art` | contains_same_finger | L-pinky L-index L-index | home top top | contains_same_finger | 79/60/114 | 0.159% |
-| `ste` | redirect | L-ring L-index L-middle | home top top | redirect | 87/61/111 | 0.159% |
-| `ted` | contains_same_finger | L-index L-middle L-middle | top top home | contains_same_finger | 24/41/131 | 0.146% |
-| `ide` | contains_same_finger, double_row_change | R-middle L-middle L-middle | top home top | contains_same_finger, double_row_change | 66/68/125 | 0.146% |
-| `one` | double_row_change | R-ring R-index L-middle | top bottom top | double_row_change | 47/71/24 | 0.145% |
-| `eve` | double_row_change | L-middle L-index L-middle | top bottom top | double_row_change | 37/76/29 | 0.141% |
-| `ist` | double_row_change | R-middle L-ring L-index | top home top | double_row_change | 44/34/136 | 0.141% |
-| `int` | double_row_change | R-middle R-index L-index | top bottom top | double_row_change | 39/19/140 | 0.136% |
-| `con` | double_row_change | L-middle R-ring R-index | bottom top bottom | double_row_change | 16/24/144 | 0.135% |
-| `men` | double_row_change | R-index L-middle R-index | bottom top bottom | double_row_change | 22/20/149 | 0.133% |
-| `that` | double_row_change | L-index R-index L-pinky L-index | top home home top | double_row_change | 3/—/1 | 0.531% |
-| `ther` | double_row_change | L-index R-index L-middle L-index | top home top top | double_row_change | 4/—/5 | 0.445% |
-| `tion` | redirect | L-index R-middle R-ring R-index | top top top bottom | redirect | 1/—/23 | 0.338% |
-| `this` | double_row_change | L-index R-index R-middle L-ring | top home top home | double_row_change | 8/—/6 | 0.254% |
-| `ting` | double_row_change | L-index R-middle R-index L-index | top top bottom home | double_row_change | 12/—/32 | 0.213% |
-| `from` | contains_same_finger, double_row_change | L-index L-index R-ring R-index | home top top bottom | contains_same_finger, double_row_change | 10/—/48 | 0.189% |
-| `have` | redirect, double_row_change | R-index L-pinky L-index L-middle | home home bottom top | redirect, double_row_change | 17/—/9 | 0.187% |
-| `othe` | double_row_change | R-ring L-index R-index L-middle | top top home top | double_row_change | 18/—/36 | 0.179% |
-| `ight` | double_row_change | R-middle L-index R-index L-index | top home home top | double_row_change | 19/—/7 | 0.177% |
-| `ever` | double_row_change | L-middle L-index L-middle L-index | top bottom top top | double_row_change | 21/—/15 | 0.166% |
+| gesture | features | fingers | rows | rank b/w/s | min share |
+|:---:|---|---|---|---|---:|
+| `the` | double_row_change | L-index R-index L-middle | top home top | 1/1/2 | 1.364% |
+| `ing` | double_row_change | R-middle R-index L-index | top bottom home | 3/2/3 | 0.726% |
+| `and` | double_row_change | L-pinky R-index L-middle | home bottom home | 2/3/8 | 0.722% |
+| `ent` | double_row_change | L-middle R-index L-index | top bottom top | 6/6/42 | 0.315% |
+| `ion` | redirect | R-middle R-ring R-index | top top bottom | 4/4/46 | 0.274% |
+| `com` | double_row_change | L-middle R-ring R-index | bottom top bottom | 36/15/39 | 0.263% |
+| `are` | redirect | L-pinky L-index L-middle | home top top | 29/25/23 | 0.235% |
+| `ate` | redirect | L-pinky L-index L-middle | home top top | 14/10/62 | 0.227% |
+| `thi` | double_row_change | L-index R-index R-middle | top home top | 27/29/6 | 0.222% |
+| `rea` | outward_roll | L-index L-middle L-pinky | top top home | 35/30/33 | 0.221% |
+| `sta` | redirect, double_row_change | L-ring L-index L-pinky | home top home | 41/31/64 | 0.215% |
+| `ear` | redirect, double_row_change | L-middle L-pinky L-index | top home top | 45/37/53 | 0.200% |
+| `his` | double_row_change | R-index R-middle L-ring | home top home | 15/40/12 | 0.194% |
+| `ers` | redirect | L-middle L-index L-ring | top top home | 25/11/88 | 0.188% |
+| `est` | redirect, double_row_change | L-middle L-ring L-index | top home top | 40/14/95 | 0.184% |
+| `ive` | double_row_change | R-middle L-index L-middle | top bottom top | 32/51/68 | 0.174% |
+| `nce` | contains_same_finger | R-index L-middle L-middle | bottom bottom top | 21/43/106 | 0.167% |
+| `ine` | double_row_change | R-middle R-index L-middle | top bottom top | 53/38/108 | 0.163% |
+| `res` | outward_roll | L-index L-middle L-ring | top top home | 17/12/109 | 0.163% |
+| `ome` | double_row_change | R-ring R-index L-middle | top bottom top | 55/57/15 | 0.163% |
+| `art` | contains_same_finger | L-pinky L-index L-index | home top top | 79/60/114 | 0.159% |
+| `ste` | redirect | L-ring L-index L-middle | home top top | 87/61/111 | 0.159% |
+| `ted` | contains_same_finger | L-index L-middle L-middle | top top home | 24/41/131 | 0.146% |
+| `ide` | contains_same_finger, double_row_change | R-middle L-middle L-middle | top home top | 66/68/125 | 0.146% |
+| `one` | double_row_change | R-ring R-index L-middle | top bottom top | 47/71/24 | 0.145% |
+| `eve` | double_row_change | L-middle L-index L-middle | top bottom top | 37/76/29 | 0.141% |
+| `ist` | double_row_change | R-middle L-ring L-index | top home top | 44/34/136 | 0.141% |
+| `int` | double_row_change | R-middle R-index L-index | top bottom top | 39/19/140 | 0.136% |
+| `con` | double_row_change | L-middle R-ring R-index | bottom top bottom | 16/24/144 | 0.135% |
+| `men` | double_row_change | R-index L-middle R-index | bottom top bottom | 22/20/149 | 0.133% |
+| `that` | double_row_change | L-index R-index L-pinky L-index | top home home top | 3/—/1 | 0.531% |
+| `ther` | double_row_change | L-index R-index L-middle L-index | top home top top | 4/—/5 | 0.445% |
+| `tion` | redirect | L-index R-middle R-ring R-index | top top top bottom | 1/—/23 | 0.338% |
+| `this` | double_row_change | L-index R-index R-middle L-ring | top home top home | 8/—/6 | 0.254% |
+| `ting` | double_row_change | L-index R-middle R-index L-index | top top bottom home | 12/—/32 | 0.213% |
+| `from` | contains_same_finger, double_row_change | L-index L-index R-ring R-index | home top top bottom | 10/—/48 | 0.189% |
+| `have` | redirect, double_row_change | R-index L-pinky L-index L-middle | home home bottom top | 17/—/9 | 0.187% |
+| `othe` | double_row_change | R-ring L-index R-index L-middle | top top home top | 18/—/36 | 0.179% |
+| `ight` | double_row_change | R-middle L-index R-index L-index | top home home top | 19/—/7 | 0.177% |
+| `ever` | double_row_change | L-middle L-index L-middle L-index | top bottom top top | 21/—/15 | 0.166% |
 
 ## Practice words
 

@@ -130,9 +130,9 @@ learner types in chat and email, and it's under-represented in books.
    position). `mud` first for `mu` is what concentration-sort gives; whether
    it's what a lesson wants is untested.
 7. **4-gram stability** rests on two corpora.
-8. **Traditional table as the selection basis** (DEC-12). Under Relaxed,
-   `ce ec br be ab` change class — `ce`/`ec` stop being same-finger entirely.
-   A Relaxed learner's technical set is not this set.
+8. **Traditional table as the selection basis** (DEC-17). Mechanical class
+   is defined for standard touch typing; another official method would need
+   its own classification before its technical set could be trusted.
 
 ## 6. Smallest plausible curriculum interpretation
 

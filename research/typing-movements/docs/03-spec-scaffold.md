@@ -1,4 +1,4 @@
-# KeyGrove — Spec Scaffold
+# KeyJam — Spec Scaffold
 
 This is intentionally a **decision list**, not a giant specification.
 
@@ -120,7 +120,7 @@ The three learner-facing forms of DEC-14 — **transition loop**, **steady beat*
 
 # C. Curriculum
 
-Answered 2026-09-22 (SPEC-02). Settled inputs: `docs/04-movement-vocabulary-checkpoint.md` — 43 core bigrams are coverage, not drills; the 11 technical targets are `ed de ce ec tr un lo ol rt mu um`; the obvious chunks are `ing`, `ion/tion`, `nce`, `ted`; everything else is provisional. The shipped 40-lesson course (`src/curriculum/trails.ts`) keeps its ids and order (DEC-12). Every default below is heuristic and provisional until learner data exists.
+Answered 2026-09-22 (SPEC-02). Settled inputs: `docs/04-movement-vocabulary-checkpoint.md` — 43 core bigrams are coverage, not drills; the 11 technical targets are `ed de ce ec tr un lo ol rt mu um`; the obvious chunks are `ing`, `ion/tion`, `nce`, `ted`; everything else is provisional. The shipped 40-lesson course (`src/curriculum/trails.ts`) keeps its ids and order (DEC-12, carried by DEC-17). Every default below is heuristic and provisional until learner data exists.
 
 ## C1. First lessons
 
@@ -134,7 +134,7 @@ Answered 2026-09-22 (SPEC-02). Settled inputs: `docs/04-movement-vocabulary-chec
 
 **Default:** Two keys per lesson, in the shipped order: letters complete by lesson 19 (Undergrowth), with `, .` alongside `x z` and `/` at lesson 20. Every unlocked key stays in play in every later lesson's words and prose. No key is withheld for being "hard"; B, Q, P, Z get lessons where they are, not later.
 
-**Reason:** The pace is already tested; re-ordering saved lesson ids is forbidden (DEC-12), and there is no evidence any key is mis-placed.
+**Reason:** The pace is already tested; re-ordering saved lesson ids is forbidden (DEC-12, carried by DEC-17), and there is no evidence any key is mis-placed.
 
 **Today:** Already true. No change.
 
@@ -382,7 +382,7 @@ Replace, in this order, when the signal exists (all from `TransitionModel` unles
 
 **Definitely in v1:** the 40-lesson course as shipped; one Continue; the three forms as lesson ingredients (B); the 11 targets in slot 2 and the four chunks as words (C); the D5 rule with one new field; keepsakes and the map as they are; accounts and cross-device sync; the manual; audio cues and the toggle; the settings that exist.
 
-**Definitely out:** rewards, streaks shown as pressure, currencies, dashboards, live WPM, difficulty readouts, mode menus, correction modes, Backspace lessons, keyboard shortcuts, geometry profiles, audio-reactive text, isolated gesture loops, the other 29 technical rows, 4-gram gestures, Relaxed-specific target sets, any composite difficulty score.
+**Definitely out:** rewards, streaks shown as pressure, currencies, dashboards, live WPM, difficulty readouts, mode menus, correction modes, Backspace lessons, keyboard shortcuts, geometry profiles, audio-reactive text, isolated gesture loops, the other 29 technical rows, 4-gram gestures, any composite difficulty score.
 
 **Open BACKLOG verdicts (Progression v1 / Accounts v1):**
 
@@ -398,7 +398,7 @@ Replace, in this order, when the signal exists (all from `TransitionModel` unles
 
 ## I2. What can be added later without changing the core model?
 
-Only things that read existing fields or fill an existing slot: tuning the D5 thresholds; swapping which 11 targets; a chunk loop if D4 shows a chunk never settles; per-run target stats for D4; a Relaxed target set from the same CSV's `relaxed_class` column; more practice words. Each is a data change or a one-field change, not a screen.
+Only things that read existing fields or fill an existing slot: tuning the D5 thresholds; swapping which 11 targets; a chunk loop if D4 shows a chunk never settles; per-run target stats for D4; more practice words. Each is a data change or a one-field change, not a screen.
 
 ## I3. What would make the product feel like work rather than practice?
 
