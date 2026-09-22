@@ -1,5 +1,5 @@
 import { PRACTICE_WORDS, readablePhrases } from '../curriculum/language';
-import type { LessonExercise } from '../curriculum/lesson-flow';
+import { transitionLoop, type LessonExercise } from '../curriculum/lesson-flow';
 import { allowedChars, cumulativeKeys, type StageName, type Trail } from '../curriculum';
 import WORDS from '../data/words.json';
 import TOP from '../data/top200.json';
@@ -313,15 +313,6 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
       return fill(stage === 'mix' ? short : len, () => pickOne(ok, r));
     }
   }
-}
-
-/** Spec B1: the target both ways with a rest between — `ed de ded ed de ded …` — only its two letters and spaces, about `len` characters. */
-export function transitionLoop(target: string, len: number): string {
-  const [a, b] = [target[0]!, target[1]!];
-  const units = [a + b, b + a, a + b + a];
-  let text = '';
-  for (let i = 0; text.length + units[i % 3]!.length + 1 <= len + 1; i++) text += (text ? ' ' : '') + units[i % 3];
-  return text;
 }
 
 /** Spec B3: an etude — everyday words carrying `target` from the research set, short carriers first, with a neutral

@@ -95,6 +95,8 @@ body:has(.arena.brief-mode) .metrics{visibility:hidden}
 .restart-btn:focus-visible{outline:3px solid #37749c;outline-offset:2px}
 .begin-cue{position:absolute;top:14px;left:0;right:0;text-align:center;font:700 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--orange);pointer-events:none;animation:cue-pulse 2.2s ease-in-out infinite;transition:opacity .35s ease}
 .begin-cue.gone{opacity:0;animation:none}
+/* Steady beat (spec B2): a dot that fills on each pulse; a press near the beat fills it fully, early or late only partly. */
+.beat-dot{position:absolute;top:16px;right:22px;width:14px;height:14px;border-radius:50%;border:2px solid var(--orange);background:radial-gradient(circle,var(--orange) calc(var(--fill,0) * 100%),transparent calc(var(--fill,0) * 100% + 1px));transition:transform .08s ease}.beat-dot.tick{transform:scale(1.35)}
 @keyframes cue-pulse{0%,100%{opacity:1}50%{opacity:.45}}
 .result-actions{display:flex;align-items:center;gap:28px;margin-top:28px}
 .result-actions .primary-control{min-width:280px;height:52px;font-size:12px;letter-spacing:.06em}

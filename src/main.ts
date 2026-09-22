@@ -1,5 +1,6 @@
 import { lessonExercises, type LessonExercise, type SlotPick } from './curriculum/lesson-flow';
 import { nextPractice } from './engine/next-practice';
+import { beatInterval, evenness, onBeat } from './engine/beat';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
@@ -65,6 +66,17 @@ const pickFor = (t: Trail): SlotPick | undefined => {
   return slotPick.pick ?? undefined;
 };
 let runExercise: LessonExercise = lessonExercises(runTrail, pickFor(runTrail))[0]!;
+/** Steady beat (spec B2): a soft pulse at the learner's own pace while a beat exercise is on screen; nothing is timed against it. */
+let pulse: { timer: number; t0: number; interval: number } | null = null;
+function startPulse(): void {
+  stopPulse();
+  if (mode.kind !== 'trail' || !runExercise.beat) return;
+  const interval = beatInterval(trans.reference()), t0 = performance.now();
+  const dot = $('beatDot'); dot.hidden = false; dot.style.setProperty('--fill', '0');
+  const tick = () => { sound.play('step', 0.6); dot.classList.remove('tick'); void dot.offsetWidth; dot.classList.add('tick'); };
+  pulse = { timer: window.setInterval(tick, interval), t0, interval };
+}
+function stopPulse(): void { if (pulse) window.clearInterval(pulse.timer); pulse = null; $('beatDot').hidden = true; }
 let runExerciseIndex = 0;
 let beforeMastery: Record<string, number> = {};
 /** The briefing being read before this run, if any; `seenBriefs` keeps each exercise to one briefing per session. */
@@ -110,6 +122,7 @@ function resetRun(): void {
   runTrail = trail(); runStage = stageName();
   runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail, pickFor(runTrail))[runExerciseIndex]!;
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
+  startPulse();
   practice = null; fingerPassed = false;
   helpVisible = mode.kind !== 'trail' || runExercise.guidance !== 'on-demand';
   run = new Run(makeText()); outcome = null; decisions = [];
@@ -450,7 +463,8 @@ function typeKey(k: string): void {
   if (!last.correct && !guided()) sound.play('miss');
   else if (last.correct && last.key === ' ') sound.play('word', 1, 1 + Math.min(run.combo, 40) * 0.004);
   else if (last.correct) sound.play('key');
-  if (r === 'done') { canvasPrompt?.onComplete(); return finish(); }
+  if (pulse && last.correct) $('beatDot').style.setProperty('--fill', onBeat(performance.now(), pulse.t0, pulse.interval).toFixed(2));
+  if (r === 'done') { canvasPrompt?.onComplete(); stopPulse(); return finish(); }
   prompt(); metrics(); keymap(); nextVisual();
 }
 function abort(): void { if (run.status !== 'playing') return; sound.play('error'); toast('Run stopped.'); resetRun(); }
@@ -501,6 +515,8 @@ function finish(): void {
   const newly = guided() ? [] : [...allowedChars(t)].filter(k => k === k.toLowerCase()).filter(k => keys.mastery(k) >= MASTERED && (beforeMastery[k] ?? 0) < MASTERED);
   $('resultMastery').textContent = newly.length ? `Settled this time: ${newly.map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}` : `${run.hits} characters typed · ${run.errors === 0 ? 'no missed keys' : `${run.errors} missed ${run.errors === 1 ? 'key' : 'keys'}`}`;
   if (guided()) $('resultMastery').textContent = 'Slow is welcome. Let your hands stay easy.';
+  // Spec F5: a beat run is judged for evenness only — one word and three bars, never a number.
+  if (runExercise.beat) { const e = evenness(run.strokes.slice(1).filter(x => x.correct).map(x => x.latencyMs)); $('resultMastery').textContent = `${e.word} ${e.bars}`; }
   $('result').querySelector<HTMLElement>('.score')!.hidden = guided();
   const earned = outcome?.firstClear && t.checkpoint;
   const k = keepsakeFor(t.grove);
@@ -531,6 +547,7 @@ function finish(): void {
 // ---- grove map ---------------------------------------------------------------------
 let mapKeys: ((e: KeyboardEvent) => void) | null = null;
 function openMap(showObjects = false): void {
+  stopPulse();
   if (run.status === 'playing') resetRun();
   sound.play('open');
   arena().classList.remove('result-mode', 'focus-mode'); arena().classList.add('map-mode');
@@ -545,7 +562,7 @@ function openMap(showObjects = false): void {
   if (showObjects) { $('collectionTitle').tabIndex = -1; $('collectionTitle').focus(); $('collectionTitle').scrollIntoView({ block: 'start' }); }
 }
 function selectLesson(t: Trail): void { sound.play('select'); replayReturn = isCleared(state, t.id) ? courseFrontier().id : null; state.trail = t.id; mode = { kind: 'trail' }; gate = null; closeMap(); resetRun(); }
-function closeMap(): void { sound.play('close'); arena().classList.remove('map-mode'); document.body.classList.remove('showing-book'); mapKeys = null; if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); $(completionHome || run.status === 'complete' ? 'resultTitle' : 'lessonTitle').focus(); }
+function closeMap(): void { sound.play('close'); arena().classList.remove('map-mode'); document.body.classList.remove('showing-book'); mapKeys = null; if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else { render(); startPulse(); } $(completionHome || run.status === 'complete' ? 'resultTitle' : 'lessonTitle').focus(); }
 
 // ---- focus / remedial ----------------------------------------------------------
 function openFocus(): void {

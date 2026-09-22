@@ -17,7 +17,18 @@ export interface LessonExercise {
   focusKeys?: string;
   /** A transition loop (spec B1): the one technical transition this exercise isolates, from movements.ts. */
   target?: string;
+  /** Steady beat (spec B2): the loop typed to a soft pulse at the learner's own pace, judged for evenness only. */
+  beat?: true;
 }
+/** Spec B1: the target both ways with a rest between — `ed de ded ed de ded …` — only its two letters and spaces, about `len` characters. */
+export function transitionLoop(target: string, len: number): string {
+  const [a, b] = [target[0]!, target[1]!];
+  const units = [a + b, b + a, a + b + a];
+  let text = '';
+  for (let i = 0; text.length + units[i % 3]!.length + 1 <= len + 1; i++) text += (text ? ' ' : '') + units[i % 3];
+  return text;
+}
+
 const move = (name: string, stage: StageName, instruction: string, length = 24): LessonExercise => ({ name, stage, format: 'movement', instruction, length });
 const use = (name: string, format: 'words' | 'passage', instruction: string, length: number, independent = false): LessonExercise => ({ name, stage: 'words', format, instruction, length, ...(independent ? { guidance: 'on-demand' as const } : {}) });
 const ROW = (k: string): string => 'qwertyuiop'.includes(k) ? 'top row' : 'zxcvbnm'.includes(k) ? 'bottom row' : 'home row';
@@ -30,6 +41,11 @@ export function loop(target: string): LessonExercise {
   const rows = ROW(a) === ROW(b) ? `along the ${ROW(a)}` : `${ROW(a)} to ${ROW(b)}`;
   const how = sameFinger ? `Same finger, ${rows}. Let the finger travel; do not reset to its home key between.` : `Two fingers, ${rows}. Let the second finger prepare while the first presses.`;
   return { name: `Connect ${a.toUpperCase()} and ${b.toUpperCase()}`, stage: 'mix', format: 'movement', instruction: how, length: 24, target, focusKeys: target };
+}
+/** Spec B2: the same phrase to a quiet pulse; guided (DEC-11) — finishing is completing — and judged only for evenness. */
+export function beat(target: string): LessonExercise {
+  const text = transitionLoop(target, 24);
+  return { name: 'Keep it even', stage: 'mix', format: 'movement', instruction: 'A quiet pulse at your own pace. Land each press near it; nothing is timed and nothing is scored.', length: text.length, assessment: 'guided', guidedKeys: target, text, target, focusKeys: target, beat: true };
 }
 const guide = (name: string, keys: string, text: string, instruction: string, format: LessonExercise['format'] = 'movement'): LessonExercise => ({ name, guidedKeys: keys, text, instruction, assessment: 'guided', stage: 'drill', format, length: text.length });
 
@@ -71,8 +87,8 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
     return [
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
       // Spec C3/D5: slot 2 isolates the learner's chosen target; without evidence, lesson 3 still meets `ed` (spec C1) and the
-      // first two lessons keep the generic loop. Form 'beat' runs the loop until steady beat exists (CURR-40).
-      pick ? loop(pick.target) : t.id === 'middle-up' ? loop('ed') : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
+      // first two lessons keep the generic loop.
+      pick ? (pick.form === 'beat' ? beat(pick.target) : loop(pick.target)) : t.id === 'middle-up' ? loop('ed') : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
       { ...use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), ...(CHUNK_LESSON[t.id] ? { target: CHUNK_LESSON[t.id] } : pick ? { target: pick.target } : t.id === 'middle-up' ? { target: 'ed' } : {}) },
       ...visits,
       use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48),
