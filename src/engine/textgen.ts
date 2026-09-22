@@ -311,6 +311,15 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
   }
 }
 
+/** Spec B1: the target both ways with a rest between — `ed de ded ed de ded …` — only its two letters and spaces, about `len` characters. */
+export function transitionLoop(target: string, len: number): string {
+  const [a, b] = [target[0]!, target[1]!];
+  const units = [a + b, b + a, a + b + a];
+  let text = '';
+  for (let i = 0; text.length + units[i % 3]!.length + 1 <= len + 1; i++) text += (text ? ' ' : '') + units[i % 3];
+  return text;
+}
+
 /** Generate varied practice while guaranteeing evidence for every introduced key.
  * Checkpoints revisit the complete chapter vocabulary; characters never escape
  * the cumulative set. Coverage is explicit rather than left to random chance.
@@ -321,6 +330,11 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
   if (opts.exercise?.text !== undefined) {
     const text = opts.exercise.text;
     if (!text || ![...text].every(c => allowed.has(c))) throw new Error(`Invalid authored exercise for ${trail.id}`);
+    return text;
+  }
+  if (opts.exercise?.target) {
+    const text = transitionLoop(opts.exercise.target, opts.exercise.length);
+    if (![...text].every(c => allowed.has(c))) throw new Error(`Transition target ${opts.exercise.target} is not unlocked in ${trail.id}`);
     return text;
   }
   let text = trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts);

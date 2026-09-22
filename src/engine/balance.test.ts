@@ -42,6 +42,8 @@ describe('hand and finger load balance in the main course (spec §31: no hand or
   it('movement blocks split exactly evenly between hands', () => {
     for (const t of MAIN_TRAILS.filter(t => t.newKeys && ['rhythm', 'words'].includes(t.kind))) for (const ex of lessonExercises(t)) {
       if (ex.format !== 'movement' || ex.assessment === 'guided') continue;
+      // A transition loop isolates one movement, usually on one hand (spec B1); the chapter totals still include it.
+      if (ex.target) continue;
       // A single-finger focus can be deliberately one-sided; chapter totals still include it.
       if (new Set([...t.newKeys].map(k => handOf(fingerOf(k)!))).size < 2) continue;
       let load = emptyLoad();

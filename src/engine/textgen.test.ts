@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TRAILS, STAGES, allowedChars, trailById } from '../curriculum';
 import { generate, generateDrill, wordBank } from './textgen';
+import { lessonExercises, loop } from '../curriculum/lesson-flow';
 
 describe('textgen', () => {
   it('every trail × stage × 50 seeds only uses unlocked keys and is non-trivial', () => {
@@ -64,4 +65,24 @@ it('a warm-up stays short and covers every selected key, including rare letters'
     for (const k of 'qjzx') expect([...text].filter(c => c === k).length).toBeGreaterThanOrEqual(2);
     expect(text.length).toBeLessThan(150);
   }
+});
+
+describe('transition loop (spec B1, CURR-39)', () => {
+  it('a target loop is only its two letters and spaces, both directions, about the exercise length', () => {
+    const t = trailById('index-up')!; // R U taught: M (lesson 5) and U are both unlocked, so `mu` is eligible
+    const text = generate(t, 'mix', { exercise: loop('mu'), seed: 3 });
+    expect(text).toMatch(/^[mu ]+$/);
+    expect(text).toContain('mu'); expect(text).toContain('um'); expect(text).toContain('mum');
+    expect(text.length).toBeGreaterThanOrEqual(20); expect(text.length).toBeLessThanOrEqual(28);
+    expect(generate(t, 'mix', { exercise: loop('mu'), seed: 9 })).toBe(text); // no randomness: the loop is the same every time
+  });
+  it('lesson 3 (E I) isolates `ed` as its assessed slot-2 loop; a target whose keys are not unlocked is refused', () => {
+    const ex = lessonExercises(trailById('middle-up')!)[1]!;
+    expect(ex).toMatchObject({ name: 'Connect E and D', target: 'ed', format: 'movement' });
+    expect(ex.assessment).toBeUndefined();
+    expect(ex.instruction).toMatch(/^Same finger, top row to home row\./);
+    expect(generate(trailById('middle-up')!, 'mix', { exercise: ex })).toMatch(/^[ed ]+$/);
+    expect(() => generate(trailById('anchors')!, 'mix', { exercise: loop('ed') })).toThrow(/not unlocked/);
+    expect(() => loop('qa')).toThrow(/Unknown transition target/);
+  });
 });

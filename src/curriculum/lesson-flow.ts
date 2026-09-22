@@ -1,4 +1,6 @@
 import type { StageName, Trail } from './types';
+import { fingerOf } from './method';
+import { TECHNICAL_TRANSITIONS } from './movements';
 
 /** A finite visible step; guided discovery is separate from assessed performance. */
 export interface LessonExercise {
@@ -13,9 +15,22 @@ export interface LessonExercise {
   guidance?: 'on-demand';
   /** Earlier movements receiving deliberate attention again in this exercise. */
   focusKeys?: string;
+  /** A transition loop (spec B1): the one technical transition this exercise isolates, from movements.ts. */
+  target?: string;
 }
 const move = (name: string, stage: StageName, instruction: string, length = 24): LessonExercise => ({ name, stage, format: 'movement', instruction, length });
 const use = (name: string, format: 'words' | 'passage', instruction: string, length: number, independent = false): LessonExercise => ({ name, stage: 'words', format, instruction, length, ...(independent ? { guidance: 'on-demand' as const } : {}) });
+const ROW = (k: string): string => 'qwertyuiop'.includes(k) ? 'top row' : 'zxcvbnm'.includes(k) ? 'bottom row' : 'home row';
+/** Spec B1: a target typed both ways with a rest between, assessed, no speed. The line names the mechanics under the active method, never the finger used (DEC-15). */
+export function loop(target: string): LessonExercise {
+  const t = TECHNICAL_TRANSITIONS.find((x) => x.bigram === target);
+  if (!t) throw new Error(`Unknown transition target ${target}`);
+  const [a, b] = [target[0]!, target[1]!];
+  const sameFinger = fingerOf(a) === fingerOf(b);
+  const rows = ROW(a) === ROW(b) ? `along the ${ROW(a)}` : `${ROW(a)} to ${ROW(b)}`;
+  const how = sameFinger ? `Same finger, ${rows}. Let the finger travel; do not reset to its home key between.` : `Two fingers, ${rows}. Let the second finger prepare while the first presses.`;
+  return { name: `Connect ${a.toUpperCase()} and ${b.toUpperCase()}`, stage: 'mix', format: 'movement', instruction: how, length: 24, target, focusKeys: target };
+}
 const guide = (name: string, keys: string, text: string, instruction: string, format: LessonExercise['format'] = 'movement'): LessonExercise => ({ name, guidedKeys: keys, text, instruction, assessment: 'guided', stage: 'drill', format, length: text.length });
 
 /** Small planned visits connect today's attention to the wider instrument; never random novelty. */
@@ -49,7 +64,8 @@ export function lessonExercises(t: Trail): readonly LessonExercise[] {
     const visits = VISITS[t.id] ? [VISITS[t.id]!] : [];
     return [
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
-      move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
+      // Spec C1: the first technical target enters as soon as its keys exist (E D → `ed`, the commonest same-finger movement).
+      t.id === 'middle-up' ? loop('ed') : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
       use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40),
       ...visits,
       use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48),
