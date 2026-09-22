@@ -85,6 +85,14 @@ it('a warm-up stays short and covers every selected key, including rare letters'
   }
 });
 
+it('lesson 2 actually connects D/K with the F/J landmarks named in its instructions', () => {
+  const t = trailById('inner-pair')!;
+  const ex = lessonExercises(t);
+  const connect = generate(t, 'mix', { exercise: ex[1]!, seed: 1 });
+  const carry = generate(t, 'mix', { exercise: ex[3]!, seed: 1 });
+  for (const k of 'dfjk') { expect(connect, k).toContain(k); expect(carry, k).toContain(k); }
+});
+
 describe('transition loop (spec B1, CURR-39)', () => {
   it('a target loop is only its two letters and spaces, both directions, about the exercise length', () => {
     const t = trailById('index-up')!; // R U taught: M (lesson 5) and U are both unlocked, so `mu` is eligible
@@ -94,12 +102,12 @@ describe('transition loop (spec B1, CURR-39)', () => {
     expect(text.length).toBeGreaterThanOrEqual(20); expect(text.length).toBeLessThanOrEqual(28);
     expect(generate(t, 'mix', { exercise: loop('mu'), seed: 9 })).toBe(text); // no randomness: the loop is the same every time
   });
-  it('lesson 3 (E I) isolates `ed` as its assessed slot-2 loop; a target whose keys are not unlocked is refused', () => {
+  it('lesson 3 rehearses the E/D target without abandoning the matching I/K movement; locked targets are refused', () => {
     const ex = lessonExercises(trailById('middle-up')!)[1]!;
-    expect(ex).toMatchObject({ name: 'Connect E and D', target: 'ed', format: 'movement' });
+    expect(ex).toMatchObject({ name: 'Middle fingers up and home', target: 'ed', format: 'movement' });
     expect(ex.assessment).toBeUndefined();
-    expect(ex.instruction).toMatch(/^Same finger, top row to home row\./);
-    expect(generate(trailById('middle-up')!, 'mix', { exercise: ex })).toMatch(/^[ed ]+$/);
+    const text = generate(trailById('middle-up')!, 'mix', { exercise: ex });
+    expect(text).toContain('ed'); expect(text).toContain('de'); expect(text).toContain('ik'); expect(text).toContain('ki');
     expect(() => generate(trailById('anchors')!, 'mix', { exercise: loop('ed') })).toThrow(/not unlocked/);
     expect(() => loop('qa')).toThrow(/Unknown transition target/);
   });
@@ -117,12 +125,14 @@ describe('etudes (spec B3/C4, CURR-41)', () => {
       expect(text.length).toBeGreaterThanOrEqual(44); expect(text.length).toBeLessThan(60);
     }
   });
-  it('falls back to the ordinary generator when fewer than four carriers are typeable', () => {
-    expect(etude('mu', allowedChars(trailById('core-words')!), 40, rng(1))).toBeNull(); // V M taught, U not yet
+  it('supplements sparse early research carriers with ordinary words instead of dropping the trained target', () => {
+    expect(etude('mu', allowedChars(trailById('core-words')!), 40, rng(1))).toBeNull(); // U is not unlocked yet
     const t = trailById('middle-up')!, ex = lessonExercises(t).find(e => e.format === 'words')!;
     expect(ex.target).toBe('ed');
     const text = generate(t, 'words', { exercise: ex, seed: 1 });
-    expect(text.length).toBeGreaterThan(10); expect([...text].every(c => allowedChars(t).has(c))).toBe(true);
+    expect(text).toContain('ed');
+    expect(text.split(' ').filter(w => w.includes('ed')).length / text.split(' ').length).toBeGreaterThanOrEqual(0.6);
+    expect(text).not.toContain('jeff');
   });
   it('the Bigrams trail and the wired lessons draw their words from the chunk sets', () => {
     const t = trailById('bigrams')!, ex = lessonExercises(t).find(e => e.format === 'words')!;

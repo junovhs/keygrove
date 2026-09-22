@@ -16,6 +16,7 @@ export type Heat = Readonly<Record<string, number>>;
 export interface GenOptions { exercise?: LessonExercise; heat?: Heat; pairHeat?: Heat; weakPairs?: string[]; seed?: number }
 
 const anchorOf = (k: string) => homeOf(k);
+const EXCLUDED_PRACTICE_WORDS = new Set(['iii', 'diff', 'ref', 'gnu', 'thru', 'thy', 'sol', 'jeff', 'murder', 'murders', 'murdered', 'murderer', 'died']);
 const BIGRAMS = 'th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ne ea ra ce li ch ll be ma si om ur'.split(' ');
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -26,7 +27,7 @@ export function wordBank(trail: Trail): string[] {
   let b = bankCache.get(trail.id);
   if (!b) {
     const set = cumulativeKeys(trail).keys;
-    b = [...new Set([...PRACTICE_WORDS, ...WORDS])].filter(w => !['iii', 'diff', 'ref', 'gnu', 'thru', 'thy', 'sol'].includes(w) && [...w].every(c => set.has(c)));
+    b = [...new Set([...PRACTICE_WORDS, ...WORDS])].filter(w => !EXCLUDED_PRACTICE_WORDS.has(w) && [...w].every(c => set.has(c)));
     bankCache.set(trail.id, b);
   }
   return b;
@@ -323,9 +324,14 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
  * common word after every two carriers so the line reads as language (carriers ≥ 2/3 of the words). Null when fewer
  * than four carriers are typeable, so the caller falls back to the ordinary generator. */
 export function etude(target: string, allowed: Set<string>, len: number, r: Rng): string | null {
-  const carriers = (CARRIERS[target] ?? []).filter(w => fits(w, allowed));
-  if (carriers.length < 4) return null;
-  const neutral = TOP.filter(w => w.length <= 5 && !w.includes(target) && fits(w, allowed));
+  // Research carriers first; when the early key set is too small, supplement them with ordinary
+  // typeable vocabulary so a movement drill never falls through to words that omit its target.
+  const research = (CARRIERS[target] ?? []).filter(w => fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
+  const fallback = [...new Set([...PRACTICE_WORDS, ...TOP, ...WORDS])]
+    .filter(w => w.includes(target) && fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
+  const carriers = [...new Set([...research, ...fallback])].sort((a, b) => a.length - b.length);
+  if (carriers.length < 2) return null;
+  const neutral = TOP.filter(w => w.length <= 5 && !w.includes(target) && fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
   const words: string[] = [];
   for (let i = 0, c = 0; words.join(' ').length < len; i++) {
     words.push(i % 3 === 2 && neutral.length ? pickOne(neutral, r) : carriers[c++ % carriers.length]!);

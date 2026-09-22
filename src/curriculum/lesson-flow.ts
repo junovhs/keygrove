@@ -77,9 +77,9 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
   ];
   if (t.id === 'inner-pair') return [
     guide('Find D and K deliberately', 'dk', 'ddkkdkdk', 'D uses your {d}; K your {k}. Keep the press small and easy.'),
-    move('Connect four fingers', 'mix', 'Connect D/K with F/J. Prepare the next finger; do not hold the others rigid.', 24),
+    { name: 'Connect four fingers', stage: 'mix', format: 'movement', instruction: 'Connect D/K with F/J. Prepare the next finger; do not hold the others rigid.', length: 23, text: 'df jk fd kj dfjk kjfd' },
     VISITS['inner-pair']!,
-    move('Carry the coordination', 'mix', 'Read one short group ahead. Slow, accurate movement counts fully.', 32),
+    { name: 'Carry the coordination', stage: 'mix', format: 'movement', instruction: 'Read one short group ahead. Slow, accurate movement counts fully.', length: 31, text: 'dfjk kjfd fdjk jkdf dfkj kjdf' },
   ];
   if (t.newKeys && ['rhythm', 'words'].includes(t.kind)) {
     const names = [...t.newKeys].map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' and ');
@@ -89,7 +89,12 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
       // Spec C3/D5: slot 2 isolates the learner's chosen target; without evidence, lesson 3 still meets `ed` (spec C1) and the
       // first two lessons keep the generic loop.
-      pick ? (pick.form === 'beat' ? beat(pick.target) : loop(pick.target)) : t.id === 'middle-up' ? loop('ed') : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
+      pick ? (pick.form === 'beat' ? beat(pick.target) : t.id === 'middle-up' && (pick.target === 'ed' || pick.target === 'de')
+        ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves E↔D while right middle moves I↔K. Keep both movements small and even.', length: 26, target: pick.target, focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
+        : loop(pick.target))
+        : t.id === 'middle-up'
+          ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves E↔D while right middle moves I↔K. Keep both movements small and even.', length: 26, target: 'ed', focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
+          : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
       { ...use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), ...(CHUNK_LESSON[t.id] ? { target: CHUNK_LESSON[t.id] } : pick ? { target: pick.target } : t.id === 'middle-up' ? { target: 'ed' } : {}) },
       ...visits,
       use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48),
