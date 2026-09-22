@@ -238,19 +238,31 @@ form     = 'beat' if trans.stat(target).err <= 0.1 and uneven(target) else 'loop
 
 # E. Fingering and technique
 
+Answered 2026-09-22 (SPEC-03). DEC-15 applies verbatim: the app prescribes and shows the intended finger, may *suggest* a technique check from timing and error patterns, and never states or scores which finger was used. Default · Reason · Today, as before.
+
 ## E1. Finger instruction
 
-**Question:** How is intended fingering shown when a movement is introduced?
+**Default:** When a key is introduced, the hands show the intended finger lit with the key's letter above it, the keymap highlights the key, and the instruction names the finger once in words ("E uses your left middle finger"). During ordinary typing the hands keep showing the finger for the *next* key; the learner can hover any key to see its finger. Nothing else.
+
+**Reason:** Three redundant channels (hands, keymap, one sentence) at introduction; one quiet channel afterwards.
+
+**Today:** Already true (`ui/hands.ts` badges, keymap hover, `{f}`-style finger copy in briefings). No change.
 
 ## E2. Unobservable fingering
 
-**Question:** How should the product communicate technique guidance without pretending it knows which finger was physically used?
+**Default:** Every technique message is a suggestion tied to the observable pattern, in this exact shape: *"⟨what was observed⟩ — check that ⟨key⟩ uses your ⟨intended finger⟩."* e.g. "R → T was slow three times — check that R uses your left index finger." Never "you used the wrong finger", never a fingering score. Error classes are named by pattern (neighbour, anticipation, repetition, omission, timing); the shipped `finger` class is shown as "same-finger slip — check the finger for ⟨key⟩", not as a fact.
+
+**Reason:** A keyboard reports keys, not fingers. A suggestion the learner can verify with their own hands is useful; a verdict they cannot verify teaches distrust.
+
+**Today:** Mostly true; the `finger` error class copy ("finger-confusion errors") still reads as a verdict. Change → CURR-45 (already filed).
 
 ## E3. Technique reminders
 
-**Question:** When should the app remind a learner about relaxation, posture, or fingering?
+**Default:** Reminders appear in three places only: (1) the once-per-lesson briefing, when a lesson introduces a new reach; (2) the result card, at most one technique line per run, and only when a pattern stood out; (3) the idle hand line ("Let your hands rest comfortably") while not typing. Hard cap: one reminder per run, none during typing. No posture reminders, no timers, no "sit up straight".
 
-Avoid constant nagging.
+**Reason:** Reminders during typing are nagging; a single line at a boundary is a note.
+
+**Today:** Already true (briefing steps, `explain()` on the result card, idle hand text). No change.
 
 ---
 
@@ -258,25 +270,43 @@ Avoid constant nagging.
 
 ## F1. Correct input
 
-**Question:** What visual/audio response accompanies correct typing?
+**Default:** Keep exactly what ships: the typed glyph settles, a soft key tick (pitch rising slightly with a clean sequence), a warmer cue on Space, the accuracy figure in the corner. No particles for correctness, no streak counter on screen, no praise text mid-run.
+
+**Reason:** Correct typing should feel like nothing happening, plus a small pleasant sound; anything more competes with reading the next word.
+
+**Today:** Already true (`ui/sound.ts` key/word cues, canvas prompt). The combo metric is hidden. No change.
 
 ## F2. Error
 
-**Question:** What happens immediately when a learner mistypes?
+**Default:** The wrong glyph is marked in place, a low "shrug" cue plays, the shake is subtle, the cursor moves on. The miss is remembered for the result card; nothing interrupts. Guided runs play no miss sound (DEC-11). No red flash, no penalty, no accuracy drop animated.
+
+**Reason:** Immediate and obvious, but quiet enough that a run with five misses still feels like practice, not failure.
+
+**Today:** Already true (miss cue, wrong-key mark, `guided()` silences it). No change.
 
 ## F3. Corrections
 
-**Question:** Should the learner always correct errors, sometimes correct them, or continue depending on exercise type?
+**Default:** Continue past errors in every lesson form — loop, beat, words, prose. A miss is marked and the next key is the next key. There is no Backspace in lessons and no correction mode (I1). The one exception is guided "find the key" steps: a wrong key does nothing except nudge the tile, so the learner tries again.
+
+**Reason:** Correcting mid-line trains looking down and stopping; the result card teaches better than a retype. One policy is easier to feel than three.
+
+**Today:** Already true (`Run.type` marks and advances; brief steps nudge). No change.
 
 ## F4. Speed
 
-**Question:** Where, if anywhere, is WPM shown?
+**Default:** WPM is recorded every run (`bestWpm`, `Run` metrics) and shown in exactly one place: the **Flow chapter checkpoint result card**, as "Your pace", after the accuracy line. Everywhere else — live metrics, ordinary result cards, the map, keepsakes — it stays hidden. No target, no ladder, no "faster" copy.
 
-Current principle: measure speed without making it the central task.
+**Reason:** DEC-14: speed is a long-term outcome, never live pressure. By Flow the learner has ~35 lessons of accuracy behind them; one honest number then is information, not a goal.
+
+**Today:** WPM is hidden everywhere (`index.html` `hidden` on `#wpm`, `#resultWpm`). Change: unhide on the Flow checkpoint card only — a one-attribute change folded into the result-card work of CURR-43 (no new issue).
 
 ## F5. Rhythm quality
 
-**Question:** What feedback makes steady-beat practice understandable?
+**Default:** One visual and one optional sound, both already specified in B2: a dot that fills on each beat (full when the press lands near it, partial when early or late), and a quiet tick on the beat behind the existing audio toggle. Result: one word — "Even", "Mostly even", "Uneven" — and the three-bar evenness glyph. No timing numbers, no per-key timing marks, no "late!" text.
+
+**Reason:** The learner should be able to *hear* whether they were even; the glyph confirms it. Numbers would make it a score.
+
+**Today:** Not present. Change → CURR-40 (already filed).
 
 ---
 
@@ -284,17 +314,27 @@ Current principle: measure speed without making it the central task.
 
 ## G1. Immediate
 
-**Question:** What does the learner see when a short lesson ends?
+**Default:** The existing result card, unchanged: lesson name, one sentence of copy, "N characters typed · M missed keys" (or "Settled this time: E · D" when keys stabilised), accuracy for assessed runs, a keepsake if a chapter just closed, and one Continue labelled by what comes next. At most one technique line (E3). No stars animation, no XP, no "+12".
+
+**Reason:** The learner needs to know two things: it went fine, and what is next.
+
+**Today:** Already true. Stars are computed but the card leads with the sentence. No change.
 
 ## G2. Daily
 
-**Question:** Is there any daily-return mechanism beyond “there is another useful lesson ready”?
+**Default:** None. The only reason to return is that the next lesson is ready and short. `stats.days` and `lastDay` stay recorded and unshown; there is no streak display, no reminder, no "come back tomorrow" copy, no notification.
+
+**Reason:** A streak makes a missed day a loss (I3 #4). A three-minute lesson that is always ready is the whole return mechanism.
+
+**Today:** Already true — the streak fields exist but nothing displays them. Remove nothing; keep them unshown.
 
 ## G3. Long term
 
-**Question:** What is the simplest representation of growing capability?
+**Default:** Two things only: the **map** (chapters and lessons cleared, the current position) and the **keepsakes** (one permanent object per chapter checkpoint, DEC-10). Together they read as "how far I have come" without a number. XP stays computed and stored for compatibility but is never shown and drives nothing. No levels, ranks, currencies, mastery percentages or dashboards.
 
-Avoid elaborate economies unless they prove necessary.
+**Reason:** Capability is best represented by the course itself: what has been done, and the objects that mark it. Anything numeric becomes something to chase.
+
+**Today:** Already true (`ui/map.ts`, `engine/keepsakes.ts`; XP unused on screen). No change.
 
 ---
 
