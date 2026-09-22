@@ -9,6 +9,7 @@ download:
 
 analyze:
 >python3 ./scripts/analyze_norvig.py
+>python3 ./scripts/analyze_cross_corpus.py
 
 clean-results:
 >rm -rf outputs
