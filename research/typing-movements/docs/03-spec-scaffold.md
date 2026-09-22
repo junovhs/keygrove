@@ -56,7 +56,7 @@ Answered 2026-09-22 (SPEC-01). Inputs taken as given: DEC-14 (three forms, one C
 
 # B. Lesson anatomy
 
-The three learner-facing forms of DEC-14 — **transition loop**, **steady beat**, **words / etude** — plus **transfer** (ordinary prose) are *ingredients of one lesson*, not separate lesson types or a taxonomy. A lesson names one target (a key, a technical transition, or a chunk) and runs 3–5 exercises drawn from these ingredients in a fixed order: find → loop → words → transfer. Steady beat replaces the loop when the target is already accurate but uneven.
+The three learner-facing forms of DEC-14 — **transition loop**, **steady beat**, **words / etude** — plus **transfer** (ordinary prose) are *ingredients of one lesson*, not separate lesson types or a taxonomy. A lesson names one target (a key, a technical transition, or a chunk) and runs 3–5 exercises drawn from these ingredients, by default in the order find → loop → words → transfer, with steady beat replacing the loop when the target is already accurate but uneven. Both the order and the beat rule are working defaults, not architecture: they should be cheap to change once real use says otherwise.
 
 ## B1. Transition loop
 
@@ -120,59 +120,119 @@ The three learner-facing forms of DEC-14 — **transition loop**, **steady beat*
 
 # C. Curriculum
 
+Answered 2026-09-22 (SPEC-02). Settled inputs: `docs/04-movement-vocabulary-checkpoint.md` — 43 core bigrams are coverage, not drills; the 11 technical targets are `ed de ce ec tr un lo ol rt mu um`; the obvious chunks are `ing`, `ion/tion`, `nce`, `ted`; everything else is provisional. The shipped 40-lesson course (`src/curriculum/trails.ts`) keeps its ids and order (DEC-12). Every default below is heuristic and provisional until learner data exists.
+
 ## C1. First lessons
 
-**Question:** What should a true beginner encounter in the first five lessons?
+**Default:** Lessons 1–5 stay exactly as shipped: F J (+ Space) → D K → E I → G H → V M, then the Roots checkpoint. The movement vocabulary adds one thing: lesson 3 ("Your First Words", E I) uses `ed`/`de` as its slot-2 loop, because those are the first technical target whose keys exist and the single most common same-finger movement in English. Nothing else changes in Roots.
+
+**Reason:** The first five lessons already teach find → connect → alternate → words (DEC-10). The one addition names a real movement on day one without adding a lesson.
+
+**Today:** Order and keys already true. Change: lesson 3's loop targets `ed` → CURR-39.
 
 ## C2. Key introduction
 
-**Question:** How quickly should the keyboard be introduced?
+**Default:** Two keys per lesson, in the shipped order: letters complete by lesson 19 (Undergrowth), with `, .` alongside `x z` and `/` at lesson 20. Every unlocked key stays in play in every later lesson's words and prose. No key is withheld for being "hard"; B, Q, P, Z get lessons where they are, not later.
+
+**Reason:** The pace is already tested; re-ordering saved lesson ids is forbidden (DEC-12), and there is no evidence any key is mis-placed.
+
+**Today:** Already true. No change.
 
 ## C3. Transition selection
 
-**Question:** Which transitions deserve explicit isolated practice rather than being learned incidentally?
+**Default:** Exactly the 11 technical targets get isolated practice, and only in slot 2 of an ordinary lesson (B1/B2). A target becomes *eligible* at the first lesson where both its keys are unlocked: `ed de` → lesson 3; `mu um` → 7 (R U); `tr rt un` → 10 (N T); `ce ec` → 12 (C Y); `lo ol` → 13 (W O). Each lesson's slot 2 takes one eligible target — the one with the weakest evidence, or the newest-eligible when none has evidence (D5). Lessons that unlock no target (S L, A ;, Q P, B, X, Z, /) still run a slot-2 loop on an eligible target, so all 11 get at least one dedicated slot before Bark. The 43 core bigrams are never drilled; the generator is checked for producing them (C5).
+
+**Reason:** DEC-13: mass + mechanics. The list is closed so that variety comes from *which* target, not from inventing new ones.
+
+**Today:** Slot 2 draws on all unlocked keys and weak pairs. Change → CURR-39 (target-driven loop), CURR-44 (which target).
 
 ## C4. Gesture selection
 
-**Question:** Which trigrams or short gestures deserve explicit practice?
+**Default:** No isolated gesture practice in v1. The four chunks enter as *words* (slot 3): `ted` and `ing` from lesson 10 (N T unlocked), `nce` from 12, `ion`/`tion` from 13 — the etude for that lesson draws its words from the chunk's practice-word set instead of a transition's. In Flow, the "Bigrams" trail (`bigrams` kind) becomes the chunks' home: its lines are built from the four chunk word sets rather than weak pairs.
+
+**Reason:** The chunks are already the commonest sequences in the language; a loop on `ing` would over-practise what every sentence practises. Words are enough. Provisional: a chunk loop can be added later if transfer data (D4) shows one never settles.
+
+**Today:** The Flow Bigrams trail exists with weak-pair text. Change → CURR-41 (chunk etudes).
 
 ## C5. Sequence
 
-**Question:** What prerequisites, if any, should block a movement from appearing?
+**Default:** One prerequisite only: a target or chunk appears when both (all) of its keys are unlocked. There is no dependency between targets, no mastery gate before the next target, and no prerequisite graph. Checkpoints stay as they are: chapter accuracy only (DEC-11). Coverage check: the words/prose generators over any unlocked-key set must be able to produce every core bigram whose two keys are unlocked — a test, not a runtime system.
+
+**Reason:** Key unlock is the only prerequisite the research supports; anything else would be a mastery bureaucracy on top of guesses.
+
+**Today:** Unlock-by-trail already true. Change: the coverage test → CURR-41 (alongside the etude sourcing).
 
 ## C6. Review
 
-**Question:** How should old movements return over time?
+**Default:** Review is not a mode. A previously seen technical target returns as slot 2 of an ordinary lesson when it is the learner's weakest eligible target (D3) or has not been seen for 7 days, whichever comes first; at most one review target per lesson, never displacing a lesson whose own new target has no evidence yet. Keys keep the existing spaced schedule (`KeyModel.due`, interval doubling to 30 days) and the coach's "Find your rhythm again" warm-up for overdue keys stays as is.
+
+**Reason:** DEC-10: revisit skills in new contexts. Putting review inside a normal lesson keeps one Continue and zero extra screens.
+
+**Today:** Key review exists (`dueKeys`, coach `review`). Transition recency has no field → the one new field is `TransitionStat.last` (ms of last press) → CURR-42.
 
 ## C7. Real-world keyboard skills
 
-**Question:** When should Shift, punctuation, numbers, symbols, Backspace, and shortcuts enter the curriculum?
+**Default:** As shipped. Comma and period with X and Z (lessons 18–19); `/` at 20; Shift at 22 (Bark, opposite-hand Shift); quotes, dashes, colons, parentheses at 24–25; numbers 27–29 and symbols 30 (Rings); brackets and code in the optional Code grove. Backspace is not a lesson key in v1: a miss is marked and the line continues, so no lesson teaches correction. Shortcuts (Ctrl-Z, Ctrl-A…) are out of v1.
+
+**Reason:** Letters and their same-finger movements are the whole point of the first 20 lessons; punctuation arrives when sentences do. Nothing in the research speaks to Shift or punctuation (DEC-16 — separate corpus needed).
+
+**Today:** Already true. No change. Alternative rejected: early Shift for capitalised sentences — Bark is 22 lessons in, which is 1–2 hours of practice, soon enough.
 
 ---
 
 # D. Adaptation
 
+All measurements are the existing models (`src/engine/transitions.ts`, `keymodel.ts`, `errors.ts`, `progress.ts`) read as they are. Guided runs never feed them (DEC-11). No new scoring framework; one new field (D2/C6).
+
 ## D1. Accuracy
 
-**Question:** What error measurements should influence future lessons?
+**Default:** Two existing measurements, and only these: per-transition error rate `TransitionStat.err` (EMA, α = 0.15) for choosing targets, and the run's `ErrorTally` from `classifyRun` for the coach's *kind* of help (a dominant `neighbour` class → precision drill; `timing` → steady beat). Per-key `KeyStat.err` keeps driving key review. Accuracy against the chapter target decides passing; nothing else is gated on accuracy.
+
+**Reason:** These already exist and are already trusted for stars and coaching. Adding a new accuracy score would be a second opinion with no new evidence.
+
+**Today:** Already true. No change.
 
 ## D2. Hesitation
 
-**Question:** How should transition latency be measured without confusing thoughtful typing with difficulty?
+**Default:** A transition's latency is judged only against the learner's own reference — `TransitionModel.slowness(pair)` = `lat / reference()`, where the reference is the median EMA latency over the learner's pairs. A pair counts as hesitant when `slowness ≥ 1.5` with `seen ≥ 6`. Thinking pauses are separated by measuring only the second key of a within-word pair (spaces end a pair) and by the EMA: a single long pause moves `lat` by 15%, a habitual one moves it all the way. Latency is never shown to the learner.
+
+**Reason:** A ratio to the learner's own pace cannot punish a slow typist (DEC-14); the EMA already filters one-off thought.
+
+**Today:** Already true (`slowness`, `reference`, `weakest(minSeen = 6)`). Change: add `TransitionStat.last` so recency is known → CURR-42.
 
 ## D3. Mastery
 
-**Question:** What evidence is enough to call a movement comfortable?
+**Default:** "Comfortable" = the existing `TransitionModel.mastery(pair) ≥ 0.6`: at least 12 correct presses, `err` low, `slowness` near 1, and evenness. It is used for exactly two things — ranking targets for slot 2 (weakest first) and choosing beat over loop (B5: accurate but uneven = `err ≤ 0.1` and the evenness term low). It never gates progress, never appears on screen, and is never summed into a level.
+
+**Reason:** The model exists and is already what the coach and weak-pair heat use. A separate mastery ledger is the bureaucracy DEC-14 rules out.
+
+**Today:** Already true. No change.
 
 ## D4. Transfer
 
-**Question:** How do we determine whether an isolated improvement persists in normal prose?
+**Default:** After a technical lesson, the slot-4 prose run records the same `TransitionStat` for the target as any run does — there is no separate transfer measurement. Transfer "held" when the target's `err` and `slowness` in the prose run were not worse than in the slot-2 loop; when it was missed in prose, the result says so in one line (B4) and the target simply stays weakest, so D5 brings it back. Provisional: if this proves too coarse, the first refinement is per-run (not EMA) stats for the target, still no new screen.
+
+**Reason:** The prose run *is* the transfer test; a second instrument would measure the same keystrokes twice.
+
+**Today:** Model records prose runs already. Change: the one-line note → CURR-43.
 
 ## D5. Next lesson
 
-**Question:** What is the simplest reasonable rule for choosing the next lesson?
+**Default:** Continue always goes to the next uncleared trail in course order; adaptation only chooses slot 2's target and form. In pseudo-code, over `trans: TransitionModel`, `unlocked` keys, the 11 `TARGETS`, and the new `last` field:
 
-Start simple. Do not build a giant optimizer until needed.
+```
+eligible = [t for t in TARGETS if both keys of t in unlocked]
+fresh    = [t for t in eligible if trans.stat(t) is undefined]          # never practised
+stale    = [t for t in eligible if now - trans.stat(t).last > 7 days]
+target   = fresh[0] ?? min(stale + eligible, key = trans.mastery)       # newest-eligible, else weakest
+form     = 'beat' if trans.stat(target).err <= 0.1 and uneven(target) else 'loop'
+```
+
+`uneven` is the evenness term already inside `mastery` (cv > 0.6). If `eligible` is empty (lessons 1–2), slot 2 is the shipped generic loop. That is the whole rule.
+
+**Reason:** Course position from `progress.ts`, weakness from the learner's own reference, recency from one field. Five lines; no optimizer, no levels. Provisional by design — the thresholds 0.6 / 1.5 / 0.1 / 7 days are the first thing to tune when data arrives.
+
+**Today:** Not present. Change → CURR-44 (rule), CURR-42 (`last` field).
 
 ---
 
