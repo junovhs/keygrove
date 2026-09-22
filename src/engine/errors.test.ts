@@ -16,7 +16,7 @@ describe('error classification (§29)', () => {
     expect(isNeighbour('r', 'g')).toBe(false);
     expect(isNeighbour('q', 'q')).toBe(false);
   });
-  it('finger-confusion: same finger, different key, under the active method', () => {
+  it('same-finger slip: wanted and typed keys share a finger under the active method', () => {
     expect(classifyMiss('c', 0, 'g', RELAXED_QWERTY)).toBe('finger'); // C is left index in Relaxed
     expect(classifyMiss('c', 0, 'g', TRADITIONAL)).toBe('other');     // C is left middle in Traditional
     expect(classifyMiss('u', 0, 'm', RELAXED_QWERTY)).toBe('finger');
@@ -61,6 +61,8 @@ describe('error classification (§29)', () => {
     expect(dominant(t)).toMatchObject({ cls: 'anticipation', count: 3, total: 4 });
     expect(dominant({ ...t, neighbour: 3 })).toBeNull();
     expect(explain({ ...t, neighbour: 3 })).toBeNull();
+    // DEC-15: same-finger misses are described as a pattern, never as which finger was used.
+    expect(explain({ ...t, anticipation: 0, finger: 3 })).toBe('Mostly same-finger slips — a nearby key that shares a finger with the one wanted; check which key that finger reaches for.');
     const rolled = rollTally(t, { ...t, anticipation: 1, neighbour: 0 });
     expect(rolled.anticipation).toBeCloseTo(3 * 0.7 + 1);
     expect(rolled.neighbour).toBeCloseTo(0.7);
