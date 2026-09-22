@@ -1,8 +1,10 @@
-# Typing Method Specification
+# Relaxed QWERTY method specification
+
+> **Status (DEC-12):** Traditional touch typing is the default method for new learners. This document specifies **Relaxed QWERTY 1.0**, which remains selectable in Settings → Method and unchanged. Course order, lesson names and the research movement vocabulary are method-neutral; see [the north star](north-star.md) and [course progression](progression.md).
 
 ## 1. Purpose
 
-This document defines the default typing method taught by the application.
+This document defines the Relaxed QWERTY method, an opt-in alternative to traditional touch typing in the application.
 
 The method is designed for people learning to type on standard staggered QWERTY keyboards. Its purpose is not to reproduce historical touch-typing instruction exactly. Instead, it provides a consistent, practical typing system that preserves the familiarity and interoperability of QWERTY while adapting finger assignments and movement rules to better reflect the physical shape of the keyboard and the natural movement of the human hand.
 
@@ -715,7 +717,7 @@ error
 
 # 22. Learning Progression
 
-The product north star is [RQWERTY north star](north-star.md), governed by DEC-09, DEC-10 and DEC-11. This replaces the earlier region-by-region recommended sequence; the canonical Relaxed QWERTY 1.0 finger assignments are unchanged.
+The product north star is [the KeyGrove north star](north-star.md), governed by DEC-10 to DEC-14 (DEC-12 made Traditional the default). This replaces the earlier region-by-region recommended sequence; the canonical Relaxed QWERTY 1.0 finger assignments are unchanged.
 
 ## 22.1 Learn the instrument in small movement phrases
 

@@ -1,23 +1,26 @@
-# RQWERTY north star
+# KeyGrove north star
 
-RQWERTY is a Duolingo-like course that teaches typing with the care of classical guitar instruction: understand a small movement, practice it accurately at whatever pace is comfortable, then connect it to music—or words.
+*KeyGrove is the working name; the final product name is undecided.*
 
-**The whole keyboard is available early. Attention and independence are what progress.**
+**Duolingo for typing, taught the way a classical guitarist learns a piece.**
 
-We teach Relaxed QWERTY on an ordinary keyboard. Each key has a stable preferred finger. F and J are tactile landmarks, not anchors. Use light pressure, prepare the next movement, and allow small comfortable hand adjustments. Economy of movement should feel easy, never rigid. Pause when tension or strain appears.
+From Duolingo we take short purposeful steps, one obvious Continue, lasting progress and a reason to come back. We leave out streak pressure, currencies and dashboards.
 
-The basic learning unit is a short movement phrase:
+From classical guitar we take the method. Find a note deliberately. Isolate the hard transition and play it slowly and cleanly. Then return it to the music straight away. For typing:
 
-1. Find a key deliberately.
-2. Connect two keys with the same finger.
-3. Alternate between hands.
-4. Prepare the next finger while the current one presses.
-5. Carry that coordination into a word.
+1. **Find** the new keys deliberately, guided and unscored.
+2. **Isolate** the lesson's one important movement: `mu um mum`, `he eh heh`.
+3. **Carry** it into real words that contain it: `mud much music`.
+4. **Play** those words in a short phrase of ordinary language.
 
-A lesson demonstrates, gives space to try, connects familiar movements, and applies them in useful language. Early lessons reach across rows in manageable chunks. Later lessons revisit those movements in fresh words, sentences, practical information and longer writing, with less proactive guidance and help always available.
+Every exercise prepares the next one. The learner should feel that we did the research so they can practise as little as possible, with purpose.
 
-Guided introductions have no passing score. Focused practice has an honest, visible accuracy target; passing advances immediately. Mistakes invite a calm correction, not punishment. Slow practice counts fully. We do not demand flawless runs, impose speed gates, or revoke progress after absence.
+**The research chooses the movements.** Across books, web text and film subtitles, a small set of transitions carries English. The same-finger reaches (`ed de ce ec tr un lo ol rt mu um`) are drilled where they unlock. Every other new-key lesson headlines the most common movement its new letters make. The course never drills a movement English doesn't use.
 
-The Duolingo influence is purposeful small steps, recurring practice, clear next actions and lasting progress—not streak pressure. Finger courses follow the same principles. Exploration never masquerades as mastery, and assisted input never becomes evidence of poor performance.
+**Small surface, deep model.** Open, do a useful 2–5 minute lesson, stop or continue. The app picks the next target invisibly. The learner sees purpose and Continue, never a menu of modes.
 
-Fluency can grow from familiarity and connected movement. We do not promise speed from slowness alone, infer posture from keystrokes, or claim that one method prevents injury. We judge the course by comfortable practice, accurate transfer to unfamiliar text, growing independence and the learner's willingness to return.
+**Honest.** Guided steps have no score. Practice has a visible accuracy target and passing advances immediately. Slow practice counts fully. No speed gates, and progress is never revoked. A keyboard cannot see which finger pressed a key, so we teach the intended finger and never claim to detect it.
+
+**The whole keyboard is visible early.** Attention and independence are what progress. Traditional touch typing is the default; Relaxed QWERTY remains an opt-in method.
+
+Speed is measured, not chased. We expect it to follow from accuracy, control and familiarity, but we promise no particular outcome. We judge the course by comfortable practice, accurate transfer to unfamiliar text, and the learner's willingness to return.

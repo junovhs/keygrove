@@ -1,35 +1,61 @@
-# RQWERTY — guided course progression
+# KeyGrove — course progression
 
-Current implementation contract under Ishoo **DEC-07**. This replaces the earlier fixed-run, rhythm-star and XP progression proposal. Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
+*KeyGrove is the working name.* Current implementation contract under Ishoo DEC-10 (instrument-style practice), DEC-11 (guided vs assessed evidence), DEC-12 (Traditional default), DEC-13 (research-chosen movements) and DEC-14 (small surface). Stable source/save IDs still use `grove` and `trail`; the interface calls them chapters and lessons.
 
 ## One course, one next action
 
-A learner follows 36 lessons in seven chapters. Continue either presents the next useful passage, inserts one short targeted practice after a repeated error pattern, or advances one visible exercise after a passage meets its accuracy target. The final exercise opens the next lesson. A practice always returns to the course; it does not recursively generate more practices. The player can skip it. A due review at the start of a visit offers a short warm-up, also skippable.
+A learner follows 36 lessons in seven chapters. Continue presents the next exercise; after repeated errors it may insert one short targeted practice, which always returns to the course and can be skipped. A due review at the start of a visit offers a short, skippable warm-up. Which technical movement a lesson drills is chosen invisibly (spec D5); the learner only ever sees purpose and Continue.
 
-The Course book is optional navigation. Cleared lessons can be revisited. A keepsake replay returns to the earliest unfinished main-course lesson. Earned chapters and keepsakes persist through absence and method changes. No daily retention mechanic, speed gate, spendable currency or random loot exists.
+The Course book is optional navigation. Cleared lessons can be revisited, and a keepsake replay returns to the earliest unfinished lesson. Earned chapters and keepsakes persist through absence and method changes. There is no daily retention mechanic, speed gate, spendable currency or random loot.
 
 ## Curriculum
 
-| Chapter | Lessons | Content | Lesson accuracy target | Keepsake |
+| Chapter | Lessons | New keys, in order (headline movement) | Accuracy target | Keepsake |
 |---|---:|---|---:|---|
-| Roots | 1–6 | F J + Space, D K, E I, G H, first words | 90% | Little fir |
-| Home | 7–11 | R U, S L, A ;, home words | 91% | Blue cup |
-| Canopy | 12–15 | T Y, W O, Q P | 92% | Paper kite |
-| Undergrowth | 16–21 | V M, C B, X comma, Z period, N slash | 94% | Emerald beetle |
-| Bark | 22–26 | Opposite-hand Shift, sentences, quotes, questions, dashes, colons, parentheses | 95% | Sealed letter |
-| Rings | 27–31 | Numbers, dates, prices, common symbols | 95% | Brass watch |
-| Flow | 32–36 | Sequences, common words, pangrams, longer text, final mixed assessment | 96% | Music box |
-| Code (optional) | 37–40 | Brackets, angles, arrows, snippets | 96% | Folded fox |
+| Roots | 1–6 | F J + Space, D K, E I (`ed`), G H (`hi`), V M (`ve`), checkpoint | 90% | Little fir |
+| Home | 7–11 | R U (`mu` / `er`), S L (`is`), A ; (`ar`), N T (`tr` / `in`), checkpoint | 91% | Blue cup |
+| Canopy | 12–15 | C Y (`ce` / `ca`), W O (`lo` / `on`), Q P (`pe`), checkpoint | 92% | Paper kite |
+| Undergrowth | 16–21 | B (`be`), connected lower row, X comma (`ex`), Z full stop (`ze`), slash, checkpoint | 94% | Emerald beetle |
+| Bark | 22–26 | Opposite-hand Shift, sentences, quotes and questions, dashes/colons/parentheses, checkpoint | 95% | Sealed letter |
+| Rings | 27–31 | Left numbers, right numbers, mixed numbers, symbols, checkpoint | 95% | Brass watch |
+| Flow | 32–36 | Common sequences, common words, pangrams and quotes, endurance, final passage | 96% | Music box |
+| Code (optional) | 37–40 | Braces, angles and equals, arrows, snippets | 96% | Folded fox |
 
-Code is enabled in Settings and opens after Bark. It never blocks the main course. Endurance and the final passage are lengths of text, not timed tests. Text generation never introduces characters outside a lesson’s cumulative key set. Introduced keys and chapter coverage are guaranteed rather than left to sampling. The final assessment is an authored passage with varied openings, all taught characters in context, and a deliberate ending.
+Where two headlines are shown, the first is the research's same-finger target that a first-time learner meets there; the second is the lesson default once that target has evidence. Chapter checkpoints require **97%**. Code opens after Bark from Settings and never blocks the main course. Endurance and the final passage are lengths of text, not timed tests. Generated text never uses characters outside a lesson's cumulative key set, and introduced keys are guaranteed rather than left to sampling.
+
+## Lesson anatomy (letter chapters)
+
+A new-key lesson has one **headline movement** and every exercise leads to it (CURR-50):
+
+1. **Find the new keys**: guided, unscored, e.g. `gghhgghh`.
+2. **Isolate the movement**: a transition loop in both directions, e.g. `mu um mum mu um`. The instruction names the mechanics (same finger / two fingers of one hand / alternate hands), never which finger was used (DEC-15). If the learner is accurate but uneven, steady beat replaces the loop.
+3. **Carry it into words**: an etude of everyday words containing the movement, e.g. `mud mug did mud murmur`. At least half the words carry it, with ordinary words between them to keep the hands even.
+4. **A small phrase**: ordinary language that opens with a phrase carrying the movement where one exists, e.g. `mum hid her mug`.
+
+The headline is the D5 technical pick when one touches the new keys (`ed de ce ec tr un lo ol rt mu um`, the same-finger transitions stable across books, web and subtitles). Otherwise it is the most common English movement the new letters make (`COMMON_TRANSITIONS`, exported from `research/typing-movements`). Lessons 1–2 are authored rhythm lessons, and lesson 3 pairs `ed` with the matching `ik` middle-finger movement. Lesson 1 also has a guided, unscored whole-keyboard tour, and lessons 1–2 preview the next keys. There are no other visits. The `ing / ion / nce` chunks live in the Flow Common Sequences lesson and in ordinary prose.
+
+Shift, number and symbol lessons have three exercises (find, use in context, put to work); application lessons have two; checkpoints have one passage. Lowercase is intentional until Shift is taught, and punctuation appears only when taught. In a words line it sits on a word (`box,`, `yes/no`), never alone.
+
+### Planned main-course distribution
+
+First-pass exercises from `lessonExercises` across the 36 main lessons (no pick):
+
+| Chapter | Guided | Movement | Words | Phrases / passages | Total |
+|---|---:|---:|---:|---:|---:|
+| Roots | 9 | 7 | 3 | 4 | 23 |
+| Home | 4 | 4 | 4 | 5 | 17 |
+| Canopy | 3 | 3 | 3 | 4 | 13 |
+| Undergrowth | 4 | 4 | 5 | 6 | 19 |
+| Bark | 3 | 0 | 4 | 5 | 12 |
+| Rings | 3 | 0 | 4 | 5 | 12 |
+| Flow | 0 | 0 | 4 | 5 | 9 |
+| **Total** | **26** | **18** | **27** | **34** | **105** |
 
 ## Evidence to clear a lesson
 
-Lessons expose a finite sequence before practice: four exercises for a new letter pair (meet, connect, useful words, application), three for a new Shift/number/symbol skill, two for application lessons, and one chapter assessment. The first two lessons have an intentionally limited alphabet, so their application is rhythm and deliberate Space use; real words begin with E/I and become two-handed with G/H.
+Guided steps advance on completion and never count as performance evidence (DEC-11). Every assessed exercise advances immediately at the shown target; mastery, rhythm and speed never veto a pass. A failed attempt retries only the current exercise. Saved exercise counts survive reload and sync, and completed lessons stay completed. Older recorded passes are still credited.
 
-Every passing exercise advances immediately at the shown target; checkpoints require **97%**. Mastery, rhythm and speed never veto a pass. Failed attempts retry only the current exercise. Saved exercise counts survive reload/sync, and all previously completed lessons remain completed. Older recorded passes are still credited; new partial exercise results are never misread as legacy lesson clears.
-
-The header and results identify exercise number, purpose and next action; the result view carries the Continue action. Opening Course or Keepsakes during typing restarts the unfinished passage and opens navigation immediately.
+The header and results identify exercise number, purpose and next action; the result view carries Continue. Opening Course or Keepsakes during typing restarts the unfinished passage.
 
 ## Key model and timing
 
@@ -54,64 +80,33 @@ Only repeated mistakes trigger automatic targeted practice. Timing-only observat
 
 Save version remains 6. Legacy `stars`, `xp`, `days`, `cleanStreak`, WPM references and rank helpers remain for compatibility, but do not govern the visible experience. Old clears are retained. Recorded passing attempts formerly blocked by hidden requirements are credited on load, including account sync and imports; a newly credited current lesson moves to the next unfinished lesson. Existing intentional replay selections stay intact. Account and guest storage are separate. A new account adopts current guest progress; an existing account loads its own progress. Replays save the course destination rather than moving the learner backwards.
 
-## Verification
+## Briefings: just-in-time coaching
 
-- All 40 trails × three stages × 50 seeds use allowed characters, fit a bounded passage length and include their intended keys.
-- A simulated learner types generated passages slowly through all 40 lessons using each method, including recoverable mistakes, without a coverage dead end.
-- Regression tests exercise explicit exercise advancement, explicit accuracy boundaries, credit for previously trapped learners, no absence penalty, honest missed-space accuracy, bounded review coverage, guest/account isolation, migration and permanent keepsakes.
-- Browser checks use real key events and the normal Import interface for isolated late-course fixtures. They cover first use, repair/return, welcome-back practice, chapter reveals, keepsake replay, the final assessment, keyboard navigation and narrow viewports.
+Each Chapter 1 lesson opens with an authored briefing. Its first step is interactive: empty, pulsing key tiles ask for each new key with the named finger, fill as they are pressed, draw a check mark and advance on their own. The text steps coach the physical basics and advance on any key; Escape skips the whole briefing. Later new-key lessons get a short generic briefing without the press step. Extending the interactive step and naming each lesson's headline movement is CURR-52. A briefing shows once per lesson per session. Content lives in `src/curriculum/briefings.ts` and names fingers through the `{f}` placeholders, so it follows the active method.
 
-These checks establish software behavior. They are not longitudinal evidence of learning outcomes or a guarantee of typing speed.
+## The lesson shell
 
-## Learning loop: the product baseline
+Traditional touch typing is the default (DEC-12). Settings → Method switches to Relaxed QWERTY and back; the reassigned keys lose their evidence and earned lessons stay. The text box carries a restart icon and, while idle, a "Begin typing when you're ready · any key" cue that fades on the first keystroke without moving the text. Any key moves on from a result. Extra practice (finger courses) sits at the start of the main navigation.
 
-The north star is a Duolingo-like typing course with Relaxed QWERTY as its default: small, purposeful learning steps that accumulate into usable writing. The analogy governs lesson design, not streak pressure or reward inflation.
+## Hand and finger load
 
-- **Second to second:** one readable target, immediate correction, the appropriate finger/Shift guide, and a short enough exercise to understand its purpose. Space is a skill and a word boundary, not a compulsory separator after every two letters.
-- **Minute to minute:** meet a movement, connect it with familiar movements, use real words, then apply it in a phrase or passage. Each pass gives a visible next step. A failed exercise retries that step, not the whole lesson. New-key movement introductions are roughly 16–28 characters before coverage; word work is around 40 and early transfer around 32–56.
-- **Across a session:** finish a small lesson, reinforce earlier keys in the next lesson, and use a chapter passage to put the accumulated skills together. Course browsing is always available; leaving an unfinished run restarts that passage. There is no required session duration or speed gate.
-- **Across days:** return to the saved exercise, optionally warm up due keys with the existing bounded review, and continue. Completed exercises, lessons and paired-side passes remain earned. Absence never removes progress. Later chapters devote more practice to messages, sentences, numbers and longer writing.
+Real words are not naturally two-handed: over F J D K E I R U, English vocabulary runs about 83/17 left. So G H arrive in Roots, giving the right hand `he hi hid high`. Word and phrase selection is also balance-aware: the generator samples a few candidates and keeps the one that holds the running split nearest even without one finger dominating.
 
-This is an implemented baseline to evaluate with learners, not a claim about an optimal scientific exercise ratio or a promise of learning outcomes. Further changes should address observed learning friction rather than add undirected repetition.
-
-### Planned main-course distribution
-
-Counts below are derived from `lessonExercises` across the 36 main lessons. These count first-pass exercises, not random retries, optional review or character/time percentages. “Passage” includes constrained lowercase phrases early and sentences/practical text later. The two pattern-only opening lessons cannot honestly offer normal words from F/J/D/K; words are required from E/I onward. After those openings, 7 of Roots' remaining 11 exercises are word/phrase work.
-
-| Chapter | Movement | Words / useful context | Phrases / passages | Total |
-|---|---:|---:|---:|---:|
-| Roots | 12 | 3 | 4 | 19 |
-| Home | 6 | 4 | 5 | 15 |
-| Canopy | 6 | 3 | 4 | 13 |
-| Undergrowth | 10 | 5 | 6 | 21 |
-| Bark | 3 | 4 | 5 | 12 |
-| Rings | 3 | 4 | 5 | 12 |
-| Flow | 0 | 4 | 5 | 9 |
-| **Total** | **40** | **27** | **34** | **101** |
-
-About 40% movement practice and 60% language/application overall. New-letter lessons split two movement exercises and two application exercises. Later chapters lean further toward readable text. Words are filtered to taught keys. Early vocabulary prioritizes familiar words and names, avoiding unexplained fragments such as `iii`, `diff` and `ref`. Authored phrases are selected whole, never mutilated to fit the alphabet. Lowercase is intentional until Shift is taught; punctuation appears only when taught.
-
-### Briefings: just-in-time coaching
-
-Each Chapter 1 lesson opens with a briefing before its first exercise instead of dropping the learner into text. The heading reads "Before you begin" with the lesson's purpose; the hand illustrations and keyboard light only the finger and key the step is about (the other home-row badges are hidden); and a card steps through one message at a time — as few as the lesson needs, never more than four. A new-key lesson opens with an interactive step: empty, pulsing key tiles ask for each new key with the named finger; a correct press fills its tile, a wrong one nudges the empty tile; when every tile is filled a check mark draws, a beat passes, and the briefing advances by itself. Text steps advance on any key (or the Next button), so hands never leave the home row; Escape skips the whole briefing. The badge above each hand shows the key that finger is being asked for — E above the middle finger during the E/I step, D on the return step — and while typing it shows the current target key. Content lives in `src/curriculum/briefings.ts`, names fingers through the same `{f}` placeholders as lesson copy (so it follows the active method), and coaches the physical basics: hands still, fingers grounded on F and J, press down not across, read ahead. A briefing shows once per lesson per session; later exercises and retries go straight to the passage. Later chapters have no briefings yet.
-
-### The lesson shell
-
-There is no introduction modal: Relaxed QWERTY is the default and Settings → Method toggles to traditional touch typing and back (the four reassigned keys lose their evidence; earned lessons stay). The text box carries a restart icon in its top-right corner and, while idle, a prominent "Begin typing when you're ready · any key" cue that fades on the first keystroke without moving the text. Any key moves on from a result and starts the next passage with that letter (the course-complete home alone waits for Enter). The brand mark returns to the current lesson; "About & docs" is its own link. The footer shows metrics only. Extra practice (finger courses) is an orange button at the start of the main navigation. The stronger hand guide is always on. The result view carries its own Continue and alternative action.
-
-### Hand and finger load
-
-Movement blocks split evenly between hands by construction, but real words do not: over the original Roots set F J D K E I R U, English vocabulary runs about 83/17 left because E, D, R and F are common while J and K are the rarest letters. Measured over many seeds, Roots word and passage exercises ran 76–89% left-hand and the left middle finger alone pressed more than half of all keys. Two changes correct this:
-
-- **G H arrive in Roots, R U move to Home.** H is one of the most frequent letters and sits under the right index finger, so the right hand gets real words (`he`, `hi`, `hid`, `high`, `hide`) in the first chapter. This keeps the spec's strong-finger core (index and middle fingers) while making the early vocabulary two-handed.
-- **Word and phrase selection is balance-aware.** For words and passage exercises the generator samples a handful of candidates from the usual weak-key-weighted pool and keeps the one that holds the running left/right split nearest to even without one finger dominating, and without repeating the previous phrase. Thin phrase pools are widened rather than repeated.
-
-A regression test (`src/engine/balance.test.ts`) holds every words/passage exercise in the four letter chapters within 40–60 left/right under both methods, each letter chapter within 45–55, no finger above half, and any finger the lesson is not introducing under roughly 30–35%. Lesson `Last Reaches` (N and slash) is the one whose two new keys both belong to the right hand; its short movement drill is single-handed by design. Finger Focus courses are intentionally single-finger and are excluded. Shift, number, symbol and Flow chapters are not yet held to this rule.
+`src/engine/balance.test.ts` holds every phrase and passage in the four letter chapters within 40–60 left/right under both methods, each letter chapter as a whole within 45–55, and no finger above half. A word etude and a transition loop concentrate on one movement and may sit on one hand (`be`, `ex`); the chapter totals still include them, and the etude's ordinary words lean the other way. Finger courses are intentionally single-finger and excluded. Shift, number, symbol and Flow chapters are not yet held to this rule.
 
 ### Space and paired finger courses
 
-The first three F/J exercises contain no spaces; exercise four explicitly introduces either-thumb Space. Later movement drills use short six-letter blocks instead of one Space per bigram. Normal words, phrases and sentences use natural spaces. The paired finger landmark run also has no Space, with spacing explained in its next reach exercise.
+Apart from the guided keyboard tour, the F/J exercises before "Meet Space" contain no spaces; that last exercise explicitly introduces either-thumb Space. Later movement drills use short six-letter blocks instead of one Space per bigram. Normal words, phrases and sentences use natural spaces. The paired finger landmark run also has no Space, with spacing explained in its next reach exercise.
 
 Each finger pair has three short movement levels, then real pair-key words, tricky word movements, short phrases, words with Shift, word/number labels, symbols in context, and a final review plus sentences. Exhaustive Cartesian key-pair lists are gone. Both sides still qualify independently; the next attempt concentrates on whichever side remains unfinished.
 
 Examples for Index fingers without main-course prerequisites include `fur`, `try`, `murmur`, `rhythm`, and `try my curry`. Later words may also use keys from completed main-course lessons. Where a pair cannot make a useful phrase alone, only the needed helper letters are explicitly introduced with a short primer and the hand guide; previously learned helpers need no primer. For example Middle fingers can use `i did it` after meeting helper T. The final transfer introduces any needed full stop explicitly. Existing finger-level credit is preserved when content improves.
+
+## Verification
+
+- Every trail × stage × 50 seeds uses allowed characters, fits a bounded length and includes its intended keys. Every unlocked core bigram can be produced.
+- Each new-key letter lesson's drill, words and phrase share its headline movement, with and without a first-time pick. The `?dev=1` trace reports warmed-now / known-already / novel bigrams per exercise.
+- A simulated learner types through all 40 lessons with each method, including recoverable mistakes.
+- Regression tests cover exercise advancement, accuracy boundaries, absence, missed-space accuracy, review coverage, guest/account isolation, migration and keepsakes. Browser checks drive the real app with key events.
+
+These checks establish software behaviour. They are not longitudinal evidence of learning outcomes or a guarantee of typing speed.
