@@ -8,6 +8,7 @@ import QUOTES from '../data/quotes.json';
 import CODE from '../data/code.json';
 import { rng, pickOne, shuffle, type Rng } from './rng';
 import { fingerOf, handOf, homeOf, mirrorOf, type FingerId } from '../curriculum/method';
+import { CHUNKS, PRACTICE_WORDS as CARRIERS } from '../curriculum/movements';
 
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
@@ -141,6 +142,8 @@ function generateDrillRaw(kind: 'confusion' | 'reach' | 'review' | 'transition',
   if (kind === 'transition' && ks.length >= 2) {
     // Words rich in the pair, in the pair's order (R→F: refer fret free); patterns when the bank is thin.
     const [a, b] = ks as [string, string]; const pair = a + b;
+    const research = etude(pair, allowed, Math.min(60, trail.length), r);
+    if (research) return research;
     const bank = [...new Set([...wordBank(trail), ...TOP.filter((w) => fits(w, allowed))])].filter((w) => w.includes(pair));
     if (bank.length >= 4) return fill(Math.min(60, trail.length), () => pickOne(bank, r));
     const pats = [pair, pair + a, b + pair, pair + pair, a + pair + b];
@@ -285,7 +288,8 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
       // The player's own weakest transitions, when known; the English list until then.
       const grams = opts.weakPairs?.length ? opts.weakPairs : BIGRAMS;
       if (exercise?.format === 'words') {
-        const pool = [...new Set([...PRACTICE_WORDS, ...TOP])].filter(w => grams.some(pair => w.includes(pair)));
+        // Spec C4: the Bigrams trail is the chunks' home — its words carry ing / ion / tion / nce / ted.
+        const pool = [...new Set(CHUNKS.flatMap(c => CARRIERS[c.ngram] ?? []))].filter(w => fits(w, allowed));
         const pick = sampler(pool, heat, opts.pairHeat);
         return balancedFill(len, () => pick(r), r);
       }
@@ -320,6 +324,20 @@ export function transitionLoop(target: string, len: number): string {
   return text;
 }
 
+/** Spec B3: an etude — everyday words carrying `target` from the research set, short carriers first, with a neutral
+ * common word after every two carriers so the line reads as language (carriers ≥ 2/3 of the words). Null when fewer
+ * than four carriers are typeable, so the caller falls back to the ordinary generator. */
+export function etude(target: string, allowed: Set<string>, len: number, r: Rng): string | null {
+  const carriers = (CARRIERS[target] ?? []).filter(w => fits(w, allowed));
+  if (carriers.length < 4) return null;
+  const neutral = TOP.filter(w => w.length <= 5 && !w.includes(target) && fits(w, allowed));
+  const words: string[] = [];
+  for (let i = 0, c = 0; words.join(' ').length < len; i++) {
+    words.push(i % 3 === 2 && neutral.length ? pickOne(neutral, r) : carriers[c++ % carriers.length]!);
+  }
+  return words.join(' ');
+}
+
 /** Generate varied practice while guaranteeing evidence for every introduced key.
  * Checkpoints revisit the complete chapter vocabulary; characters never escape
  * the cumulative set. Coverage is explicit rather than left to random chance.
@@ -332,12 +350,15 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     if (!text || ![...text].every(c => allowed.has(c))) throw new Error(`Invalid authored exercise for ${trail.id}`);
     return text;
   }
-  if (opts.exercise?.target) {
+  if (opts.exercise?.target && opts.exercise.format === 'movement') {
     const text = transitionLoop(opts.exercise.target, opts.exercise.length);
     if (![...text].every(c => allowed.has(c))) throw new Error(`Transition target ${opts.exercise.target} is not unlocked in ${trail.id}`);
     return text;
   }
-  let text = trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts);
+  // Spec B3: a words exercise with a target is that target's etude when enough carriers are typeable; otherwise the
+  // ordinary words generator. Either way the lesson's new keys are still guaranteed below.
+  const research = opts.exercise?.target && opts.exercise.format === 'words' ? etude(opts.exercise.target, allowed, opts.exercise.length, rng(opts.seed)) : null;
+  let text = research ?? (trail.id === 'flow-checkpoint' ? finalPassage(rng(opts.seed)) : generateRaw(trail, stage, opts));
   if (opts.exercise && trail.checkpoint && trail.id !== 'flow-checkpoint') {
     const pangram = readablePhrases(allowed).find(p => [...LETTERS].every(k => p.toLowerCase().includes(k)));
     if (pangram) text = pangram + ' ' + text;

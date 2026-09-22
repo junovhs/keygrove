@@ -43,6 +43,11 @@ const VISITS: Readonly<Record<string, LessonExercise>> = {
   'index-up': guide('Visit the number row', '47', '44774747', '4 uses your {4}; 7 your {7}. Try the farther reach slowly, with a small hand adjustment.'),
 };
 
+/** Spec C1/C4: which target the words exercise (slot 3) carries, until CURR-44 chooses per learner. `ed` follows lesson 3's loop;
+ * the chunks enter as words at the first lesson where their letters exist (ing at N T, nce at C Y, ion at W O). */
+const WORD_TARGET: Readonly<Record<string, string>> = { 'middle-up': 'ed', 'home-words': 'ing', 'index-stretch-up': 'nce', 'ring-up': 'ion' };
+const withTarget = (ex: LessonExercise, id: string): LessonExercise => (WORD_TARGET[id] ? { ...ex, target: WORD_TARGET[id] } : ex);
+
 /** Passes advance immediately; discovery never adds an accuracy or speed requirement. */
 export function lessonExercises(t: Trail): readonly LessonExercise[] {
   if (t.checkpoint) return [use('Chapter passage', 'passage', 'Read a word ahead. Connect familiar movements at whatever pace stays comfortable.', t.length, t.grove === 'flow')];
@@ -66,7 +71,7 @@ export function lessonExercises(t: Trail): readonly LessonExercise[] {
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
       // Spec C1: the first technical target enters as soon as its keys exist (E D → `ed`, the commonest same-finger movement).
       t.id === 'middle-up' ? loop('ed') : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
-      use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40),
+      withTarget(use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), t.id),
       ...visits,
       use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48),
     ];

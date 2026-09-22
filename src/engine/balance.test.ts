@@ -18,6 +18,8 @@ describe('hand and finger load balance in the main course (spec §31: no hand or
       const report: string[] = [];
       for (const gid of LETTER_GROVES) for (const t of trailsInGrove(gid)) for (const ex of lessonExercises(t)) {
         if (ex.format === 'movement' || ex.assessment === 'guided') continue;
+        // An etude concentrates on one movement and may sit on one hand (spec B3); the grove-level check below still includes it.
+        if (ex.target) continue;
         let load = emptyLoad();
         for (let seed = 0; seed < SEEDS; seed++) load = addLoad(load, generate(t, ex.stage, { exercise: ex, seed: seed * 7919 + 1 }));
         const left = share(load);
