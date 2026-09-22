@@ -43,13 +43,14 @@ const VISITS: Readonly<Record<string, LessonExercise>> = {
   'index-up': guide('Visit the number row', '47', '44774747', '4 uses your {4}; 7 your {7}. Try the farther reach slowly, with a small hand adjustment.'),
 };
 
-/** Spec C1/C4: which target the words exercise (slot 3) carries, until CURR-44 chooses per learner. `ed` follows lesson 3's loop;
- * the chunks enter as words at the first lesson where their letters exist (ing at N T, nce at C Y, ion at W O). */
-const WORD_TARGET: Readonly<Record<string, string>> = { 'middle-up': 'ed', 'home-words': 'ing', 'index-stretch-up': 'nce', 'ring-up': 'ion' };
-const withTarget = (ex: LessonExercise, id: string): LessonExercise => (WORD_TARGET[id] ? { ...ex, target: WORD_TARGET[id] } : ex);
+/** Spec C4: the chunks enter as words at the first lesson where their letters exist (ing at N T, nce at C Y, ion at W O);
+ * those lessons' words carry the chunk. Every other lesson's words follow slot 2's target (spec B3). */
+const CHUNK_LESSON: Readonly<Record<string, string>> = { 'home-words': 'ing', 'index-stretch-up': 'nce', 'ring-up': 'ion' };
+/** Slot 2's target and form, chosen per learner by the D5 rule (engine/next-practice); absent = no evidence, the shipped default. */
+export interface SlotPick { target: string; form: 'loop' | 'beat' }
 
 /** Passes advance immediately; discovery never adds an accuracy or speed requirement. */
-export function lessonExercises(t: Trail): readonly LessonExercise[] {
+export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExercise[] {
   if (t.checkpoint) return [use('Chapter passage', 'passage', 'Read a word ahead. Connect familiar movements at whatever pace stays comfortable.', t.length, t.grove === 'flow')];
   if (t.id === 'anchors') return [
     guide('Find F and J deliberately', 'fj', 'ffjjfjfj', 'Feel the bumps: F with your {f}, J with your {j}. Press lightly. There is no score here.'),
@@ -69,9 +70,10 @@ export function lessonExercises(t: Trail): readonly LessonExercise[] {
     const visits = VISITS[t.id] ? [VISITS[t.id]!] : [];
     return [
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
-      // Spec C1: the first technical target enters as soon as its keys exist (E D → `ed`, the commonest same-finger movement).
-      t.id === 'middle-up' ? loop('ed') : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
-      withTarget(use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), t.id),
+      // Spec C3/D5: slot 2 isolates the learner's chosen target; without evidence, lesson 3 still meets `ed` (spec C1) and the
+      // first two lessons keep the generic loop. Form 'beat' runs the loop until steady beat exists (CURR-40).
+      pick ? loop(pick.target) : t.id === 'middle-up' ? loop('ed') : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
+      { ...use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), ...(CHUNK_LESSON[t.id] ? { target: CHUNK_LESSON[t.id] } : pick ? { target: pick.target } : t.id === 'middle-up' ? { target: 'ed' } : {}) },
       ...visits,
       use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48),
     ];

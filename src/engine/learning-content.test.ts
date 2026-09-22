@@ -74,7 +74,7 @@ it('paired movement practice avoids an exhaustive bigram dump and has no Space i
   }
 });
 it('main path reserves a majority of planned exercises for language/application', () => {
-  const exercises = MAIN_TRAILS.flatMap(lessonExercises);
+  const exercises = MAIN_TRAILS.flatMap((t) => lessonExercises(t));
   const meaningful = exercises.filter(e => e.format !== 'movement');
   expect(meaningful.length).toBeGreaterThan(exercises.length / 2);
 });

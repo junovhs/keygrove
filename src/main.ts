@@ -1,4 +1,5 @@
-import { lessonExercises, type LessonExercise } from './curriculum/lesson-flow';
+import { lessonExercises, type LessonExercise, type SlotPick } from './curriculum/lesson-flow';
+import { nextPractice } from './engine/next-practice';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
@@ -57,7 +58,13 @@ let replayReturn: string | null = null;
 let completionHome = false;
 let runTrail = currentTrail(state);
 let runStage: StageName = 'drill';
-let runExercise: LessonExercise = lessonExercises(runTrail)[0]!;
+/** Slot 2's target for the lesson in progress, chosen once so it holds across the lesson's exercises (spec D5). */
+let slotPick: { trail: string; pick: SlotPick | null } | null = null;
+const pickFor = (t: Trail): SlotPick | undefined => {
+  if (!slotPick || slotPick.trail !== t.id) slotPick = { trail: t.id, pick: nextPractice(trans, new Set([...allowedChars(t)].filter((k) => k.length === 1 && k === k.toLowerCase())), Date.now()) };
+  return slotPick.pick ?? undefined;
+};
+let runExercise: LessonExercise = lessonExercises(runTrail, pickFor(runTrail))[0]!;
 let runExerciseIndex = 0;
 let beforeMastery: Record<string, number> = {};
 /** The briefing being read before this run, if any; `seenBriefs` keeps each exercise to one briefing per session. */
@@ -80,7 +87,7 @@ const focusPair = (): FingerPair | null => (mode.kind === 'remedial' ? mode.pair
 function save(): void { const j = keys.toJSON(); state.keys = j.keys; state.confusions = j.confusions; state.transitions = trans.toJSON(); store(); sync.wrote(); }
 /** Account adoption resets the active passage so strokes from two accounts never mix. */
 function adopt(next: SaveV6): void {
-  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); gate = null; replayReturn = null; setMethod(state.settings.method); store(); syncSettingsUi();
+  state = next; keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); slotPick = null; gate = null; replayReturn = null; setMethod(state.settings.method); store(); syncSettingsUi();
   mode = { kind: 'trail' }; resetRun(); if (courseComplete(state)) showCompletion();
 }
 
@@ -101,7 +108,7 @@ function resetRun(): void {
   completionHome = false;
   $('result').querySelector<HTMLElement>('.score')!.hidden = false;
   runTrail = trail(); runStage = stageName();
-  runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail)[runExerciseIndex]!;
+  runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail, pickFor(runTrail))[runExerciseIndex]!;
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
   practice = null; fingerPassed = false;
   helpVisible = mode.kind !== 'trail' || runExercise.guidance !== 'on-demand';
@@ -640,7 +647,7 @@ function switchMethod(methodId: string): void {
     const j = keys.toJSON();
     for (const k of moved) delete j.keys[k];
     for (const pair of Object.keys(state.transitions)) if ([...pair].some(k => moved.includes(k))) delete state.transitions[pair];
-    keys = KeyModel.fromJSON(j.keys, j.confusions); trans = TransitionModel.fromJSON(state.transitions);
+    keys = KeyModel.fromJSON(j.keys, j.confusions); trans = TransitionModel.fromJSON(state.transitions); slotPick = null;
   }
   state.settings.method = methodId; state.settings.onboarded = true; setMethod(methodId); save(); syncSettingsUi();
   mode = { kind: 'trail' }; resetRun(); toast(`Method: ${activeMethod().name}`);
@@ -663,7 +670,7 @@ $<HTMLInputElement>('importFile').onchange = async (e) => {
   input.value = '';
 };
 function applyImport(raw: unknown): void {
-  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); mode = { kind: 'trail' }; gate = null; replayReturn = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); toast('Progress restored.');
+  state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); slotPick = null; mode = { kind: 'trail' }; gate = null; replayReturn = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); toast('Progress restored.');
 }
 $('resetBtn').onclick = () => {
   if (!confirm('Reset all your progress? Every lesson, keepsake and practice record will be gone' + (signedIn ? ' from your account too.' : '.'))) return;

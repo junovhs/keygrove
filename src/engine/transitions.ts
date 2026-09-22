@@ -57,6 +57,12 @@ export class TransitionModel {
     return s.lat / ref;
   }
 
+  /** Coefficient of variation of the pair's latency: 0 = perfectly even, 1 = no timing evidence. */
+  unevenness(pair: string): number {
+    const s = this.stats[pair.toLowerCase()];
+    if (!s || !(s.lat > 0)) return 1;
+    return Math.sqrt(Math.max(0, s.lat2 - s.lat * s.lat)) / s.lat;
+  }
   /** 0..1: volume × accuracy × flow. Flow reaches 0 at twice the reference time; unevenness trims it. A slow pair is never mastered. */
   mastery(pair: string, ref = this.reference()): number {
     const s = this.stats[pair.toLowerCase()];
@@ -64,9 +70,7 @@ export class TransitionModel {
     const volume = clamp01(s.hits / PAIR_VOLUME);
     const acc = clamp01((1 - s.err - 0.8) / 0.15);
     const speed = clamp01(1 - (this.slowness(pair, ref) - 1));
-    const variance = Math.max(0, s.lat2 - s.lat * s.lat);
-    const cv = s.lat > 0 ? Math.sqrt(variance) / s.lat : 1;
-    const even = clamp01(1 - cv / 0.6);
+    const even = clamp01(1 - this.unevenness(pair) / 0.6);
     return volume * acc * speed * (0.7 + 0.3 * even);
   }
 

@@ -5,7 +5,7 @@ import { generate } from '../engine/textgen';
 import { fresh, sanitize } from '../state/save';
 
 it('visits above and below in the first two lessons, and practices the lower row in Roots', () => {
-  const visits = MAIN_TRAILS.slice(0, 2).flatMap(lessonExercises).filter(e => e.assessment === 'guided').map(e => e.guidedKeys).join('');
+  const visits = MAIN_TRAILS.slice(0, 2).flatMap((t) => lessonExercises(t)).filter(e => e.assessment === 'guided').map(e => e.guidedKeys).join('');
   for (const k of 'ruvm') expect(visits).toContain(k);
   expect(trailById('core-words').newKeys).toBe('vm');
   expect(lessonExercises(trailById('core-words')).some(e => e.assessment !== 'guided' && generate(trailById('core-words'), e.stage, { exercise: e, seed: 2 }).includes('v'))).toBe(true);
