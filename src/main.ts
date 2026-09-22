@@ -14,6 +14,7 @@ import { missedTarget, classifyRun, rollTally } from './engine/errors';
 import { applyRun, currentStage, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { recordPerformance } from './engine/learning';
+import { attemptPrompts, classifyPreparation, wordBigrams, type TracedRun } from './engine/preparation';
 import { courseComplete, keepsakeFor, ownedKeepsakes } from './engine/keepsakes';
 import { objectArt, collectionHtml } from './ui/scene';
 import './ui/journey.css';
@@ -67,25 +68,11 @@ function devHandLoad(text: string): { left: number; right: number; thumb: number
   }
   return out;
 }
-function devBigrams(text: string): string[] {
-  return text.toLowerCase().split(/[^a-z]+/).flatMap((w) => Array.from({ length: Math.max(0, w.length - 1) }, (_, i) => w.slice(i, i + 2)));
-}
-function devPreparation(lessonId: string, text: string) {
-  const previous = devRuns.filter((r: any) => r?.lesson?.id === lessonId).map((r: any) => String(r.prompt ?? ''));
-  const seenBigrams = new Set(previous.flatMap(devBigrams));
-  const seenKeys = new Set(previous.join('').toLowerCase().replace(/[^a-z]/g, ''));
-  const grams = devBigrams(text);
-  const prepared = grams.filter((g) => seenBigrams.has(g)).length;
-  const keys = [...text.toLowerCase()].filter((c) => /[a-z]/.test(c));
-  const novelKeys = [...new Set(keys.filter((c) => !seenKeys.has(c)))];
-  const novelBigrams = [...new Set(grams.filter((g) => !seenBigrams.has(g)))];
-  return {
-    bigramOccurrences: grams.length,
-    preparedBigramOccurrences: prepared,
-    preparedBigramShare: grams.length ? Math.round((prepared / grams.length) * 1000) / 1000 : 1,
-    novelKeys,
-    novelBigrams,
-  };
+/** Bigrams of the current prompt the learner already had evidence for when it appeared (typing records as it goes). */
+let devKnownAtStart: Set<string> = new Set();
+function devPreparation(lessonId: string, index: number, text: string) {
+  const warmed = new Set(attemptPrompts(devRuns as TracedRun[], lessonId, index).flatMap(wordBigrams));
+  return classifyPreparation(text, warmed, devKnownAtStart);
 }
 function devRecord(record: Record<string, unknown>): void {
   if (!devTraceEnabled) return;
@@ -185,6 +172,7 @@ function resetRun(): void {
   practice = null; fingerPassed = false;
   helpVisible = mode.kind !== 'trail' || runExercise.guidance !== 'on-demand';
   run = new Run(makeText()); outcome = null; decisions = [];
+  if (devTraceEnabled) devKnownAtStart = new Set(wordBigrams(run.text).filter((g) => (trans.stat(g)?.seen ?? 0) > 0));
   $('nextAction').textContent = 'Continue';
   $('skipPractice').hidden = mode.kind === 'trail';
   $('skipPractice').textContent = 'Back to my course';
@@ -618,7 +606,7 @@ function finish(): void {
     selection: slotPick?.trail === t.id ? slotPick.pick : null,
     prompt: run.text,
     promptHandLoad: devHandLoad(run.text),
-    preparation: devPreparation(t.id, run.text),
+    preparation: devPreparation(t.id, runExerciseIndex + 1, run.text),
     allowedChars: [...allowedChars(t)],
     result: {
       hits: run.hits, attempts: run.attempts, errors: run.errors, maxCombo: run.maxCombo,
@@ -870,6 +858,8 @@ Object.defineProperty(window, 'keygrove', {
       report: devReport,
       clear: clearDevReport,
       runs: () => structuredClone(devRuns),
+      /** Read-only view of the screen for scripted play-throughs (?dev=1 only). */
+      current: () => (devTraceEnabled ? { status: run.status, text: run.text, briefing: !!brief } : null),
     }),
   }),
 });
