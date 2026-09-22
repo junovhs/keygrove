@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Download these with `make download`; don't commit corpora.
+raw/*
+!raw/.gitkeep
