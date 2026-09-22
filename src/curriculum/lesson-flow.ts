@@ -1,6 +1,6 @@
 import type { StageName, Trail } from './types';
-import { fingerOf } from './method';
-import { TECHNICAL_TRANSITIONS } from './movements';
+import { fingerOf, handOf } from './method';
+import { headlineOf } from './headline';
 
 /** A finite visible step; guided discovery is separate from assessed performance. */
 export interface LessonExercise {
@@ -32,14 +32,16 @@ export function transitionLoop(target: string, len: number): string {
 const move = (name: string, stage: StageName, instruction: string, length = 24): LessonExercise => ({ name, stage, format: 'movement', instruction, length });
 const use = (name: string, format: 'words' | 'passage', instruction: string, length: number, independent = false): LessonExercise => ({ name, stage: 'words', format, instruction, length, ...(independent ? { guidance: 'on-demand' as const } : {}) });
 const ROW = (k: string): string => 'qwertyuiop'.includes(k) ? 'top row' : 'zxcvbnm'.includes(k) ? 'bottom row' : 'home row';
-/** Spec B1: a target typed both ways with a rest between, assessed, no speed. The line names the mechanics under the active method, never the finger used (DEC-15). */
+/** Spec B1: a target typed both ways with a rest between, assessed, no speed. The line names the mechanics under the active
+ * method, never the finger used (DEC-15). Any two-letter movement: a technical target or a lesson's headline (CURR-50). */
 export function loop(target: string): LessonExercise {
-  const t = TECHNICAL_TRANSITIONS.find((x) => x.bigram === target);
-  if (!t) throw new Error(`Unknown transition target ${target}`);
+  if (!/^[a-z]{2}$/.test(target) || target[0] === target[1]) throw new Error(`Not a two-letter movement: ${target}`);
   const [a, b] = [target[0]!, target[1]!];
-  const sameFinger = fingerOf(a) === fingerOf(b);
+  const [fa, fb] = [fingerOf(a), fingerOf(b)];
   const rows = ROW(a) === ROW(b) ? `along the ${ROW(a)}` : `${ROW(a)} to ${ROW(b)}`;
-  const how = sameFinger ? `Same finger, ${rows}. Let the finger travel; do not reset to its home key between.` : `Two fingers, ${rows}. Let the second finger prepare while the first presses.`;
+  const how = fa === fb ? `Same finger, ${rows}. Let the finger travel; do not reset to its home key between.`
+    : fa && fb && handOf(fa) === handOf(fb) ? `Two fingers of one hand, ${rows}. Let the second finger prepare while the first presses.`
+      : `Alternate hands, ${rows}. Let one hand prepare while the other presses.`;
   return { name: `Connect ${a.toUpperCase()} and ${b.toUpperCase()}`, stage: 'mix', format: 'movement', instruction: how, length: 24, target, focusKeys: target };
 }
 /** Spec B2: the same phrase to a quiet pulse; guided (DEC-11) — finishing is completing — and judged only for evenness. */
@@ -49,19 +51,14 @@ export function beat(target: string): LessonExercise {
 }
 const guide = (name: string, keys: string, text: string, instruction: string, format: LessonExercise['format'] = 'movement'): LessonExercise => ({ name, guidedKeys: keys, text, instruction, assessment: 'guided', stage: 'drill', format, length: text.length });
 
-/** Small planned visits connect today's attention to the wider instrument; never random novelty. */
+/** Small planned visits preview the next keys (R U, V M) or widen early language (H N); never random novelty. Later lessons
+ * have none: the lesson 1 tour already shows the whole instrument, and a visit must serve its lesson (CURR-50). */
 const VISITS: Readonly<Record<string, LessonExercise>> = {
   anchors: guide('Visit the upper row', 'ru', 'rruururu', 'R uses your {r}; U your {u}. Find each slowly. A small hand adjustment is welcome.'),
   'inner-pair': guide('Visit the lower row', 'vm', 'vvmmvmvm', 'V uses your {v}; M your {m}. Let the next finger prepare while the other presses.'),
   'middle-up': guide('A little more language', 'hn', 'hi hi in in', 'Meet H with your {h} and N with your {n}. Try hi and in with the guide; this whole step has no score.', 'words'),
-  'index-reach': guide('Visit the outside', 'ap', 'aappapap', 'A uses your {a}; P your {p}. Use a light press. Pause if the reach feels tense.'),
-  'core-words': guide('Follow the stagger', 'z.', 'zz..z.z.', 'Z uses your {z}; period your {.}. Follow the keyboard’s stagger with small comfortable movements.'),
-  'index-up': guide('Visit the number row', '47', '44774747', '4 uses your {4}; 7 your {7}. Try the farther reach slowly, with a small hand adjustment.'),
 };
 
-/** Spec C4: the chunks enter as words at the first lesson where their letters exist (ing at N T, nce at C Y, ion at W O);
- * those lessons' words carry the chunk. Every other lesson's words follow slot 2's target (spec B3). */
-const CHUNK_LESSON: Readonly<Record<string, string>> = { 'home-words': 'ing', 'index-stretch-up': 'nce', 'ring-up': 'ion' };
 /** Slot 2's target and form, chosen per learner by the D5 rule (engine/next-practice); absent = no evidence, the shipped default. */
 export interface SlotPick { target: string; form: 'loop' | 'beat' }
 
@@ -85,6 +82,10 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
     const names = [...t.newKeys].map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' and ');
     const ownership = [...t.newKeys].map(k => `${k.toUpperCase()} uses your {${k}}`).join('; ');
     const visits = VISITS[t.id] ? [VISITS[t.id]!] : [];
+    // CURR-50: one headline movement carries the lesson — the D5 technical pick when it touches a new key, else the most
+    // common English movement the new letters make. Slot 2 loops it, slot 3's words carry it, slot 4's phrase reuses it.
+    // (Words no longer switch to a chunk; ing / nce / ion live in the Flow Bigrams lesson and in ordinary prose.)
+    const headline = pick?.target ?? (t.id === 'middle-up' ? 'ed' : headlineOf(t) ?? undefined);
     return [
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
       // Spec C3/D5: slot 2 isolates the learner's chosen target; without evidence, lesson 3 still meets `ed` (spec C1) and the
@@ -94,10 +95,14 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
         : loop(pick.target))
         : t.id === 'middle-up'
           ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves E↔D while right middle moves I↔K. Keep both movements small and even.', length: 26, target: 'ed', focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
-          : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
-      { ...use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), ...(CHUNK_LESSON[t.id] ? { target: CHUNK_LESSON[t.id] } : pick ? { target: pick.target } : t.id === 'middle-up' ? { target: 'ed' } : {}) },
+          : headline ? loop(headline)
+          // The slash lesson has no letter to loop: rehearse the real pairs its words and phrase will use.
+          : t.newKeys === '/' ? { name: 'Connect the slash', stage: 'mix', format: 'movement', instruction: 'The slash joins two words. Keep the right hand light as it reaches down; let the left prepare the next letter.', length: 28, text: 'yes/no and/or his/her in/out', focusKeys: '/' }
+            : move('Connect the movements', 'mix', 'Move between nearby keys with the same finger, then alternate hands. Prepare instead of resetting.', 24),
+      { ...use('Carry it into words', 'words', 'See the whole word. Let the next finger prepare while the current one presses.', t.n <= 5 ? 32 : 40), ...(headline ? { target: headline } : {}) },
       ...visits,
-      use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48),
+      // Lesson 3's phrase is already built from its own words (did, fed, if, kid); its E/D phrases would tip it left-handed.
+      { ...use('A small phrase', 'passage', 'Connect the word to the next. Pause between words when you need to; there is no hurry.', t.n === 3 ? 32 : 48), ...(headline && t.id !== 'middle-up' ? { target: headline } : {}) },
     ];
   }
   if (t.newKeys || t.shift) {

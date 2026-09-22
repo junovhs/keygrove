@@ -9,6 +9,7 @@ import CODE from '../data/code.json';
 import { rng, pickOne, shuffle, type Rng } from './rng';
 import { fingerOf, handOf, homeOf, mirrorOf, type FingerId } from '../curriculum/method';
 import { CHUNKS, PRACTICE_WORDS as CARRIERS } from '../curriculum/movements';
+import { EXCLUDED_WORDS as EXCLUDED_PRACTICE_WORDS, NEUTRAL_WORDS, carriersOf } from '../curriculum/headline';
 
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
@@ -16,7 +17,6 @@ export type Heat = Readonly<Record<string, number>>;
 export interface GenOptions { exercise?: LessonExercise; heat?: Heat; pairHeat?: Heat; weakPairs?: string[]; seed?: number }
 
 const anchorOf = (k: string) => homeOf(k);
-const EXCLUDED_PRACTICE_WORDS = new Set(['iii', 'diff', 'ref', 'gnu', 'thru', 'thy', 'sol', 'jeff', 'murder', 'murders', 'murdered', 'murderer', 'died']);
 const BIGRAMS = 'th he in er an re on at en nd ti es or te of ed is it al ar st to nt ng se ha as ou io le ve co me de hi ri ro ic ne ea ra ce li ch ll be ma si om ur'.split(' ');
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -94,11 +94,15 @@ function balancedPick(load: Load, sample: () => string, used: Map<string, number
   }
   return best;
 }
-/** `fill` with balance-aware selection. */
-function balancedFill(len: number, sample: () => string, r: Rng): string {
-  let load = emptyLoad(), last = '';
-  const used = new Map<string, number>();
-  return fill(len, () => { const p = balancedPick(load, sample, used, last, r); load = addLoad(load, p); used.set(p, (used.get(p) ?? 0) + 1); last = p; return p; });
+/** `fill` with balance-aware selection, optionally opening with a fixed `lead` piece that the balance then accounts for. */
+function balancedFill(len: number, sample: () => string, r: Rng, lead = ''): string {
+  let load = addLoad(emptyLoad(), lead), last = lead;
+  const used = new Map<string, number>(lead ? [[lead, 1]] : []);
+  let first = !!lead;
+  return fill(len, () => {
+    if (first) { first = false; return lead; }
+    const p = balancedPick(load, sample, used, last, r); load = addLoad(load, p); used.set(p, (used.get(p) ?? 0) + 1); last = p; return p;
+  });
 }
 
 /** Join pieces until the text reaches `len` characters (never cuts a piece). */
@@ -222,11 +226,16 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
     const phrases = readablePhrases(allowed);
     // Prefer language that actually exercises the new keys, rather than unrelated easy text.
     const target = phrases.filter(p => [...(exercise.focusKeys ?? trail.newKeys)].some(k => p.toLowerCase().includes(k)));
+    // CURR-50: the phrase opens with the lesson's headline movement when a readable phrase carries it; the balancer then
+    // continues from the carrying and new-key phrases, so the line stays two-handed even when the movement is one-handed.
+    const carrying = exercise.target ? phrases.filter(p => p.toLowerCase().includes(exercise.target!)) : [];
+    const lead = carrying.length ? pickOne(carrying, r) : '';
     // A thin target pool would repeat one phrase; widen it with the rest so the balancer has real choices.
-    const pool = shuffle(target.length >= 4 ? target : [...target, ...phrases.filter(p => !target.includes(p))], r);
+    const own = [...new Set([...carrying, ...target])];
+    const pool = shuffle(own.length >= 4 ? own : [...own, ...phrases.filter(p => !own.includes(p))], r);
     if (pool.length) {
       // Cycle the whole eligible pool with balance-aware choice, rather than repeating the one or two longest phrases.
-      return balancedFill(trail.id === 'middle-up' ? Math.min(32, len) : len, () => pickOne(pool, r), r);
+      return balancedFill(trail.id === 'middle-up' ? Math.min(32, len) : len, () => pickOne(pool, r), r, lead);
     }
   }
   if (exercise?.format === 'words' && trail.kind === 'words') {
@@ -324,19 +333,38 @@ function generateRaw(trail: Trail, stage: StageName, opts: GenOptions = {}): str
  * common word after every two carriers so the line reads as language (carriers ≥ 2/3 of the words). Null when fewer
  * than four carriers are typeable, so the caller falls back to the ordinary generator. */
 export function etude(target: string, allowed: Set<string>, len: number, r: Rng): string | null {
-  // Research carriers first; when the early key set is too small, supplement them with ordinary
-  // typeable vocabulary so a movement drill never falls through to words that omit its target.
-  const research = (CARRIERS[target] ?? []).filter(w => fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
-  const fallback = [...new Set([...PRACTICE_WORDS, ...TOP, ...WORDS])]
-    .filter(w => w.includes(target) && fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
-  const carriers = [...new Set([...research, ...fallback])].sort((a, b) => a.length - b.length);
+  // Research carriers first, then ordinary typeable vocabulary, so a sparse early key set still gets real words for its movement.
+  const carriers = carriersOf(target, allowed);
   if (carriers.length < 2) return null;
-  const neutral = TOP.filter(w => w.length <= 5 && !w.includes(target) && fits(w, allowed) && !EXCLUDED_PRACTICE_WORDS.has(w));
+  const neutral = NEUTRAL_WORDS.filter(w => !w.includes(target) && fits(w, allowed));
+  // The carriers may sit on one hand (be, ex, ze); the ordinary words between them lean the other way, so a lesson and its
+  // chapter stay balanced without diluting the movement (spec §31 applies to lessons and chapters, not to one movement).
   const words: string[] = [];
+  let load = emptyLoad();
+  const used = new Map<string, number>();
   for (let i = 0, c = 0; words.join(' ').length < len; i++) {
-    words.push(i % 3 === 2 && neutral.length ? pickOne(neutral, r) : carriers[c++ % carriers.length]!);
+    // The line opens with the two shortest carriers; later carriers are chosen, like the ordinary words, to keep the hands even.
+    const w = i % 3 === 2 && neutral.length ? balancedPick(load, () => pickOne(neutral, r), used, words.at(-1) ?? '', r, 12)
+      : c < 2 ? carriers[c++ % carriers.length]! : balancedPick(load, () => pickOne(carriers, r), used, words.at(-1) ?? '', r, 12);
+    words.push(w); load = addLoad(load, w); used.set(w, (used.get(w) ?? 0) + 1);
   }
   return words.join(' ');
+}
+
+/** Everyday slash pairs a learner actually writes. */
+export const SLASH_PAIRS: readonly string[] = ['yes/no', 'and/or', 'his/her', 'he/she', 'in/out', 'on/off', 'up/down'];
+/** Put `k` on `times` different words of a words line: after a word ("sail;"), or as a real pair ("yes/no") for a slash. */
+function attachPunctuation(text: string, k: string, times: number, r: Rng): string {
+  const words = text.split(' ');
+  const free = shuffle(words.map((_, i) => i).filter(i => /^[a-z]+$/i.test(words[i]!)), r);
+  const chosen = new Set<number>();
+  for (const i of free) { if (chosen.size >= times) break; if (!chosen.has(i - 1) && !chosen.has(i + 1)) chosen.add(i); }
+  // A slash only ever joins a real pair (yes/no, and/or); it replaces a word rather than gluing two unrelated ones.
+  const pairs = shuffle(SLASH_PAIRS, r);
+  const out = words.map((w, i) => (!chosen.has(i) ? w : k === '/' ? pairs[[...chosen].indexOf(i) % pairs.length]! : w + k));
+  let s = out.join(' ');
+  for (let n = [...s].filter(c => c === k).length; n < times; n++) s += ' ' + (k === '/' ? pairs[n % pairs.length] : 'so' + k);
+  return s;
 }
 
 /** Generate varied practice while guaranteeing evidence for every introduced key.
@@ -373,11 +401,15 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     if (count >= needed) continue;
     const familiarWords = PRACTICE_WORDS.filter(w => w.includes(k) && w.length <= 6 && fits(w, allowed));
     const words = familiarWords.length ? familiarWords : bank.filter(w => w.includes(k) && w.length <= 6);
+    // A words line carries punctuation the way writing does — on a word ("box, fox", "yes/no") — never as a lone token.
+    if (opts.exercise?.format === 'words' && !/[a-z0-9]/i.test(k)) { text = attachPunctuation(text, k, needed - count, r); continue; }
     for (let n = count; n < needed; n++) {
       const fragment = ({ ';': 'a; a', '/': 'a/b', "'": "'hi'", '"': '"hi"', '?': 'why?', '!': 'yes!', '-': 'a-b', ':': 'a:b', '(': '(a)', ')': '(a)', '@': 'a@b', '#': '#a', '$': '$2', '%': '2%', '&': 'a&b', '*': '2*2', '=': 'a=b', '+': '2+2', '_': 'a_b', '{': '{a}', '}': '{a}', '[': '[a]', ']': '[a]', '<': 'a<b', '>': 'a>b' } as Record<string, string>)[k];
       const phrases = opts.exercise?.format === 'passage' ? readablePhrases(allowed).filter(p => p.toLowerCase().includes(k)).sort((a,b) => a.length - b.length) : [];
       const shortPhrases = phrases.filter(p => p.length <= (phrases[0]?.length ?? 0) + 8);
-      const pool = shortPhrases.length ? shortPhrases : words.length && stage !== 'drill' ? words : [];
+      const onLine = new Set(text.toLowerCase().split(/[^a-z]+/));
+      const fresh = words.filter(w => !onLine.has(w));
+      const pool = shortPhrases.length ? shortPhrases : words.length && stage !== 'drill' ? (fresh.length ? fresh : words) : [];
       const piece = pool.length ? balancedPick(addLoad(emptyLoad(), text), () => pickOne(pool, r), new Map(), '', r, 16)
         : stage === 'words' && fragment && fits(fragment, allowed) ? fragment : k;
       text += (text ? ' ' : '') + piece;

@@ -12,6 +12,10 @@ export const PRACTICE_PHRASES: readonly string[] = [
   'move over', 'my mum', 'some milk', 'join us', 'oh no', 'you know him', 'good luck', 'hold on', 'only you', 'look, my phone', 'six of us, plus you', 'no, my box', 'lazy pup.', 'jump in.',
   'the girl held the jar', 'the sky is grey', 'they had tea', 'a little tree', 'the day is still',
   'a quiet day', 'we had tea', 'our house is quiet', 'please read', 'i read; she reads', 'yes/no', 'yes, we can', 'the quiet room is warm', 'we write a short note', 'the red fox jumps over a log',
+  // CURR-50: a few phrases so each lesson's headline movement can reach its phrase (mu, ar, in, ce, ca, on, pe, be, ex, ze).
+  'mum hid her mug', 'give mum her mug', 'a dark jar', 'dear sir', 'i heard a lark', 'a nice face', 'since the race', 'a thin line', 'in the rain', 'sing in time', 'call the cat', 'a cat in the car', 'i can carry it',
+  'on and on', 'only one moon', 'one long song', 'open the paper', 'keep the pen', 'people hope', 'be here', 'the best book', 'be back by then',
+  'the next text', 'an extra box', 'next, the box', 'a frozen prize', 'size zero', 'a dozen zebras',
   'bring the blue cup', 'my mum can make tea', 'we can meet by the gate', 'the rain falls on the garden',
   'the quick brown fox jumps over the lazy dog', 'pack my box with five dozen liquor jugs',
   'please leave the book by the window', 'write a little every day', 'take your time and let the words come',
@@ -28,6 +32,6 @@ export const FINGER_PHRASES = {
 export function readablePhrases(allowed: ReadonlySet<string>): string[] {
   return PRACTICE_PHRASES.filter(p => [...p].every(k => allowed.has(k))).map(p => {
     const first = allowed.has(p[0]!.toUpperCase()) ? p[0]!.toUpperCase() : p[0]!;
-    return first + p.slice(1) + (allowed.has('.') ? '.' : '');
+    return first + p.slice(1) + (allowed.has('.') && !/[.!?]$/.test(p) ? '.' : '');
   });
 }

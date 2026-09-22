@@ -109,7 +109,9 @@ describe('transition loop (spec B1, CURR-39)', () => {
     const text = generate(trailById('middle-up')!, 'mix', { exercise: ex });
     expect(text).toContain('ed'); expect(text).toContain('de'); expect(text).toContain('ik'); expect(text).toContain('ki');
     expect(() => generate(trailById('anchors')!, 'mix', { exercise: loop('ed') })).toThrow(/not unlocked/);
-    expect(() => loop('qa')).toThrow(/Unknown transition target/);
+    expect(() => loop('q')).toThrow(/Not a two-letter movement/);
+    expect(() => loop('ll')).toThrow(/Not a two-letter movement/);
+    expect(loop('he')).toMatchObject({ name: 'Connect H and E', target: 'he', format: 'movement' }); // any movement may headline a lesson (CURR-50)
   });
 });
 
@@ -134,15 +136,17 @@ describe('etudes (spec B3/C4, CURR-41)', () => {
     expect(text.split(' ').filter(w => w.includes('ed')).length / text.split(' ').length).toBeGreaterThanOrEqual(0.6);
     expect(text).not.toContain('jeff');
   });
-  it('the Bigrams trail and the wired lessons draw their words from the chunk sets', () => {
+  it('the Bigrams trail draws its words from the chunk sets; lesson words follow their own slot-2 movement (CURR-50)', () => {
     const t = trailById('bigrams')!, ex = lessonExercises(t).find(e => e.format === 'words')!;
     const chunks = ['ing', 'ion', 'tion', 'nce', 'ted'];
     for (const w of generate(t, 'words', { exercise: ex, seed: 2 }).split(' ')) expect(chunks.some(c => w.includes(c)), w).toBe(true);
-    for (const [id, target] of [['home-words', 'ing'], ['index-stretch-up', 'nce'], ['ring-up', 'ion']] as const) {
-      const tr = trailById(id)!, e = lessonExercises(tr).find(x => x.format === 'words')!;
-      expect(e.target).toBe(target);
-      // The raw etude is ≥ 2/3 carriers; the lesson's new keys are then guaranteed too, so at least half the words carry the chunk.
-      expect(carrierShare(generate(tr, 'words', { exercise: e, seed: 3 }), target), id).toBeGreaterThanOrEqual(0.5);
+    for (const [id, pick] of [['home-words', 'tr'], ['index-stretch-up', 'ce'], ['ring-up', 'lo']] as const) {
+      const tr = trailById(id)!, ex2 = lessonExercises(tr, { target: pick, form: 'loop' });
+      expect(ex2[1]!.target).toBe(pick);
+      const e = ex2.find(x => x.format === 'words')!;
+      expect(e.target).toBe(pick);
+      // The raw etude is ≥ 2/3 carriers; the lesson's new keys are then guaranteed too, so at least half the words carry it.
+      expect(carrierShare(generate(tr, 'words', { exercise: e, seed: 3 }), pick), id).toBeGreaterThanOrEqual(0.5);
     }
   });
   it("a coach transition drill on a research target is that target's etude", () => {

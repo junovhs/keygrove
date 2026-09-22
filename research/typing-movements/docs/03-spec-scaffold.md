@@ -154,6 +154,10 @@ Answered 2026-09-22 (SPEC-02). Settled inputs: `docs/04-movement-vocabulary-chec
 
 **Today:** The Flow Bigrams trail exists with weak-pair text. Change → CURR-41 (chunk etudes).
 
+**Amended 2026-09-22 (CURR-50):** Lesson words now always carry the movement slot 2 just drilled; the chunks no longer replace them at lessons 10/12/13. Their home is the Flow Bigrams lesson plus ordinary prose. Reason: in the second dev trace, `tr` was drilled and then `king ring thing` followed, and `lo` was drilled and then `lion union onion` — the words did not use what was just practised.
+
+**C3 amendment (CURR-50):** A new-key lesson with no technical target now gets a headline movement too: the most common English bigram (universal across all three corpora, from `COMMON_TRANSITIONS`) that uses one of its new letters and has ≥ 4 everyday carrier words. Examples: `hi` (G H), `ve` (V M), `is` (S L), `ar` (A ;), `pe` (Q P), `be` (B), `ex` (X), `ze` (Z). Slot 2 loops it, the words carry it, and the phrase opens with it. The technical pick still wins where one touches the new keys (`ed`, `mu`, `tr`, `ce`, `lo` for a first-time learner).
+
 ## C5. Sequence
 
 **Default:** One prerequisite only: a target or chunk appears when both (all) of its keys are unlocked. There is no dependency between targets, no mastery gate before the next target, and no prerequisite graph. Checkpoints stay as they are: chapter accuracy only (DEC-11). Coverage check: the words/prose generators over any unlocked-key set must be able to produce every core bigram whose two keys are unlocked — a test, not a runtime system.

@@ -53,6 +53,7 @@ describe('next-lesson rule (scaffold D5)', () => {
     const ex = lessonExercises(trailById('ring-pair')!, { target: 'mu', form: 'loop' });
     expect(ex[1]).toMatchObject({ name: 'Connect M and U', target: 'mu' });
     expect(ex[2]).toMatchObject({ format: 'words', target: 'mu' });
-    expect(lessonExercises(trailById('home-words')!, { target: 'mu', form: 'loop' })[2]!.target).toBe('ing'); // a chunk lesson keeps its chunk (spec C4)
+    // CURR-50 (amends spec C4): the words always carry slot 2's movement; chunks live in the Flow Bigrams lesson and in prose.
+    expect(lessonExercises(trailById('home-words')!, { target: 'tr', form: 'loop' })[2]!.target).toBe('tr');
   });
 });

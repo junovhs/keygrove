@@ -13,6 +13,9 @@ and emits four sets under outputs/candidates/:
                              feature (same-finger chain, redirect, double row
                              change, roll)
   practice_words.csv         everyday words carrying each technical target
+  everyday_words.csv         the whole everyday-word pool those are drawn from,
+                             most frequent first — the app's vocabulary for
+                             carrying any movement into words (CURR-50)
 
 Everything here is PROVISIONAL until learner error/hesitation data exists.
 No composite difficulty score is computed; the mechanical facts are listed
@@ -501,6 +504,16 @@ write_csv(
     ],
 )
 
+write_csv(
+    "everyday_words.csv",
+    {"word_floor_subtlex_freqcount": WORD_FLOOR, "word_floor_subtlex_cdcount": WORD_CD_FLOOR,
+     "word_lower_ratio": WORD_LOWER_RATIO, "excluded_words": len(EXCLUDED_WORDS),
+     "word_floor_per_million": f"{1e6 * WORD_FLOOR / subtlex_tokens:.1f}",
+     "source": "Google Books word list ∩ SUBTLEX-US", "order": "SUBTLEX-US frequency desc, then word"},
+    ["word", "subtlex_freqcount", "subtlex_cdcount", "provisional"],
+    [[w, n, subtlex_cd[w], True] for w, n in sorted(everyday.items(), key=lambda wn: (-wn[1], wn[0]))],
+)
+
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
@@ -685,7 +698,7 @@ add("hard, and they do not order lessons. RES-05 exports them; lesson forms")
 add("and sequencing are separate issues.")
 add("")
 
-(OUT / "candidates.md").write_text("\n".join(L), encoding="utf-8")
+(OUT / "candidates.md").write_bytes("\n".join(L).encode("utf-8"))  # LF on every OS
 
 print(f"Wrote {OUT / 'candidates.md'}")
 print(f"  core {len(core)}  technical {len(technical)}/{len(technical_pool)}  "
