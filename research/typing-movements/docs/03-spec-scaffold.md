@@ -10,53 +10,111 @@ Resolved decisions should replace questions with short answers.
 
 # A. Core experience
 
+Answered 2026-09-22 (SPEC-01). Inputs taken as given: DEC-14 (three forms, one Continue, deletion test), DEC-11 (guided vs assessed), and the research checkpoint (`docs/04-movement-vocabulary-checkpoint.md`: 43 core bigrams for coverage, 11 technical targets, a few chunks). Each answer: **Default** · **Reason** · **Today** (what the app already does).
+
 ## A1. Entry
 
-**Question:** What exactly is on the default screen when a returning learner opens the app?
+**Default:** The default screen *is* the next exercise, ready to type: one line of purpose ("3/5 · Connect the movements"), one sentence of instruction, the text, the hands. No home page, no mode choice. The first keystroke starts the run; the only button is Start/Continue. Lessons and settings stay in the small top nav.
 
-Desired constraint: very little.
+**Reason:** "Open → practice → done" means the open state is already practice. Anything between the learner and the first key is cost.
+
+**Today:** Already true. `main.ts` boots into the current trail's current exercise; the once-per-session briefing (`briefings.ts`) precedes a lesson's first exercise and is skippable with Escape. No change.
 
 ## A2. Lesson duration
 
-**Question:** What is the default target duration for one lesson?
+**Default:** A lesson is 3–5 exercises, each 16–48 characters, totalling about 120–200 characters plus reading — roughly 2–5 minutes at beginner pace, under 2 at fluent pace. Duration is a *budget on text length*, never a timer: nothing counts down, nothing ends early.
 
-Current direction: roughly 2–5 minutes.
+**Reason:** Short enough to finish in one sitting without deciding to; long enough for a target to be introduced, connected and used once. A timer would make pace visible, which DEC-14 forbids.
+
+**Today:** Already true by construction (`lesson-flow.ts`: exercise lengths 16–48; 3–5 exercises per trail). No change. Alternative rejected: a fixed 3-minute clock — would cut a slow learner mid-word.
 
 ## A3. Lesson completion
 
-**Question:** What constitutes finishing a lesson?
+**Default:** A lesson is complete when its last exercise ends. Guided exercises end on completion; assessed ones on reaching the chapter's visible accuracy target (DEC-11). Every exercise pass is saved immediately, so a lesson is never "lost". The result screen after the last exercise shows the lesson name, one sentence, characters typed / missed keys, and — for assessed runs — accuracy. Nothing else.
+
+**Reason:** Completion should be a fact the learner can feel ("I typed it, it was accurate"), not a computed judgment.
+
+**Today:** Already true (`progress.ts` saves `lessonSteps` per exercise; result screen is small). No change.
 
 ## A4. Continue behavior
 
-**Question:** After a lesson, what happens if the learner wants another?
+**Default:** One button, always labelled by what it leads to ("Next: Carry it into words", "Retry: A small phrase", "Settle the tricky part"). Continue goes to the next exercise, then the next lesson, without a summary between lessons beyond the one result screen. A coach step (brief targeted practice) may sit between two exercises when accuracy warrants; it is presented as the next thing, not as a detour. Escape or Enter on the result screen also continues.
+
+**Reason:** A single obvious next action is the whole navigation model (DEC-14). The label carries the purpose so no menu is needed.
+
+**Today:** Already true (`continueAfterResult`, `nextAction` labels, coach `gate`). No change.
 
 ## A5. Leaving
 
-**Question:** Can the learner stop cleanly at any lesson boundary without feeling they abandoned something?
+**Default:** Closing the app at any result screen is a clean stop: the next exercise is already the saved position, and reopening shows it with no "you left" message, no streak, no penalty. Leaving mid-run (Escape) discards only that run's text; the exercise is still where it was. There is no end-of-day ritual and no unfinished-lesson warning.
+
+**Reason:** "Easy to stop after any lesson" means the app never asks the learner to account for stopping. A lesson boundary is every exercise boundary.
+
+**Today:** Already true (`lessonSteps` persist per exercise; `abort()` just resets the run). Remove: nothing today nags on exit. No change.
 
 ---
 
 # B. Lesson anatomy
 
+The three learner-facing forms of DEC-14 — **transition loop**, **steady beat**, **words / etude** — plus **transfer** (ordinary prose) are *ingredients of one lesson*, not separate lesson types or a taxonomy. A lesson names one target (a key, a technical transition, or a chunk) and runs 3–5 exercises drawn from these ingredients in a fixed order: find → loop → words → transfer. Steady beat replaces the loop when the target is already accurate but uneven.
+
 ## B1. Transition loop
 
-**Question:** What does the smallest excellent transition-loop lesson look like second by second?
+**Default:** One target transition (v1: one of `ed de ce ec tr un lo ol rt mu um`) typed as a short phrase in both directions with a rest between — for `mu`: `mu um mum mu um mum` — 20–28 characters, assessed at the chapter accuracy target, no speed. The instruction names the mechanics ("same finger, bottom to top"), never which finger the learner *did* use (DEC-15).
+
+**Reason:** The transition is the unit (DEC-13); both directions expose the return movement. Short, because the loop only makes the movement deliberate before it hides inside words.
+
+**Today:** Partly. `move('Connect the movements')` exists (length 24) but draws on all unlocked keys, not a named target. Change → CURR-39.
+
+**Sketch (≈45 s):**
+- 0 s — Screen shows "2/4 · Connect M and U", one line: "Same finger, bottom to top. Let the finger travel; do not reset to J between."
+- 0–3 s — Learner reads the 24-character line `mu um mum mu um mum mu um`. Hands show R-index lit.
+- 3–35 s — Types it. Each correct press ticks; a miss shrugs. No clock.
+- 35 s — Result: "24 characters · 1 missed key · 96%". Continue → "Next: Carry it into words".
 
 ## B2. Steady beat
 
-**Question:** How should rhythm practice work visually and sonically without becoming annoying?
+**Default:** The B1 phrase typed to a soft regular pulse — a quiet tick and a dot that fills on the beat — set from the learner's own recent pace, rounded slow; never a target to beat. Feedback is timing *quality*, once at the end: one word ("Even" / "Uneven") and a small three-bar glyph. Never WPM, never "faster". Existing audio toggle; no metronome setting.
+
+**Reason:** DEC-14: steady beat trains timing quality, not pace. A pulse from the learner's own speed cannot push.
+
+**Today:** Not present. Rhythm is measured (`run.rhythm()`) and cues exist (`ui/sound.ts`); no pulse or evenness display. Change → CURR-40. Rejected: adjustable BPM — a setting for its own sake.
+
+**Sketch (≈50 s):**
+- 0 s — "2/4 · Keep it even", one line: "A quiet pulse at your own pace. Land each press near it; nothing is timed."
+- 0–4 s — Two free beats sound so the pace is heard before typing. Line: `ed de dee ed de dee ed de`.
+- 4–40 s — Learner types; the dot fills on each beat, presses that land near it fill it fully, late or early ones fill it partly. No count, no score visible.
+- 40 s — Result: "Even" (or "Mostly even" / "Uneven") with the three-bar glyph. Continue → "Next: Carry it into words".
 
 ## B3. Words / etudes
 
-**Question:** How should words be selected around a target movement while remaining natural and useful?
+**Default:** 32–48 characters of everyday words containing the target, from the research practice-word set (`outputs/candidates/practice_words.csv`), short carriers first, with two or three ordinary words mixed in so it reads as language — for `mu`: `much must mud music the museum much`. Assessed at the chapter accuracy target. The target is named once in the instruction; words are not highlighted.
+
+**Reason:** DEC-13: every technical target returns to real words in the same lesson. The word set is already filtered for everyday use; the app only picks from it.
+
+**Today:** Partly. `use('Carry it into words')` exists; words come from the trail's word bank and weak-pair heat, not a target's carrier set. Change → CURR-41.
+
+**Sketch (≈60 s):**
+- 0 s — "3/4 · Carry it into words", one line: "M then U inside real words. See the whole word before you start it."
+- 0–4 s — Line of ~40 characters: `much must mud music the museum much`.
+- 4–55 s — Types it; word-end cue on each Space.
+- 55 s — Result: "38 characters · no missed keys · 100%". Continue → "Next: A small phrase".
 
 ## B4. Transfer
 
-**Question:** When and how does a lesson move from isolated technique into ordinary text?
+**Default:** Every technical lesson ends with one ordinary-prose exercise (48–60 characters) *not* built around the target: a plain sentence from the existing passage generator. The target usually appears because it is common; nothing forces it. If the target was missed there, the result says so in one line — no separate "transfer" score.
+
+**Reason:** DEC-10 / DEC-13: technique returns to prose in the same lesson, unforced, so ordinary typing is the measure.
+
+**Today:** Already true in shape (`'passage'` exercises close most lessons). Change: the one-line note when the target was missed in prose → CURR-43.
 
 ## B5. Variety
 
-**Question:** How does the app vary lesson form without making the learner choose from a menu of modes?
+**Default:** No menu. Variety comes from two axes only: the *target* the lesson names, and the *form* in slot 2 — loop when the target is new or inaccurate, steady beat when accurate but uneven. Chunk lessons (`ing`, `ion`, `nce`, `ted`) use words and prose only. The learner sees the purpose line change, never a choice. Guided "visits" keep their occasional slot.
+
+**Reason:** DEC-14: the app chooses form and target; the learner sees purpose and Continue. Two axes add no system.
+
+**Today:** Partly. Order is fixed per trail kind in `lesson-flow.ts`; no target-level form choice. The rule itself is SPEC-02 / CURR-44; this answer only fixes that it is invisible and two-axis.
 
 ---
 
