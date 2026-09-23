@@ -1,5 +1,6 @@
 /** Public course instructions, rendered in the app and as crawlable documentation pages. */
 import { defineDocs, defineFacts } from 'dopedocs';
+import { CHUNKS, TECHNICAL_TRANSITIONS } from './curriculum/movements';
 export const PRODUCT = 'KeyJam';
 export const FACTS = defineFacts({
   price: { value: 'free', reviewed: '2026-09-21' },
@@ -71,6 +72,18 @@ export const docs = defineDocs({
         ] },
         { kind: 'p', text: 'Numbers follow the same columns: 1 and 2 to the left pinky and ring, 3 to the middle, 4 and 5 to the index; 6 and 7 to the right index, 8 middle, 9 ring, 0 pinky. Shifted symbols use the finger of the key underneath them, with Shift held by the other hand.' },
         { kind: 'p', text: 'The map is deliberately stable through the whole course. A learner who keeps changing assignments in search of a marginal gain interferes with their own motor learning; learn one map first, optimise later if you ever want to.' },
+      ] },
+      { id: 'movements', title: 'Practising movements', question: 'How does KeyJam practise typing movements?', answer: `${PRODUCT} treats typing as movements between keys, not just keys. Each new-key lesson isolates one movement, carries it into everyday words and then into a short phrase, so the same motion has to hold in real text.`, keywords: ['movements', 'transition loop', 'steady beat', 'practice forms', 'bigrams'], blocks: [
+        { kind: 'p', text: 'Knowing where a key is does not make the reach to it easy. So each new-key lesson picks one movement, such as M to U or I to S, and works on that motion in three forms.' },
+        { kind: 'steps', items: [
+          { title: 'Connect M and U', text: 'The transition loop: one pair typed both ways with a rest between (mu um mum). Where a same-finger pair applies it is chosen; otherwise the most common pair your new letter makes.' },
+          { title: 'Keep it even', text: 'The steady beat, used only when a movement you type accurately still comes out uneven: the same loop to a quiet pulse set a little slower than your own usual pace. It ends with one word (Even, Mostly even or Uneven) and three small bars. No number, no score.' },
+          { title: 'Carry it into words', text: 'The word line: everyday words concentrated on that same movement, then a short phrase that reuses them.' },
+        ] },
+        { kind: 'p', text: 'Ordinary prose closes the lesson. If the movement slips there, one sentence names it and it comes back in a later lesson; nothing is scored for it.' },
+        { kind: 'facts', title: 'Where the movements come from', rows: [['Isolated movements', `${TECHNICAL_TRANSITIONS.length} same-finger pairs, the ones English uses most`], ['Common chunks', `${CHUNKS.length} (${CHUNKS.map((c) => c.ngram).join(' ')}), practised only inside words`], ['Chosen by', 'How often a movement occurs in real English, crossed with what the hand has to do']] },
+        { kind: 'p', text: '**Continue** chooses the movement and the form from your own practice. There is no menu, setting or schedule to manage. Pace is never asked for: words per minute appears once, on the Flow checkpoint. If you race through an early drill, a note suggests trying it once slowly.' },
+        { kind: 'callout', tone: 'note', text: 'The movement list is provisional: it comes from large text collections and will be revised as real practice data arrives. And the app cannot see which finger you used; it shows the intended one and leaves the checking to you.' },
       ] },
     ] },
     { id: 'progress', title: 'How you advance', question: 'How do I finish a lesson in KeyJam?', answer: `Each lesson is a short, visible sequence of exercises. Every pass at the shown accuracy target moves you forward one exercise; the last exercise completes the lesson. Chapter checkpoints require ${FACTS.checkpoint.value} accuracy. Speed is never a gate.`, keywords: ['accuracy', 'pass', 'exercise', 'checkpoint', 'wpm'], blocks: [
