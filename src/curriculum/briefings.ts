@@ -1,4 +1,5 @@
 import type { Trail } from './types';
+import { isShifted } from './method';
 
 export type BriefIcon = 'hand' | 'bumps' | 'anchor' | 'feather' | 'eye' | 'space' | 'rhythm' | 'stretch';
 export interface BriefTip { icon: BriefIcon; title: string; body: string; keys?: string; press?: string }
@@ -25,13 +26,15 @@ const BRIEFINGS: Record<string, Briefing> = {
   'roots-checkpoint': brief('Your first connected passage', 'Use the movements from all three letter rows.',
     tip('rhythm', '97% accuracy, at your pace', 'Slow practice counts fully. Read a word ahead, pause when you need to, and use the landmarks if you lose your bearings.', 'fjdkeighvm')),
 };
+/** Only for keys typed with Shift: says what the on-screen help actually does. */
+const SHIFT_NOTE = ' Hold Shift with your other hand; the keyboard lights the one to use.';
 /** Later new movements also receive a short explicit introduction, resolved through the active method. */
 export function briefingFor(trail: Trail): Briefing | null {
   if (BRIEFINGS[trail.id]) return BRIEFINGS[trail.id]!;
-  if (trail.shift) return brief('Opposite-hand Shift', 'Connect a held modifier to a light letter press.', tip('hand', 'Let the other hand help', 'Hold right Shift for left-hand letters and left Shift for right-hand letters. The guide shows both hands; release between capitals.', 'fj'));
+  if (trail.shift) return brief('Opposite-hand Shift', 'Connect a held modifier to a light letter press.', tip('hand', 'Let the other hand help', 'Hold right Shift for left-hand letters and left Shift for right-hand letters. The keyboard lights the Shift to hold; release it between capitals.', 'fj'));
   if (!trail.newKeys) return null;
   return brief(trail.name, 'Meet the movement before expecting yourself to remember it.',
-    ...[...trail.newKeys].reduce<string[]>((chunks, k, i) => { if (i % 2 === 0) chunks.push(k); else chunks[chunks.length - 1] += k; return chunks; }, []).slice(0, 3).map(ks => tip('hand', 'Find each key deliberately', [...ks].map(k => `${k.toUpperCase()} uses your {${k}}.`).join(' ') + ' Follow the Shift guide when needed.', ks)),
+    ...[...trail.newKeys].reduce<string[]>((chunks, k, i) => { if (i % 2 === 0) chunks.push(k); else chunks[chunks.length - 1] += k; return chunks; }, []).slice(0, 3).map(ks => tip('hand', 'Find each key deliberately', [...ks].map(k => `${k.toUpperCase()} uses your {${k}}.`).join(' ') + ([...ks].some(isShifted) ? SHIFT_NOTE : ''), ks)),
     tip('feather', 'Small and comfortable', 'Allow an easy hand adjustment. Keep the press light; pause if you notice tension. Slow, accurate practice counts fully.'));
 }
 export const briefedTrails = (): string[] => Object.keys(BRIEFINGS);

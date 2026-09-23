@@ -1,10 +1,21 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { MAIN_TRAILS, allowedChars, resolveCopy, trailById, trailsInGrove } from './index';
 import { briefedTrails, briefingFor } from './briefings';
-import { DEFAULT_METHOD_ID, METHODS, setMethod } from './method';
+import { DEFAULT_METHOD_ID, METHODS, isShifted, setMethod } from './method';
 afterEach(() => setMethod(DEFAULT_METHOD_ID));
 
 describe('lesson briefings', () => {
+  it('mention Shift only where the lesson has a shifted character, and never an unexplained "Shift guide"', () => {
+    for (const t of MAIN_TRAILS) {
+      const b = briefingFor(t);
+      if (!b) continue;
+      const text = b.tips.map(tip => tip.body).join(' ');
+      expect(text, t.id).not.toMatch(/Shift guide/);
+      if (!t.shift && ![...t.newKeys].some(isShifted)) expect(text, t.id).not.toMatch(/shift/i);
+    }
+    const ringPair = briefingFor(trailById('ring-pair'))!.tips[0]!;
+    expect(resolveCopy(ringPair.body)).toBe('S uses your left ring. L uses your right ring.');
+  });
   it('cover Roots and every later new movement with one to four short steps', () => {
     for (const t of trailsInGrove('roots')) {
       const b = briefingFor(t);
