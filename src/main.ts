@@ -6,15 +6,16 @@ import { PACE_NOTE, notePace, paceFactor, paceNoteApplies, typedFast } from './e
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import type { Stop } from './curriculum/stops';
-import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
+import { fingerLevels, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, renderCopy, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
-import { fingers, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
+import { fingerById, fingerForKey, remedialText } from './curriculum/fingers';
 import { METHODS, activeMethod, baseKey, fingerOf, isShifted, reassignedKeys, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
 import { missedTarget, classifyRun, rollTally } from './engine/errors';
-import { applyRun, blockingStop, currentStage, pendingStop, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
+import { STOPS } from './curriculum/stops';
+import { applyRun, blockingStop, currentStage, pendingStop, stopDone, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { recordPerformance } from './engine/learning';
 import { attemptPrompts, classifyPreparation, wordBigrams, type TracedRun } from './engine/preparation';
@@ -38,7 +39,7 @@ import { selfTest as textflowSelfTest } from './render/textflow';
 
 /** What the current run is for: the trail itself, a finger drill, or a coach drill (confusion / reach / review). */
 /** `slow`: the exercise just finished, replayed once as guided practice from the pace note (PACE-03); not a separate screen. */
-type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number; stop?: Stop } | { kind: 'coach'; decision: Decision } | { kind: 'explore'; key: string } | { kind: 'slow'; text: string };
+type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number; stop: Stop } | { kind: 'coach'; decision: Decision } | { kind: 'explore'; key: string } | { kind: 'slow'; text: string };
 
 // Guests have a separate durable save. Account state never leaks into a
 // signed-out session; first signup carries the current guest course forward.
@@ -182,10 +183,10 @@ function resetRun(): void {
   run = new Run(makeText()); outcome = null; decisions = [];
   if (devTraceEnabled) devKnownAtStart = new Set(wordBigrams(run.text).filter((g) => (trans.stat(g)?.seen ?? 0) > 0));
   $('nextAction').textContent = 'Continue';
-  $('skipPractice').hidden = mode.kind === 'trail' || (mode.kind === 'remedial' && !!mode.stop);
+  $('skipPractice').hidden = mode.kind === 'trail' || mode.kind === 'remedial';
   $('skipPractice').textContent = 'Back to my course';
   document.body.classList.remove('showing-result');
-  arena().classList.remove('result-mode', 'focus-mode'); endBrief(); render(); $('lessonTitle').focus();
+  arena().classList.remove('result-mode'); endBrief(); render(); $('lessonTitle').focus();
   if (mode.kind === 'trail') openBrief();
   if (mode.kind === 'slow') startDemo(); else stopDemo();
 }
@@ -197,13 +198,6 @@ function header(): void {
   const t = runTrail, g = groveOf(t);
   if (mode.kind === 'explore') {
     $('route').innerHTML = ''; $('lessonNo').textContent = 'Your whole keyboard'; $('modeLabel').textContent = 'Guided exploration'; return;
-  }
-  if (mode.kind === 'remedial' && !mode.stop) {
-    const selected = mode;
-    $('route').innerHTML = fingerLevels(fingerById(selected.pair.sides[0])!).map((_, i) => '<i class="' + (i === selected.level ? 'current' : i < pairCompleted(state.fingerCourses, selected.pair) ? 'done' : '') + '"></i>').join('');
-    $('lessonNo').textContent = `Level ${mode.level + 1} of 10`;
-    $('modeLabel').textContent = mode.pair.name + ' course';
-    return;
   }
   $('route').innerHTML = trailsInGrove(g.id).map(x => '<i class="' + (x.id === t.id ? 'current' : isCleared(state, x.id) ? 'done' : '') + '"></i>').join('');
   // A woven finger stop sits on the chapter's route, just before the lesson it opens (DEC-20).
@@ -262,33 +256,6 @@ function metrics(): { wpm: number; acc: number; pct: number } {
   if (combo.textContent !== String(run.combo)) { combo.textContent = String(run.combo); if (run.combo > 0 && run.combo % 10 === 0) { combo.classList.remove('tick'); void combo.offsetWidth; combo.classList.add('tick'); } }
   const fill = document.getElementById('progressFill'); if (fill) fill.style.width = m.pct + '%';
   return m;
-}
-let browseFinger: FingerPair['id'] = 'index';
-let browseLevel = 0;
-function startFingerLevel(): void {
-  const f = FINGER_PAIRS.find(p => p.id === browseFinger);
-  if (!f) return;
-  if (replayReturn) { state.trail = replayReturn; replayReturn = null; }
-  mode = { kind: 'remedial', pair: f, level: browseLevel };
-  resetRun();
-}
-function focusGrid(): void {
-  const grid = $('focusGrid');
-  const f = FINGER_PAIRS.find(p => p.id === browseFinger)!;
-  const completed = pairCompleted(state.fingerCourses, f);
-  const inProgress = (level: number) => f.sides.some(id => (state.fingerCourses[fingerCourseId(id)] ?? 0) > level);
-  const levels = fingerLevels(fingerById(f.sides[0])!), selected = levels[browseLevel]!;
-  grid.innerHTML = '<div class="finger-picker" aria-label="Choose fingers to practice">' + FINGER_PAIRS.map(x => {
-    const count = pairCompleted(state.fingerCourses, x);
-    return `<button class="focus-key ${x.id === f.id ? 'active' : ''}" data-focus="${x.id}" aria-pressed="${x.id === f.id}"><strong>${escapeHtml(x.name)}</strong><span>${count}/10 complete</span></button>`;
-  }).join('') + '</div>'
-    + `<div class="finger-course-layout"><section class="finger-overview" aria-labelledby="fingerCourseTitle"><span class="eyebrow">${completed === 10 ? 'Course complete' : 'Your finger course'}</span><h3 id="fingerCourseTitle">${escapeHtml(f.name)}</h3><div class="finger-progress"><span style="width:${completed * 10}%"></span></div><div class="finger-progress-label">${completed} of 10 levels complete</div><div class="finger-selected"><span class="eyebrow">Selected · Level ${browseLevel + 1}</span><h4>${escapeHtml(selected.name)}</h4><p>${escapeHtml(selected.instruction)}</p></div><button class="finger-start" id="startFingerLevel">${browseLevel < completed ? 'Replay' : completed || inProgress(browseLevel) ? 'Continue' : 'Start'} level ${browseLevel + 1} <span aria-hidden="true">→</span></button><small class="finger-target">95% for each finger · No speed target</small></section>`
-    + '<section class="finger-level-section" aria-labelledby="fingerLevelsTitle"><div class="finger-level-heading"><h3 id="fingerLevelsTitle">Your 10 levels</h3><span>Choose a level to practice</span></div><div class="finger-levels">'
-    + levels.map((l,i) => `<button class="finger-level ${i === browseLevel ? 'selected' : ''} ${i < completed ? 'completed' : ''}" data-level="${i}" aria-pressed="${i === browseLevel}" ${i > completed ? 'disabled' : ''}><span class="finger-level-number">${String(i+1).padStart(2,'0')}</span><span class="finger-level-body"><strong>${escapeHtml(l.name)}</strong><small>${i < completed ? '✓ Complete · Replay available' : i === completed ? inProgress(i) ? 'In progress · Practice adapts to you' : 'Ready to start' : 'Locked · Complete level ' + i}</small></span>${i === browseLevel ? '<span class="finger-selected-mark">Selected</span>' : ''}</button>`).join('')
-    + '</div></section></div>';
-  grid.querySelectorAll<HTMLButtonElement>('[data-level]').forEach(b => b.onclick = () => { browseLevel = Number(b.dataset.level); focusGrid(); grid.querySelector<HTMLButtonElement>(`[data-level="${browseLevel}"]`)?.focus(); });
-  grid.querySelectorAll<HTMLButtonElement>('[data-focus]').forEach(b => b.onclick = () => chooseFocus(b.dataset.focus!));
-  $('startFingerLevel').onclick = startFingerLevel;
 }
 /** Badges above the hands: the active finger shows the key it is being asked for; the rest show their home keys. */
 function badges(active: Partial<Record<string, string>>): void {
@@ -384,7 +351,7 @@ document.addEventListener('pointerover', (e) => peekFingerRef(e, true));
 document.addEventListener('pointerout', (e) => peekFingerRef(e, false));
 document.addEventListener('focusin', (e) => peekFingerRef(e, true));
 document.addEventListener('focusout', (e) => peekFingerRef(e, false));
-function render(): void { header(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); if (brief) renderBrief(); }
+function render(): void { header(); labels(); prompt(); metrics(); keymap(); nextVisual(); if (brief) renderBrief(); }
 
 // ---- briefing: a few steps before a lesson, read one at a time ------------------
 const BRIEF_ICONS: Record<BriefIcon, string> = {
@@ -504,7 +471,7 @@ function showCompletion(): void {
   $('resultObject').hidden = false;
   $('resultObject').innerHTML = `${objectArt(k)}<span class="eyebrow">Yours to keep</span><h3>${escapeHtml(k.name)}</h3><p>${escapeHtml(k.line)}</p>`;
   $('result').classList.add('with-object');
-  arena().classList.remove('map-mode', 'focus-mode'); arena().classList.add('result-mode');
+  arena().classList.remove('map-mode'); arena().classList.add('result-mode');
   document.body.classList.add('showing-result');
   $('nextAction').textContent = 'Keep my hands familiar'; $('skipPractice').hidden = true;
   $('resultTitle').focus();
@@ -512,8 +479,8 @@ function showCompletion(): void {
 function continueAfterResult(firstKey?: string): void {
   if (mode.kind === 'explore') { resetRun(); return; }
   if (mode.kind === 'remedial') {
-    if (fingerPassed && mode.stop) mode = { kind: 'trail' };
-    else if (fingerPassed) mode.level = Math.min(9, mode.level + 1);
+    // A passed or replayed stop hands back to the course; an unpassed one runs again.
+    if (stopDone(state, mode.stop)) mode = { kind: 'trail' };
     resetRun(); return;
   }
   if (completionHome) { startMaintenance(); return; }
@@ -618,12 +585,10 @@ function finish(): void {
   if (mode.kind === 'remedial' && practice) {
     const replay = pairCompleted(state.fingerCourses, mode.pair) > mode.level;
     fingerPassed = completeFingerPractice(state.fingerCourses, mode.pair, mode.level, practice, run).passed;
-    const stop = mode.stop;
-    title = stop && !replay ? fingerPassed ? `${mode.pair.name}, steady.` : 'A little more practice here.' : replay ? 'Level revisited.' : fingerPassed ? mode.level === 9 ? `${mode.pair.name} course complete.` : 'Finger level complete.' : 'A little more practice here.';
-    if (stop) copy = fingerPassed ? 'Both hands passed. Your progress is saved, and your course continues.' : `Each hand needs ${FINGER_PASS_ACC}% on its own keys. Your next pass focuses on the movements that slipped.`;
-    else copy = fingerPassed
-      ? mode.level === 9 ? 'All ten levels are yours to revisit whenever you like.' : 'Your progress is saved. Continue to the next level at your own pace.'
-      : 'Some movements need another pass. Your next practice will focus on them; the progress you earned is saved.';
+    title = replay ? 'Finger stop revisited.' : fingerPassed ? `${mode.pair.name}, steady.` : 'A little more practice here.';
+    copy = replay ? 'A passed stop stays passed. Your course is waiting where you left it.'
+      : fingerPassed ? 'Both hands passed. Your progress is saved, and your course continues.'
+      : `Each hand needs ${FINGER_PASS_ACC}% on its own keys. Your next pass focuses on the movements that slipped.`;
   }
   const newly = guided() ? [] : [...allowedChars(t)].filter(k => k === k.toLowerCase()).filter(k => keys.mastery(k) >= MASTERED && (beforeMastery[k] ?? 0) < MASTERED);
   $('resultMastery').textContent = newly.length ? `Settled this time: ${newly.map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}` : `${run.hits} characters typed · ${run.errors === 0 ? 'no missed keys' : `${run.errors} missed ${run.errors === 1 ? 'key' : 'keys'}`}`;
@@ -657,8 +622,8 @@ function finish(): void {
   $('skipPractice').hidden = !gate;
   $('skipPractice').textContent = 'Try the passage instead';
   if (mode.kind === 'remedial') {
-    $('nextAction').textContent = mode.stop && fingerPassed ? `Next: ${stepName(trail())}` : !fingerPassed ? 'Continue practice' : mode.level === 9 ? 'Replay final level' : `Next: ${fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level + 1]!.name}`;
-    $('skipPractice').hidden = !!mode.stop; $('skipPractice').textContent = 'Back to my course';
+    $('nextAction').textContent = stopDone(state, mode.stop) ? `Next: ${stepName(trail())}` : 'Try this stop again';
+    $('skipPractice').hidden = true;
   }
   if (mode.kind === 'explore') { $('nextAction').textContent = 'Try this key again'; $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my lesson'; }
   devRecord({
@@ -698,53 +663,42 @@ function finish(): void {
 
 // ---- grove map ---------------------------------------------------------------------
 let mapKeys: ((e: KeyboardEvent) => void) | null = null;
-function openMap(showObjects = false): void {
+type BookView = 'course' | 'keepsakes';
+function openMap(view: BookView = 'course'): void {
   stopPulse();
   if (run.status === 'playing') resetRun();
-  sound.play('open');
-  arena().classList.remove('result-mode', 'focus-mode'); arena().classList.add('map-mode');
+  if (!arena().classList.contains('map-mode')) sound.play('open');
+  arena().classList.remove('result-mode'); arena().classList.add('map-mode');
   document.body.classList.remove('showing-result'); document.body.classList.add('showing-book');
-  mapKeys = renderMap($('groveMap'), state, keys, {
-    onSelect: selectLesson,
-    onClose: closeMap,
-  });
+  mapKeys = renderMap($('groveMap'), state, { onSelect: selectLesson, onStop: selectStop, onContinue: continueCourse, onClose: closeMap, continueLabel: stepName(trail()) });
   $('keepsakeCollection').innerHTML = collectionHtml(state);
   $('keepsakeCollection').querySelectorAll<HTMLButtonElement>('[data-replay]').forEach(b => b.onclick = () => selectLesson(trailById(b.dataset.replay!)));
-  $('bookProgress').textContent = `${MAIN_TRAILS.filter(t => isCleared(state, t.id)).length} of 36 lessons complete · ${ownedKeepsakes(state).length} ${ownedKeepsakes(state).length === 1 ? 'keepsake' : 'keepsakes'}`;
-  if (showObjects) { $('collectionTitle').tabIndex = -1; $('collectionTitle').focus(); $('collectionTitle').scrollIntoView({ block: 'start' }); }
+  const owned = ownedKeepsakes(state).length;
+  $('bookProgress').textContent = `${MAIN_TRAILS.filter(t => isCleared(state, t.id)).length} of ${MAIN_TRAILS.length} lessons · ${STOPS.filter(st => stopDone(state, st)).length} of ${STOPS.length} finger stops · ${owned} ${owned === 1 ? 'keepsake' : 'keepsakes'}`;
+  showBookView(view);
 }
+/** The course and the keepsakes share one screen; the tabs swap what fills it. */
+function showBookView(view: BookView): void {
+  $('groveMap').hidden = view !== 'course'; $('collectionSection').hidden = view !== 'keepsakes';
+  for (const [id, v] of [['bookTabCourse', 'course'], ['bookTabKeepsakes', 'keepsakes']] as const) $(id).setAttribute('aria-selected', String(view === v));
+  if (view === 'keepsakes') $('collectionTitle').focus();
+}
+$('bookTabCourse').onclick = () => { showBookView('course'); $('groveMap').querySelector<HTMLElement>('[aria-current="step"],.chapter-tile.active')?.focus(); };
+$('bookTabKeepsakes').onclick = () => showBookView('keepsakes');
+/** Leave a replayed lesson's detour before starting anything else from the book. */
+function leaveReplay(): void { if (replayReturn) { state.trail = replayReturn; replayReturn = null; } gate = null; }
+function selectStop(stop: Stop): void { sound.play('select'); leaveReplay(); mode = { kind: 'remedial', pair: stop.pair, level: stop.level, stop }; closeMap(); resetRun(); }
+/** Continue from the book: the next step on the path, which may be a finger stop (DEC-20). */
+function continueCourse(): void { leaveReplay(); mode = { kind: 'trail' }; closeMap(); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else resetRun(); }
 function selectLesson(t: Trail): void { sound.play('select'); replayReturn = isCleared(state, t.id) ? courseFrontier().id : null; state.trail = t.id; mode = { kind: 'trail' }; gate = null; closeMap(); resetRun(); }
 function closeMap(): void { sound.play('close'); arena().classList.remove('map-mode'); document.body.classList.remove('showing-book'); mapKeys = null; if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else { render(); startPulse(); } $(completionHome || run.status === 'complete' ? 'resultTitle' : 'lessonTitle').focus(); }
 
-// ---- focus / remedial ----------------------------------------------------------
-function openFocus(): void {
-  if (run.status === 'playing') { toast('Finish or reset before opening trouble-spot practice.'); return; }
-  if (mode.kind === 'remedial') browseFinger = mode.pair.id;
-  browseLevel = Math.min(9, pairCompleted(state.fingerCourses, FINGER_PAIRS.find(p => p.id === browseFinger)!));
-  sound.play('open');
-  arena().classList.remove('result-mode'); document.body.classList.remove('showing-result'); arena().classList.add('focus-mode'); focusGrid(); $('focusTitle').focus();
-}
-function closeFocus(): void { sound.play('close'); arena().classList.remove('focus-mode'); if (completionHome || run.status === 'complete') { arena().classList.add('result-mode'); document.body.classList.add('showing-result'); } else render(); }
-function chooseFocus(id: string): void {
-  const f = FINGER_PAIRS.find(p => p.id === id);
-  if (!f) { closeFocus(); return; }
-  browseFinger = f.id;
-  browseLevel = Math.min(9, pairCompleted(state.fingerCourses, f));
-  focusGrid();
-  $('focusGrid').querySelector<HTMLButtonElement>(`[data-focus="${f.id}"]`)?.focus();
-}
-$('closeFingerCourses').onclick = closeFocus;
 function sessionCheck(): void {
   if (!state.settings.reviewOn) return;
   const d = sessionReview(keys, unlockedLetters(), Date.now());
   if (d) startCoach(d);
 }
 // ---- input -----------------------------------------------------------------------
-function handleFocusKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape') { e.preventDefault(); closeFocus(); return; }
-  if (e.key === ' ') { e.preventDefault(); chooseFocus('none'); return; }
-  const f = fingers().find((x) => x.anchor === e.key.toLowerCase()); if (f) { e.preventDefault(); chooseFocus(FINGER_PAIRS.find(p => p.sides.includes(f.id as Exclude<Finger['id'], 'thumb'>))!.id); }
-}
 function handleIdleOrResult(e: KeyboardEvent): void {
   if (e.key === 'Enter' && document.activeElement?.id === 'practiseSlowly') { e.preventDefault(); practiseSlowly(); return; }
   if (e.key === 'Enter') { e.preventDefault(); if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); return; }
@@ -767,7 +721,6 @@ document.addEventListener('keydown', (e) => {
   if (settingsModal().classList.contains('open')) { trapDialog(e, settingsModal()); if (e.key === 'Escape') { sound.play('close'); settingsModal().classList.remove('open'); $('settingsTopBtn').focus(); e.preventDefault(); } return; }
   if (arena().classList.contains('map-mode')) { mapKeys?.(e); return; }
   if (e.target instanceof HTMLElement && e.target.closest('button,a,input,select,textarea,summary,[contenteditable]')) return;
-  if (arena().classList.contains('focus-mode')) { handleFocusKey(e); return; }
   if (brief) {
     // Only the explicit steps advance: a briefing is meant to be read, so stray typing never skips it.
     // A press step listens for its own keys instead.
@@ -787,7 +740,6 @@ document.addEventListener('keydown', (e) => {
   handleIdleOrResult(e);
 });
 $('prompt').onclick = () => { if (run.status === 'idle' && !brief) begin(); };
-$('focusNav').onclick = () => { if (arena().classList.contains('focus-mode')) closeFocus(); else openFocus(); };
 $('guideToggle').onclick = () => { helpVisible = !helpVisible; labels(); keymap(); nextVisual(); $('lessonTitle').focus(); };
 $('exploreKeyboard').onclick = () => {
   if (mode.kind === 'explore') mode = { kind: 'trail' };
@@ -800,8 +752,10 @@ $('skipGuided').onclick = () => {
   save(); resetRun();
 };
 $('resetRunBtn').onclick = () => { if (run.status === 'playing') abort(); else resetRun(); };
-$('lessonsNav').onclick = () => { if (arena().classList.contains('map-mode')) closeMap(); else openMap(); };
-$('statsNav').onclick = () => openMap(true);
+/** Each nav item opens its own view of the book, or closes the book when that view is already showing. */
+const bookShowing = (view: BookView) => arena().classList.contains('map-mode') && !$(view === 'course' ? 'groveMap' : 'collectionSection').hidden;
+$('lessonsNav').onclick = () => { if (bookShowing('course')) closeMap(); else openMap('course'); };
+$('statsNav').onclick = () => { if (bookShowing('keepsakes')) closeMap(); else openMap('keepsakes'); };
 $('closeBook').onclick = closeMap;
 $('skipPractice').onclick = () => { gate = null; mode = { kind: 'trail' }; replayReturn = null; if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else resetRun(); };
 $('startBtn').onclick = () => { if (arena().classList.contains('map-mode')) { closeMap(); return; } if (brief) { briefNext(); return; } if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); };
@@ -901,7 +855,6 @@ docsOpen.addEventListener('click', () => ensureDocs().open());
 /** The brand mark always leads back to the lesson in progress. A run mid-passage is left alone. */
 $('brandHome').onclick = () => {
   if (arena().classList.contains('map-mode')) closeMap();
-  if (arena().classList.contains('focus-mode')) closeFocus();
   if (run.status === 'playing') return;
   if (mode.kind !== 'trail' || replayReturn || completionHome || run.status === 'complete') { mode = { kind: 'trail' }; replayReturn = null; gate = null; if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); else resetRun(); }
   $('lessonTitle').focus();
@@ -914,7 +867,7 @@ state.settings.onboarded = true;
 wireAudioToggle($('soundBtn'));
 sound.wire(
   (host) => (host.id === 'soundBtn' || host.closest('.keymap') ? null : 'tap'),
-  (host) => host.closest('.nav') ? 'hover-nav' : host.classList.contains('danger') ? 'hover-danger' : (host.classList.contains('primary') || host.id === 'nextAction' || host.id === 'startBtn' || host.classList.contains('finger-start') || host.classList.contains('nav-cta')) ? 'hover-positive' : null,
+  (host) => host.closest('.nav') ? 'hover-nav' : host.classList.contains('danger') ? 'hover-danger' : (host.classList.contains('primary') || host.id === 'nextAction' || host.id === 'startBtn' || host.classList.contains('course-continue')) ? 'hover-positive' : null,
 );
 const played: string[] = [];
 sound.onPlay = (name) => { played.push(name); if (played.length > 200) played.shift(); };
