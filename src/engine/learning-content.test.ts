@@ -47,22 +47,25 @@ it('guarantees real words with E/I and G/H and constrained phrases with G/H', ()
   const text = generate(t, ex.stage, { exercise: ex, seed: 7 });
   expect(readablePhrases(allowedChars(t)).some(p => text.includes(p))).toBe(true);
 });
-it('paired words use learned pair letters; phrases disclose unfamiliar helper keys', () => {
+it('hard paired levels stay inside what the learner knows, dense in the pair and without helper keys', () => {
   for (const method of METHODS) {
     setMethod(method.id);
     for (const pair of FINGER_PAIRS) {
-      for (const level of [3, 4]) {
-        const p = fingerPractice(pair, level, {}, { seed: 3 });
+      const own = (k: string) => pair.sides.some(id => fingerOf(k) === id);
+      const jumps = fingerPractice(pair, 3, {}, { seed: 3 });
+      expect([...jumps.text].every(k => k === ' ' || own(k))).toBe(true);
+      const known = new Set('abcdefghijklmnopqrstuvwxyz');
+      for (const level of [4, 5, 6]) {
+        const p = fingerPractice(pair, level, {}, { known, seed: 3 });
         expect(p.helperKeys).toEqual([]);
-        expect(p.text.split(' ').every(w => PRACTICE_WORDS.includes(w))).toBe(true);
-        expect([...p.text].every(k => k === ' ' || pair.sides.some(id => fingerOf(k) === id))).toBe(true);
-        expect(p.text.length).toBeLessThan(240);
+        expect(p.text).toMatch(/^[a-z ]+$/);
+        // Dense on purpose: at least 30 presses for each side, and at least a third of all letters on this pair.
+        for (const id of pair.sides) expect([...p.text].filter(k => fingerOf(k) === id).length).toBeGreaterThanOrEqual(30);
+        expect([...p.text.replaceAll(' ', '')].filter(own).length * 3).toBeGreaterThanOrEqual(p.text.replaceAll(' ', '').length);
       }
-      const p = fingerPractice(pair, 5, {}, { seed: 2 });
-      expect([...p.text].every(k => k === ' ' || pair.sides.some(id => fingerOf(k) === id) || p.helperKeys.includes(k))).toBe(true);
-      const familiar = fingerPractice(pair, 5, {}, { known: new Set(p.helperKeys), seed: 2 });
-      expect(familiar.helperKeys).toEqual([]);
-      expect(fingerPractice(pair, 9, {}, { seed: 2 }).text).toMatch(/[A-Z][a-z ]+\./);
+      const gauntlet = fingerPractice(pair, 9, {}, { seed: 2 }).text;
+      expect(gauntlet).toMatch(/[A-Z][a-z ,;:]+\./);
+      for (const id of pair.sides) expect([...gauntlet].filter(k => fingerOf(k) === id).length).toBeGreaterThanOrEqual(50);
     }
   }
 });

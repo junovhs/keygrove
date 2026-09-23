@@ -2,6 +2,8 @@ import { lessonExercises } from '../curriculum/lesson-flow';
 import { GROVES, MAIN_TRAILS, checkpointOf, cumulativeKeys, gateFor, groveOf, nextTrail, trailById, trailsInGrove, type Trail, type StageName } from '../curriculum';
 import { freshProgress, type SaveV6, type TrailProgress } from '../state/save';
 import { KeyModel } from './keymodel';
+import { STOPS, type Stop } from '../curriculum/stops';
+import { pairCompleted } from '../curriculum/finger-course';
 import { bumpStreak, starsFor, swiftBonus, xpFor, type Stars } from './scoring';
 
 export const STAGE_NAMES: readonly StageName[] = ['drill', 'mix', 'words'];
@@ -22,8 +24,21 @@ export function trailUnlocked(s: SaveV6, trail: Trail): boolean {
   if (!groveOpen(s, trail.grove)) return false;
   const inGrove = trailsInGrove(trail.grove);
   const i = inGrove.findIndex((t) => t.id === trail.id);
-  return i === 0 || isCleared(s, inGrove[i - 1]!.id);
+  return (i === 0 || isCleared(s, inGrove[i - 1]!.id)) && !blockingStop(s, trail);
 }
+
+export const stopDone = (s: SaveV6, stop: Stop): boolean => pairCompleted(s.fingerCourses, stop.pair) > stop.level;
+/** A lesson the learner has already begun or cleared is never held back by a stop (DEC-19: nothing earned is revoked). */
+const started = (s: SaveV6, trailId: string): boolean => isCleared(s, trailId) || s.lessonSteps[trailId] !== undefined;
+/** The unfinished stop that holds `trail` back: one placed after the lesson before it on the main path. */
+export function blockingStop(s: SaveV6, trail: Trail): Stop | null {
+  if (started(s, trail.id)) return null;
+  const i = MAIN_TRAILS.findIndex((t) => t.id === trail.id);
+  if (i < 1) return null;
+  return STOPS.find((st) => st.after === MAIN_TRAILS[i - 1]!.id && !stopDone(s, st)) ?? null;
+}
+/** The stop Continue should run now: the one blocking the learner's current lesson, if any. */
+export const pendingStop = (s: SaveV6): Stop | null => blockingStop(s, currentTrail(s));
 
 export const currentTrail = (s: SaveV6): Trail => trailById(s.trail);
 /** Keys a trail practices: its new keys (+ space on trail 1), or the 5 weakest unlocked keys when it adds none. */

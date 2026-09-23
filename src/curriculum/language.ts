@@ -20,12 +20,24 @@ export const PRACTICE_PHRASES: readonly string[] = [
   'the quick brown fox jumps over the lazy dog', 'pack my box with five dozen liquor jugs',
   'please leave the book by the window', 'write a little every day', 'take your time and let the words come',
 ];
-/** Paired finger transfer uses minimal helper letters, explicitly introduced when not already familiar. */
-export const FINGER_PHRASES = {
-  index: ['try my curry', 'run by my hut', 'my mum hurt my thumb'],
-  middle: ['i did it'],
-  ring: ['owls swoop low'],
-  pinky: ['papa has a map'],
+/** Hand-picked awkward words and twisters for each finger pair's hard levels: dense in that pair's keys, with same-finger runs. */
+export const FINGER_TWISTERS = {
+  index: {
+    words: ['rhythm', 'truth', 'thumb', 'hymn', 'bunny', 'funny', 'hungry', 'burnt', 'brunt', 'gruff', 'fifth', 'tuft', 'thrust', 'untrue', 'brunch', 'hurtful', 'truthful', 'humbug', 'bygone', 'tryst'],
+    lines: ['Hungry bunnies hunt by the hut; truth burns, thumbs hurt.', 'Gruff Ruth brought fifty funny trumpets to brunch.', 'My rhythm: tug, bump, grunt, thump, run.'],
+  },
+  middle: {
+    words: ['decided', 'deduced', 'kicked', 'decade', 'diced', 'iced', 'cede', 'deck', 'decked', 'indeed', 'kicker', 'dike', 'eked', 'cicada', 'decide', 'ceded', 'eddied', 'kiddie'],
+    lines: ['Dee decided the kid kicked the deck, indeed.', 'Iced cider, diced dice, a decade decided.', 'Ceded, eked, decked: Eddie kicked it.'],
+  },
+  ring: {
+    words: ['swollen', 'wool', 'slow', 'owls', 'solo', 'sows', 'wallow', 'swallow', 'follow', 'hollow', 'lowly', 'allow', 'woollen', 'loss', 'wills', 'sloop', 'woe', 'swoop'],
+    lines: ['Slow owls swallow wool in hollow willows.', 'Follow the lowly sloop, swollen and slow.', 'Wool, woe, swoop, solo: allow no loss.'],
+  },
+  pinky: {
+    words: ['pizza', 'puzzle', 'quiz', 'quip', 'papa', 'pop', 'poppy', 'zap', 'zip', 'apple', 'aqua', 'plaza', 'pizzazz', 'appal', 'quaff', 'papaya', 'zapped', 'quizzes'],
+    lines: ['Papa quizzed a puzzled zebra at the plaza.', 'Pizza, papaya, poppy: zap, zip, pop.', 'A quick quip; aqua apples; pizzazz.'],
+  },
 } as const;
 
 /** Keep the entire phrase intelligible; never drop characters to make a passage fit. */

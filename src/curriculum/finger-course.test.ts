@@ -5,17 +5,14 @@ import { fingerLevels, fingerCourseId } from './finger-course';
 import { fresh, sanitize } from '../state/save';
 import { mergeProgress } from '../state/progress-sync';
 afterEach(() => setMethod(DEFAULT_METHOD_ID));
-for (const method of METHODS) it(`covers all base and shifted keys for ${method.id}`, () => {
+for (const method of METHODS) it(`gives ${method.id} ten levels with same-finger reach patterns first`, () => {
   setMethod(method.id);
   for (const f of fingers()) {
     const levels = fingerLevels(f);
     expect(levels).toHaveLength(10);
-    for (const l of levels) expect(l.text.length).toBeGreaterThanOrEqual(48);
-    const final = levels[9]!.text;
-    for (let n = 33; n <= 126; n++) {
-      const k = String.fromCharCode(n);
-      if (fingerOf(k) === f.id) expect(final).toContain(k);
-    }
+    // Levels 1–4 are fixed reach patterns; 5–10 are generated per run (key coverage is checked in finger-practice.test.ts).
+    levels.forEach((l, i) => { if (i < 4) expect(l.text.length).toBeGreaterThanOrEqual(48); else expect(l.text).toBe(''); });
+    expect(levels.slice(0, 4).every(l => [...l.text].every(k => k === ' ' || fingerOf(k) === f.id))).toBe(true);
   }
 });
 it('includes B and V at level 3 of a fresh left-index course', () => {

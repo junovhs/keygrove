@@ -3,8 +3,10 @@ import { expect, it } from 'vitest';
 import { MAIN_TRAILS, gateFor, trailsInGrove } from '../curriculum';
 import { METHODS, setMethod, DEFAULT_METHOD_ID } from '../curriculum/method';
 import { fresh } from '../state/save';
+import { STOPS } from '../curriculum/stops';
 import { KeyModel } from './keymodel';
-import { applyRun, currentStage, exerciseIndex, trailUnlocked } from './progress';
+import { applyRun, currentStage, exerciseIndex, pendingStop, trailUnlocked } from './progress';
+import { completeFingerPractice, fingerPractice } from './finger-practice';
 import { generate } from './textgen';
 import { Run } from './run';
 import { recordPerformance } from './learning';
@@ -14,11 +16,21 @@ for (const method of METHODS) it(`${method.name}: the complete course and option
   setMethod(method.id);
   try {
     const state = fresh(), model = new KeyModel(), transitions = new TransitionModel();
-    let now = 1_700_000_000_000, total = 0;
+    let now = 1_700_000_000_000, total = 0, stops = 0;
     const path = [...MAIN_TRAILS, ...trailsInGrove('code')];
     for (const trail of path) {
       if (trail.id === 'braces') { state.settings.codeGrove = true; state.trail = trail.id; }
       expect(state.trail).toBe(trail.id);
+      // DEC-20: finger stops woven before this lesson hold it until both hands pass them.
+      for (let stop = pendingStop(state); stop; stop = pendingStop(state)) {
+        expect(trailUnlocked(state, trail)).toBe(false);
+        const known = new Set(MAIN_TRAILS.filter(t => state.trails[t.id]?.cleared).flatMap(t => [...t.newKeys]));
+        const practice = fingerPractice(stop.pair, stop.level, state.fingerCourses, { known, seed: stops });
+        const run = new Run(practice.text); run.begin(now);
+        for (const ch of practice.text) { now += 900; run.type(ch, now); }
+        expect(completeFingerPractice(state.fingerCourses, stop.pair, stop.level, practice, run).passed, stop.id).toBe(true);
+        stops++;
+      }
       expect(trailUnlocked(state, trail)).toBe(true);
       let runs = 0;
       while (!state.trails[trail.id]?.cleared && runs < lessonExercises(trail).length + 1) {
@@ -43,6 +55,7 @@ for (const method of METHODS) it(`${method.name}: the complete course and option
       }
       expect(state.trails[trail.id]?.cleared, `${trail.id} stalled after ${runs} runs`).toBe(true);
     }
+    expect(stops).toBe(STOPS.length);
     expect(total).toBeGreaterThanOrEqual(40);
     expect(total).toBeLessThanOrEqual(160);
     expect(Object.values(state.trails).filter(p => p.cleared)).toHaveLength(40);

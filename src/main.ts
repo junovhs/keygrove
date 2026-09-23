@@ -5,6 +5,7 @@ import { demoSchedule, demoStepMs, type DemoStep } from './engine/demo';
 import { PACE_NOTE, notePace, paceFactor, paceNoteApplies, typedFast } from './engine/pace';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
+import type { Stop } from './curriculum/stops';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, renderCopy, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
 import { fingers, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
@@ -13,7 +14,7 @@ import { KeyModel, MASTERED } from './engine/keymodel';
 import { TransitionModel } from './engine/transitions';
 import { decide, sessionReview, type Decision } from './engine/coach';
 import { missedTarget, classifyRun, rollTally } from './engine/errors';
-import { applyRun, currentStage, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
+import { applyRun, blockingStop, currentStage, pendingStop, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
 import { recordPerformance } from './engine/learning';
 import { attemptPrompts, classifyPreparation, wordBigrams, type TracedRun } from './engine/preparation';
@@ -37,7 +38,7 @@ import { selfTest as textflowSelfTest } from './render/textflow';
 
 /** What the current run is for: the trail itself, a finger drill, or a coach drill (confusion / reach / review). */
 /** `slow`: the exercise just finished, replayed once as guided practice from the pace note (PACE-03); not a separate screen. */
-type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number } | { kind: 'coach'; decision: Decision } | { kind: 'explore'; key: string } | { kind: 'slow'; text: string };
+type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number; stop?: Stop } | { kind: 'coach'; decision: Decision } | { kind: 'explore'; key: string } | { kind: 'slow'; text: string };
 
 // Guests have a separate durable save. Account state never leaks into a
 // signed-out session; first signup carries the current guest course forward.
@@ -168,6 +169,9 @@ function makeText(): string {
 }
 function resetRun(): void {
   completionHome = false;
+  // DEC-19: a finger stop placed before the current lesson runs first; Continue always passes through it.
+  const due = mode.kind === 'trail' && !replayReturn ? pendingStop(state) : null;
+  if (due) mode = { kind: 'remedial', pair: due.pair, level: due.level, stop: due };
   $('result').querySelector<HTMLElement>('.score')!.hidden = false;
   runTrail = trail(); runStage = stageName();
   runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail, pickFor(runTrail))[runExerciseIndex]!;
@@ -178,7 +182,7 @@ function resetRun(): void {
   run = new Run(makeText()); outcome = null; decisions = [];
   if (devTraceEnabled) devKnownAtStart = new Set(wordBigrams(run.text).filter((g) => (trans.stat(g)?.seen ?? 0) > 0));
   $('nextAction').textContent = 'Continue';
-  $('skipPractice').hidden = mode.kind === 'trail';
+  $('skipPractice').hidden = mode.kind === 'trail' || (mode.kind === 'remedial' && !!mode.stop);
   $('skipPractice').textContent = 'Back to my course';
   document.body.classList.remove('showing-result');
   arena().classList.remove('result-mode', 'focus-mode'); endBrief(); render(); $('lessonTitle').focus();
@@ -194,7 +198,7 @@ function header(): void {
   if (mode.kind === 'explore') {
     $('route').innerHTML = ''; $('lessonNo').textContent = 'Your whole keyboard'; $('modeLabel').textContent = 'Guided exploration'; return;
   }
-  if (mode.kind === 'remedial') {
+  if (mode.kind === 'remedial' && !mode.stop) {
     const selected = mode;
     $('route').innerHTML = fingerLevels(fingerById(selected.pair.sides[0])!).map((_, i) => '<i class="' + (i === selected.level ? 'current' : i < pairCompleted(state.fingerCourses, selected.pair) ? 'done' : '') + '"></i>').join('');
     $('lessonNo').textContent = `Level ${mode.level + 1} of 10`;
@@ -202,6 +206,8 @@ function header(): void {
     return;
   }
   $('route').innerHTML = trailsInGrove(g.id).map(x => '<i class="' + (x.id === t.id ? 'current' : isCleared(state, x.id) ? 'done' : '') + '"></i>').join('');
+  // A woven finger stop sits on the chapter's route, just before the lesson it opens (DEC-20).
+  if (mode.kind === 'remedial') { $('lessonNo').textContent = `Finger stop · Level ${mode.level + 1} of 10`; $('modeLabel').textContent = `${g.name} · Chapter ${g.n}`; return; }
   $('lessonNo').textContent = `Lesson ${pathIndex(t)} of ${pathLength(t)} · Exercise ${runExerciseIndex + 1}/${lessonExercises(t).length}`;
   $('modeLabel').textContent = mode.kind === 'trail' ? `${g.name} · Chapter ${g.n}` : 'A little practice';
 }
@@ -506,7 +512,8 @@ function showCompletion(): void {
 function continueAfterResult(firstKey?: string): void {
   if (mode.kind === 'explore') { resetRun(); return; }
   if (mode.kind === 'remedial') {
-    if (fingerPassed) mode.level = Math.min(9, mode.level + 1);
+    if (fingerPassed && mode.stop) mode = { kind: 'trail' };
+    else if (fingerPassed) mode.level = Math.min(9, mode.level + 1);
     resetRun(); return;
   }
   if (completionHome) { startMaintenance(); return; }
@@ -569,6 +576,11 @@ function stopDemo(): void {
   $('replayDemo').hidden = !(mode.kind === 'slow' && run.status === 'idle');
 }
 function practiseSlowly(): void { if (run.status !== 'complete' || !run.text) return; mode = { kind: 'slow', text: run.text }; resetRun(); }
+/** What Continue opens next on the way to `lesson`: a finger stop woven before it (DEC-20), or the lesson itself. */
+function stepName(lesson: Trail): string {
+  const stop = blockingStop(state, lesson);
+  return stop ? `${stop.pair.name} · ${fingerLevels(fingerById(stop.pair.sides[0])!)[stop.level]!.name}` : lesson.name;
+}
 /** Lessons whose pace note has shown this session (PACE-01). */
 const paceNoted = new Set<string>();
 function finish(): void {
@@ -592,7 +604,7 @@ function finish(): void {
     if (wasReplay) { title = 'A familiar place, revisited.'; copy = 'Your next lesson is waiting right where you left it.'; state.trail = replayReturn!; }
     else if (outcome.firstClear && t.id === 'flow-checkpoint') { title = 'Look what your hands can do.'; copy = 'You completed all 36 lessons: letters, capitals, punctuation, numbers and a longer mixed passage. Keep using this in everyday writing. Fluency grows with use.'; }
     else if (outcome.firstClear && t.checkpoint) { title = `${groveOf(t).name}, complete.`; copy = keepsakeFor(t.grove).line + (outcome.nextTrail ? ` Next, ${groveOf(outcome.nextTrail).name}: ${resolveCopy(outcome.nextTrail.blurb ?? groveOf(outcome.nextTrail).blurb)}` : ' A small extra, made yours.'); }
-    else if (outcome.firstClear) { title = 'Lesson complete.'; copy = `${t.name} is complete. ${outcome.nextTrail ? `Next: ${outcome.nextTrail.name}.` : 'The whole path is open.'}`; }
+    else if (outcome.firstClear) { title = 'Lesson complete.'; copy = `${t.name} is complete. ${outcome.nextTrail ? `Next: ${stepName(outcome.nextTrail)}.` : 'The whole path is open.'}`; }
     else if (!outcome.passed) { title = 'Try this passage again.'; copy = `${gate ? 'A short practice will help with the missed keys, then we’ll try again.' : 'Take your time; there is no timer to beat.'}`; }
     else { title = 'Exercise complete.'; copy = `${outcome.exercise.index + 1} of ${outcome.exercise.total} complete. Next: ${outcome.exercise.nextName}.`; }
     copy = `${m.acc}% accuracy · ${t.checkpoint ? 97 : gateFor(t).passAcc}% needed. ${copy}`;
@@ -606,8 +618,10 @@ function finish(): void {
   if (mode.kind === 'remedial' && practice) {
     const replay = pairCompleted(state.fingerCourses, mode.pair) > mode.level;
     fingerPassed = completeFingerPractice(state.fingerCourses, mode.pair, mode.level, practice, run).passed;
-    title = replay ? 'Level revisited.' : fingerPassed ? mode.level === 9 ? `${mode.pair.name} course complete.` : 'Finger level complete.' : 'A little more practice here.';
-    copy = fingerPassed
+    const stop = mode.stop;
+    title = stop && !replay ? fingerPassed ? `${mode.pair.name}, steady.` : 'A little more practice here.' : replay ? 'Level revisited.' : fingerPassed ? mode.level === 9 ? `${mode.pair.name} course complete.` : 'Finger level complete.' : 'A little more practice here.';
+    if (stop) copy = fingerPassed ? 'Both hands passed. Your progress is saved, and your course continues.' : `Each hand needs ${FINGER_PASS_ACC}% on its own keys. Your next pass focuses on the movements that slipped.`;
+    else copy = fingerPassed
       ? mode.level === 9 ? 'All ten levels are yours to revisit whenever you like.' : 'Your progress is saved. Continue to the next level at your own pace.'
       : 'Some movements need another pass. Your next practice will focus on them; the progress you earned is saved.';
   }
@@ -639,12 +653,12 @@ function finish(): void {
   $('resultOffer').hidden = !gate;
   $('resultOffer').textContent = gate ? `Up next: ${gate.title}. A short practice, then back here.` : '';
   $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Calm hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
-  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind === 'slow' ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${resolveCopy(outcome.exercise.nextName ?? trail().name)}` : `Retry: ${t.name}`;
+  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind === 'slow' ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${resolveCopy(outcome.exercise.nextName ?? stepName(trail()))}` : `Retry: ${t.name}`;
   $('skipPractice').hidden = !gate;
   $('skipPractice').textContent = 'Try the passage instead';
   if (mode.kind === 'remedial') {
-    $('nextAction').textContent = !fingerPassed ? 'Continue practice' : mode.level === 9 ? 'Replay final level' : `Next: ${fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level + 1]!.name}`;
-    $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my course';
+    $('nextAction').textContent = mode.stop && fingerPassed ? `Next: ${stepName(trail())}` : !fingerPassed ? 'Continue practice' : mode.level === 9 ? 'Replay final level' : `Next: ${fingerLevels(fingerById(mode.pair.sides[0])!)[mode.level + 1]!.name}`;
+    $('skipPractice').hidden = !!mode.stop; $('skipPractice').textContent = 'Back to my course';
   }
   if (mode.kind === 'explore') { $('nextAction').textContent = 'Try this key again'; $('skipPractice').hidden = false; $('skipPractice').textContent = 'Back to my lesson'; }
   devRecord({

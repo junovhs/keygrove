@@ -1,7 +1,5 @@
 import { activeMethod, baseKey, fingerOf, type FingerId } from './method';
 import type { Finger } from './fingers';
-import { EVERYDAY_WORDS } from './movements';
-import { EXCLUDED_WORDS } from './headline';
 
 export const FINGER_LEVEL_COUNT = 10;
 export const FINGER_PASS_ACC = 95;
@@ -14,32 +12,31 @@ export function fingerLevels(f: Finger): FingerLevel[] {
   const home = row('asdfghjkl;');
   const upper = row('qwertyuiop');
   const lower = row('zxcvbnm,./');
-  const letters = owned.filter(k => /[a-z]/.test(k));
-  const digits = owned.filter(k => /[0-9]/.test(k));
-  const symbols = Array.from({ length: 94 }, (_, i) => String.fromCharCode(33 + i)).filter(k => !/[a-zA-Z0-9]/.test(k) && fingerOf(k) === f.id);
-  const changes = (ks: string[]) => ks.map((k,i) => k + ks[(i + 1) % ks.length]! + f.anchor + k);
   const reaches = (ks: string[]) => (ks.length ? ks : home).map(k => f.anchor + k + k + f.anchor);
   const level = (name: string, instruction: string, tokens: string[]): FingerLevel => {
     let text = tokens.join(' ');
     while (text.length < 48) text += ' ' + tokens.join(' ');
     return { name, instruction, text };
   };
-  const vocabulary = EVERYDAY_WORDS.filter(w => !EXCLUDED_WORDS.has(w) && [...w].some(k => letters.includes(k)));
-  // Round-robin by target key gives uncommon reaches space alongside frequent ones.
-  const contexts = letters.flatMap(k => vocabulary.filter(w => w.includes(k)).slice(0, 3));
+  // Same-finger row jumps: upper to lower and back without resting on the home row.
+  const jumps = upper.flatMap(u => lower.map(l => u + l + l + u)).concat(lower.flatMap(l => upper.map(u => l + u + u + l)));
+  // Levels 4–10 are generated per run (engine/finger-practice.ts); `text` stays empty and their placement comes from LEVEL_NEEDS.
+  const hard = (name: string, instruction: string): FingerLevel => ({ name, instruction, text: '' });
   return [
     level('Find your landmarks', 'Small home-row movements. Let your hand stay comfortable.', reaches(home)),
     level('Reach up and across', 'Meet the upper row and nearby home-row reaches. Either thumb presses Space between the six-letter groups.', reaches([...home.filter(k => k !== f.anchor), ...upper])),
     level('Reach down', 'Explore the lower row in short groups. Then use these keys in real words next.', reaches(lower)),
-    level('Words from your keys', 'Real words using the keys you have met. Space separates words.', changes([...home, ...upper, ...lower])),
-    level('Tricky word movements', 'Practice repeated letters and changes of direction inside real words.', owned.filter(k => /[a-z;,./]/.test(k)).map(k => k + k + f.anchor + k)),
-    level('Short phrases', 'Put these movements into a short phrase. Any new helper letters are introduced first.', contexts.length ? contexts : reaches(owned)),
-    level('Words with Shift', 'Type familiar words in lowercase and capitals. Hold the opposite-hand Shift.', letters.length ? letters.map(k => k + k.toUpperCase() + k.toUpperCase() + k) : reaches(home)),
-    level('Words and numbers', 'Practice short labels and numbers, as you would in a note or a list.', reaches(digits)),
-    level('Punctuation and symbols', 'Practice every symbol for these fingers. Use opposite-hand Shift when shown.', symbols.map(k => f.anchor + k + baseKey(k) + k)),
-    level('A complete passage', 'A short key review followed by readable sentences. Bring your reaches together.', [...reaches(owned), ...letters.map(k => k.toUpperCase() + k), ...symbols.map(k => f.anchor + k), ...contexts.slice(0, 8)]),
+    level('Row jumps', 'Jump straight between the upper and lower rows with one finger, without stopping on the home row. Let the finger travel; keep the wrist still.', jumps.length ? jumps : reaches(owned)),
+    hard('Finger-heavy words', 'Words packed with these fingers\' keys. Keep the rest of the hand quiet while these fingers do the work.'),
+    hard('Same-finger runs', 'One finger presses two different keys in a row. Move it cleanly from key to key; do not let a neighbour help.'),
+    hard('Twisters', 'Tongue twisters for your fingers. Where it knots, slow down; accuracy is the only target.'),
+    hard('Capital reaches', 'The same hard words in Title case and CAPITALS. Hold Shift with the opposite hand.'),
+    hard('Numbers and symbols', 'Reach from letters to the number row and the symbols these fingers own, and back again.'),
+    hard('The gauntlet', 'A long, awkward passage: capitals, numbers, symbols and twisters. 95% for each finger.'),
   ];
 }
+/** What a level's text needs before it can appear on the main path (DEC-19). 'text' means the characters of its static text. */
+export const LEVEL_NEEDS: readonly ('text' | 'letters' | 'capitals' | 'symbols')[] = ['text', 'text', 'text', 'text', 'letters', 'letters', 'letters', 'capitals', 'symbols', 'symbols'];
 
 /** Player-facing courses group matching fingers; assignments still come from the active method. */
 export interface FingerPair {
