@@ -24,13 +24,16 @@ export function resolveCopy(text: string | undefined): string {
   return text.replace(COPY_TOKEN, (_m, key: string | undefined, finger: string) => (key !== undefined ? keyLabel(key) : fingerName(finger)));
 }
 const escapeHtml = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-/** Resolve copy tokens to safe HTML: each `[k]` becomes a small keycap chip, fingers become their names, all else is escaped. */
+/** Resolve copy tokens to safe HTML: each `[k]` becomes a small keycap chip, each `{k}` a focusable finger name, all else is escaped. */
 export function renderCopy(text: string | undefined): string {
   if (!text) return '';
   let html = '', at = 0;
   for (const m of text.matchAll(COPY_TOKEN)) {
     html += escapeHtml(text.slice(at, m.index));
-    html += m[1] !== undefined ? `<kbd class="keycap-inline">${escapeHtml(keyLabel(m[1]))}</kbd>` : escapeHtml(fingerName(m[2]!));
+    const id = m[2] !== undefined ? fingerOf(m[2].toLowerCase()) : null;
+    // A named finger is focusable: hovering or focusing it shows that finger on the hands (UI-14).
+    html += m[1] !== undefined ? `<kbd class="keycap-inline">${escapeHtml(keyLabel(m[1]))}</kbd>`
+      : id ? `<span class="finger-ref" tabindex="0" data-finger="${id}">${escapeHtml(fingerName(m[2]!))}</span>` : escapeHtml(m[2]!);
     at = m.index! + m[0].length;
   }
   return html + escapeHtml(text.slice(at));

@@ -1,4 +1,5 @@
 import { $, maybe } from './dom';
+import { fingerPlace } from './finger-map';
 
 const HAND_SRC = 'assets/hand.svg';
 type Kind = 'pinky' | 'ring' | 'middle' | 'index' | 'thumb';
@@ -71,12 +72,16 @@ function installHand(side: Side, svgText: string): void {
 }
 
 function activeKind(side: Side, fingerId: string | null): Kind | null {
-  if (fingerId === 'thumb') return 'thumb';
-  if (!fingerId) return null;
-  const map: Record<string, Kind> = side === 'left'
-    ? { lp: 'pinky', lr: 'ring', lm: 'middle', li: 'index' }
-    : { rp: 'pinky', rr: 'ring', rm: 'middle', ri: 'index' };
-  return map[fingerId] ?? null;
+  const place = fingerId ? fingerPlace(fingerId) : null;
+  return place && place.sides.includes(side) ? place.kind : null;
+}
+/** Pulse one finger's nail on its hand (UI-14: a finger named in copy is hovered or focused); null stops any pulse. */
+export function pulseFinger(fingerId: string | null): void {
+  const place = fingerId ? fingerPlace(fingerId) : null;
+  (['left', 'right'] as Side[]).forEach((side) => {
+    const ref = handRefs[side]; if (!ref) return;
+    (Object.keys(ref.nails) as Kind[]).forEach((kind) => ref.nails[kind]?.classList.toggle('nail-pulse', !!place && place.sides.includes(side) && place.kind === kind));
+  });
 }
 
 export function paintHand(side: Side, fingerId: string | null): void {

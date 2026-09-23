@@ -29,7 +29,7 @@ import { docs } from './docs-content';
 import './docs.css';
 import { renderMap } from './ui/map';
 import { sound, wireAudioToggle, type CueName } from './ui/sound';
-import { loadHands, onFingerHover, paintHand } from './ui/hands';
+import { loadHands, onFingerHover, paintHand, pulseFinger } from './ui/hands';
 import { CanvasPrompt } from './render/prompt';
 import { selfTest as textflowSelfTest } from './render/textflow';
 
@@ -358,6 +358,19 @@ function peekFinger(id: string | null): void {
   $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => { if (keys.includes(el.dataset.key!)) el.classList.add('peek'); });
 }
 onFingerHover(peekFinger);
+/** A finger named in lesson copy (UI-14): pointer hover or keyboard focus shows it on the hands, with its nail pulsing. */
+function peekFingerRef(e: Event, on: boolean): void {
+  const ref = (e.target as Element | null)?.closest?.<HTMLElement>('.finger-ref');
+  if (!ref) return;
+  const related = (e as FocusEvent | PointerEvent).relatedTarget as Node | null;
+  if (!on && related && ref.contains(related)) return;
+  const id = on ? ref.dataset.finger ?? null : null;
+  peekFinger(id); pulseFinger(id);
+}
+document.addEventListener('pointerover', (e) => peekFingerRef(e, true));
+document.addEventListener('pointerout', (e) => peekFingerRef(e, false));
+document.addEventListener('focusin', (e) => peekFingerRef(e, true));
+document.addEventListener('focusout', (e) => peekFingerRef(e, false));
 function render(): void { header(); labels(); prompt(); metrics(); focusGrid(); keymap(); nextVisual(); if (brief) renderBrief(); }
 
 // ---- briefing: a few steps before a lesson, read one at a time ------------------

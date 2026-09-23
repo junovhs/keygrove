@@ -59,7 +59,7 @@ describe('lesson briefings', () => {
 
 describe('copy tokens (UI-13)', () => {
   it('render a key as a keycap chip and a finger as its name, escaping everything else', () => {
-    expect(renderCopy('[s] uses your {s}.')).toBe('<kbd class="keycap-inline">S</kbd> uses your left ring.');
+    expect(renderCopy('[s] uses your {s}.')).toBe('<kbd class="keycap-inline">S</kbd> uses your <span class="finger-ref" tabindex="0" data-finger="lr">left ring</span>.');
     expect(renderCopy('Hold [shift]; press [space] & <b>')).toBe('Hold <kbd class="keycap-inline">Shift</kbd>; press <kbd class="keycap-inline">Space</kbd> &#38; &#60;b&#62;');
     expect(renderCopy('[[] and []]')).toBe('<kbd class="keycap-inline">[</kbd> and <kbd class="keycap-inline">]</kbd>');
     expect(renderCopy('No tokens here.')).toBe('No tokens here.');
