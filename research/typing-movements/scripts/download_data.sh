@@ -69,11 +69,8 @@ if command -v unzip >/dev/null 2>&1; then
 fi
 
 echo
-echo "SHA256:"
-find "$RAW" -type f ! -name SHA256SUMS.txt -print0 \
-  | sort -z \
-  | xargs -0 sha256sum \
-  | tee "$RAW/SHA256SUMS.txt"
+echo "Checking against the pinned SHA256SUMS.txt:"
+(cd "$ROOT" && sha256sum --check --strict SHA256SUMS.txt)
 
 echo
 echo "Downloaded files:"

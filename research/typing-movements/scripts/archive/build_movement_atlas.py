@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""ARCHIVED (RES-02): the v1 movement atlas, superseded by build_movement_atlas_v2.py (DEC-16). Kept only so the
+archived outputs under outputs/archive/ stay reproducible; `make analyze` does not run it."""
 
 import csv
 import heapq
@@ -6,9 +8,9 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "raw" / "norvig-books"
-OUT = ROOT / "outputs"
+OUT = ROOT / "outputs" / "archive"
 TABLES = OUT / "tables"
 TABLES.mkdir(parents=True, exist_ok=True)
 
@@ -341,6 +343,9 @@ def table(rows, limit=25):
 lines = []
 
 lines += [
+    "> **ARCHIVED (RES-02).** Superseded by `outputs/movement-atlas-v2.md` (per-finger reach model, DEC-16). Do not use its",
+    "> distance figures as a difficulty measure; kept for history only.",
+    "",
     "# Typing Movement Atlas",
     "",
     "This extends the frequency baseline with approximate physical QWERTY geometry.",
@@ -407,8 +412,8 @@ lines += [
     "",
     "## Files",
     "",
-    "- `outputs/tables/movement_atlas.csv` — one row per observed bigram",
-    "- `outputs/tables/transition_words.csv` — frequent real words for each transition",
+    "- `outputs/archive/tables/movement_atlas.csv` — one row per observed bigram",
+    "- `outputs/archive/tables/transition_words.csv` — frequent real words for each transition",
     "",
     "## Next research question",
     "",

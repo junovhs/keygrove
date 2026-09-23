@@ -1,3 +1,6 @@
+> **ARCHIVED (RES-02).** Superseded by `outputs/movement-atlas-v2.md` (per-finger reach model, DEC-16). Do not use its
+> distance figures as a difficulty measure; kept for history only.
+
 # Typing Movement Atlas
 
 This extends the frequency baseline with approximate physical QWERTY geometry.
@@ -118,8 +121,8 @@ Frequency-weighted mean letter-to-letter travel: **3.267 key widths**.
 
 ## Files
 
-- `outputs/tables/movement_atlas.csv` — one row per observed bigram
-- `outputs/tables/transition_words.csv` — frequent real words for each transition
+- `outputs/archive/tables/movement_atlas.csv` — one row per observed bigram
+- `outputs/archive/tables/transition_words.csv` — frequent real words for each transition
 
 ## Next research question
 
