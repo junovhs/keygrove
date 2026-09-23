@@ -1,7 +1,7 @@
 import { lessonExercises, type LessonExercise, type SlotPick } from './curriculum/lesson-flow';
 import { nextPractice } from './engine/next-practice';
 import { beatInterval, evenness, onBeat } from './engine/beat';
-import { PACE_NOTE, paceNoteApplies, typedFast } from './engine/pace';
+import { PACE_NOTE, notePace, paceFactor, paceNoteApplies, typedFast } from './engine/pace';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
@@ -591,8 +591,11 @@ function finish(): void {
   if (mode.kind === 'trail' && runExercise.format === 'passage' && target && missedTarget(run.text, run.strokes, target)) copy += ` ${target[0]!.toUpperCase()} then ${target[1]!.toUpperCase()} slipped in the sentence — it will come back.`;
   $('resultTitle').textContent = title; $('resultCopy').innerHTML = renderCopy(copy);
   // PACE-01: typed far above a relaxed pace → one gentle suggestion per lesson per session; never a gate or a number.
-  const fast = mode.kind === 'trail' && !runExercise.beat && paceNoteApplies(t, runExercise) && !paceNoted.has(t.id) && typedFast(run.strokes, t);
-  if (fast) paceNoted.add(t.id);
+  // PACE-02: an established fast habit (fast early Roots runs) brings the note sooner, and once per exercise, not per lesson.
+  if (mode.kind === 'trail') state.pace = notePace(state.pace, t, run.strokes);
+  const paceKey = state.pace.established ? `${t.id}#${runExerciseIndex}` : t.id;
+  const fast = mode.kind === 'trail' && !runExercise.beat && paceNoteApplies(t, runExercise) && !paceNoted.has(paceKey) && typedFast(run.strokes, t, paceFactor(state.pace));
+  if (fast) paceNoted.add(paceKey);
   $('resultPace').textContent = fast ? PACE_NOTE : ''; $('resultPace').hidden = !fast;
   $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%';
   // Spec F4: pace is shown in exactly one place — the Flow chapter's checkpoint card — as information, never a target.

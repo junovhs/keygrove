@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { trailById } from '../curriculum';
 import { lessonExercises } from '../curriculum/lesson-flow';
-import { fresh } from '../state/save';
+import { fresh, sanitize } from '../state/save';
+import { mergeProgress } from '../state/progress-sync';
 import { KeyModel } from './keymodel';
-import { PACE_NOTE, medianInterval, paceNoteApplies, relaxedIntervalMs, typedFast } from './pace';
+import { PACE_NOTE, freshPace, medianInterval, notePace, paceFactor, paceNoteApplies, relaxedIntervalMs, typedFast } from './pace';
 import { applyRun } from './progress';
 import { Run } from './run';
 
@@ -51,5 +52,36 @@ describe('pace note (PACE-01)', () => {
   it('says nothing numeric and claims nothing about the finger used', () => {
     expect(PACE_NOTE).not.toMatch(/\d|wpm/i);
     expect(PACE_NOTE).not.toMatch(/you used|wrong finger/i);
+  });
+});
+
+describe('established pace (PACE-02)', () => {
+  const quick = typed('ffjjfjfj ffjjfjfj', 60).strokes, steady = typed('ffjjfjfj ffjjfjfj', 450).strokes;
+  const anchors = trailById('anchors');
+  it('sets only from repeated fast Roots runs, never from a single run', () => {
+    let ev = freshPace();
+    ev = notePace(ev, anchors, quick); expect(ev).toEqual({ fastEarly: 1, established: false });
+    ev = notePace(ev, anchors, steady); expect(ev.established).toBe(false);
+    ev = notePace(ev, anchors, quick); expect(ev.established).toBe(false);
+    ev = notePace(ev, anchors, quick); expect(ev).toEqual({ fastEarly: 3, established: true });
+    // Outside Roots, fast runs are not early evidence.
+    let later = freshPace();
+    for (let i = 0; i < 5; i++) later = notePace(later, trailById('ring-pair'), quick);
+    expect(later.established).toBe(false);
+  });
+  it('lowers the threshold once established', () => {
+    expect(paceFactor({ fastEarly: 3, established: true })).toBeLessThan(paceFactor(freshPace()));
+    const moderate = typed('ed de ded ed de ded fed feed', 450).strokes;
+    expect(typedFast(moderate, middleUp, paceFactor(freshPace()))).toBe(false);
+    expect(typedFast(moderate, middleUp, paceFactor({ fastEarly: 3, established: true }))).toBe(true);
+  });
+  it('defaults to false in older saves, round-trips, and merges across devices', () => {
+    const legacy = sanitize({ trail: 'anchors', stats: {} });
+    expect(legacy.pace).toEqual({ fastEarly: 0, established: false });
+    const s = fresh(); s.pace = { fastEarly: 3, established: true };
+    expect(sanitize(JSON.parse(JSON.stringify(s))).pace).toEqual({ fastEarly: 3, established: true });
+    expect(sanitize({ pace: { fastEarly: -4, established: 'yes' } }).pace).toEqual({ fastEarly: 0, established: false });
+    const a = fresh(), b = fresh(); b.pace = { fastEarly: 3, established: true };
+    expect(mergeProgress(a, b).pace.established).toBe(true);
   });
 });

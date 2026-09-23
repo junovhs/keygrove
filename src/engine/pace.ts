@@ -10,6 +10,25 @@ import type { Keystroke } from './run';
 
 /** How far above the chapter's relaxed pace counts as "far": twice as fast. */
 export const PACE_FACTOR = 2;
+/** With an established pace (PACE-02) the note comes sooner: half again the relaxed pace. */
+export const ESTABLISHED_FACTOR = 1.5;
+/** A Roots press this quick (~60 WPM) is beyond a new learner: it is an existing typing habit. */
+export const ESTABLISHED_MS = 200;
+/** Runs of that evidence needed; one fast run is never enough. */
+export const ESTABLISHED_RUNS = 3;
+
+/** Saved pace evidence (PACE-02): fast Roots runs so far, and whether they establish an existing fast habit. Never shown. */
+export interface PaceEvidence { fastEarly: number; established: boolean }
+export const freshPace = (): PaceEvidence => ({ fastEarly: 0, established: false });
+/** Count a Roots run typed at an established pace; three of them set the flag, which then stays. */
+export function notePace(ev: PaceEvidence, trail: Trail, strokes: readonly Keystroke[]): PaceEvidence {
+  if (ev.established || trail.grove !== 'roots') return ev;
+  const median = medianInterval(strokes);
+  const fastEarly = ev.fastEarly + (median !== null && median < ESTABLISHED_MS ? 1 : 0);
+  return { fastEarly, established: fastEarly >= ESTABLISHED_RUNS };
+}
+/** The note's factor for this learner. */
+export const paceFactor = (ev: PaceEvidence): number => (ev.established ? ESTABLISHED_FACTOR : PACE_FACTOR);
 /** The chapters where technique is being formed; Bark onward (capitals, symbols, Flow) never shows the note. */
 const PACE_GROVES = new Set(['roots', 'home', 'canopy', 'undergrowth']);
 

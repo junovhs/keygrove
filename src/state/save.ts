@@ -4,6 +4,7 @@ import { KeyModel, type Confusions, type KeyStats } from '../engine/keymodel';
 import { DEFAULT_METHOD_ID, METHODS } from '../curriculum/method';
 import { ERROR_CLASSES, emptyTally, type ErrorTally } from '../engine/errors';
 import { TransitionModel, type TransitionStats } from '../engine/transitions';
+import { freshPace, type PaceEvidence } from '../engine/pace';
 
 export const KEY = 'keygrove.v6';
 const PREV_V5 = 'keygrove.v5';
@@ -29,6 +30,8 @@ export interface SaveV6 {
   errors: ErrorTally;
   /** Two-key transition stats (§25), keyed 'ab'. */
   transitions: TransitionStats;
+  /** Evidence of an existing fast typing habit (PACE-02); tunes the pace note, never shown. */
+  pace: PaceEvidence;
 }
 /** @deprecated alias kept while callers migrate. */
 export type SaveV5 = SaveV6;
@@ -40,6 +43,7 @@ export const fresh = (): SaveV6 => ({
   settings: { guideStrong: false, reviewOn: true, codeGrove: false, method: DEFAULT_METHOD_ID, onboarded: false },
   errors: emptyTally(),
   transitions: {},
+  pace: freshPace(),
 });
 
 /** Methods the app no longer offers (DEC-17): id → the keys whose finger differed from the default method. A save that
@@ -115,6 +119,8 @@ export function sanitize(x: unknown): SaveV6 {
   for (const c of ERROR_CLASSES) s.errors[c] = num(er[c], 999);
   s.transitions = TransitionModel.fromJSON(o.transitions).toJSON();
   for (const pair of Object.keys(s.transitions)) if ([...pair].some((k) => moved.includes(k))) delete s.transitions[pair];
+  const pc = (o.pace && typeof o.pace === 'object' ? o.pace : {}) as Record<string, unknown>;
+  s.pace = { fastEarly: int(pc.fastEarly, 99), established: pc.established === true };
   return s;
 }
 

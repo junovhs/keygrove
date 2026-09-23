@@ -83,6 +83,7 @@ export function mergeProgress(local: SaveV6, remote: SaveV6): SaveV6 {
   }
   out.stats.lastDay = local.stats.lastDay > remote.stats.lastDay ? local.stats.lastDay : remote.stats.lastDay;
   out.settings = { ...local.settings };
+  out.pace = { fastEarly: Math.max(local.pace.fastEarly, remote.pace.fastEarly), established: local.pace.established || remote.pace.established };
   for (const k of new Set([...Object.keys(local.transitions), ...Object.keys(remote.transitions)])) {
     const a = local.transitions[k], b = remote.transitions[k];
     out.transitions[k] = { ...(a && b ? (a.seen >= b.seen ? a : b) : (a ?? b)!), last: Math.max(a?.last ?? 0, b?.last ?? 0) };
