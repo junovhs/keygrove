@@ -1,6 +1,7 @@
 import { lessonExercises, type LessonExercise, type SlotPick } from './curriculum/lesson-flow';
 import { nextPractice } from './engine/next-practice';
 import { beatInterval, evenness, onBeat } from './engine/beat';
+import { demoSchedule, demoStepMs, type DemoStep } from './engine/demo';
 import { PACE_NOTE, notePace, paceFactor, paceNoteApplies, typedFast } from './engine/pace';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
@@ -182,6 +183,7 @@ function resetRun(): void {
   document.body.classList.remove('showing-result');
   arena().classList.remove('result-mode', 'focus-mode'); endBrief(); render(); $('lessonTitle').focus();
   if (mode.kind === 'trail') openBrief();
+  if (mode.kind === 'slow') startDemo(); else stopDemo();
 }
 /** Switch into a coach drill (required or accepted offer). */
 function startCoach(d: Decision): void { mode = { kind: 'coach', decision: d }; resetRun(); toast(d.title); }
@@ -362,6 +364,7 @@ function peekFinger(id: string | null): void {
 }
 onFingerHover(peekFinger);
 $('practiseSlowly').onclick = practiseSlowly;
+$('replayDemo').onclick = startDemo;
 /** A finger named in lesson copy (UI-14): pointer hover or keyboard focus shows it on the hands, with its nail pulsing. */
 function peekFingerRef(e: Event, on: boolean): void {
   const ref = (e.target as Element | null)?.closest?.<HTMLElement>('.finger-ref');
@@ -476,7 +479,7 @@ function renderBrief(): void {
 $('briefNext').onclick = briefNext;
 
 // ---- run lifecycle -----------------------------------------------------------
-function begin(): void { if (run.status === 'playing') return; if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); run.begin(now()); sound.play('begin'); render(); }
+function begin(): void { if (run.status === 'playing') return; if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); run.begin(now()); stopDemo(); sound.play('begin'); render(); }
 function startMaintenance(): void {
   replayReturn = null;
   const focus = keys.weakest(unlockedLetters()).slice(0, 6).map(k => k.key);
@@ -540,6 +543,31 @@ function thirds(): { errors: number; lat: number }[] {
 /** The one line a slow replay shows (PACE-03): an invitation, not a tempo. */
 const SLOW_COPY = 'Same text. Take your time and check each key uses the finger shown.';
 /** Replay the exercise just typed, once, as guided practice; Continue afterwards returns to the course (PACE-03). */
+/** The running "Press like this" demo (PACE-04): its timers, while the keys light in a steady 25 WPM rhythm. */
+let demo: number[] | null = null;
+function lightDemo(s: DemoStep | null): void {
+  $('keymap').querySelectorAll('.keycap.demo').forEach((x) => x.classList.remove('demo'));
+  if (!s) return;
+  // Only the demonstrated key is lit; the usual next-key highlight returns when the demo ends.
+  $('keymap').querySelectorAll('.keycap.hot').forEach((x) => x.classList.remove('hot'));
+  $('keymap').querySelector<HTMLElement>(`[data-key="${CSS.escape(s.key)}"]`)?.classList.add('demo');
+  paintHand('left', s.finger); paintHand('right', s.finger); pulseFinger(s.finger);
+  badges(s.finger && s.finger !== 'thumb' ? { [s.finger]: s.key } : {});
+}
+/** Show the first loop or word of a slow replay at a relaxed pace; any key ends it. Only ever in a slow replay. */
+function startDemo(): void {
+  stopDemo();
+  if (mode.kind !== 'slow' || run.status !== 'idle') return;
+  const steps = demoSchedule(run.text);
+  $('replayDemo').hidden = true;
+  $('handInstruction').innerHTML = '<strong>Press like this</strong> · watch the pace, then type';
+  demo = steps.map((s) => window.setTimeout(() => lightDemo(s), s.at));
+  demo.push(window.setTimeout(stopDemo, (steps.at(-1)?.at ?? 0) + demoStepMs()));
+}
+function stopDemo(): void {
+  if (demo) { demo.forEach(clearTimeout); demo = null; pulseFinger(null); keymap(); nextVisual(); }
+  $('replayDemo').hidden = !(mode.kind === 'slow' && run.status === 'idle');
+}
 function practiseSlowly(): void { if (run.status !== 'complete' || !run.text) return; mode = { kind: 'slow', text: run.text }; resetRun(); }
 /** Lessons whose pace note has shown this session (PACE-01). */
 const paceNoted = new Set<string>();

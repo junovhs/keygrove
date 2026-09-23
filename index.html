@@ -156,6 +156,10 @@ kbd{font:inherit}
 .keycap.peek{background:#ffe3d8;border-color:var(--orange-soft);color:var(--orange)}
 .keycap.home{border-color:#bdb8b0}
 .keycap.hot{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 4px 11px rgba(255,84,24,.18)}
+/* "Press like this" (PACE-04): the demonstrated key presses down in rhythm; with reduced motion it simply lights. */
+.keycap.demo{background:var(--orange);border-color:var(--orange);color:#fff;animation:demo-press .48s ease-out}
+@keyframes demo-press{0%{transform:translateY(0)}30%{transform:translateY(2px) scale(.96)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.keycap.demo{animation:none}}
 .keycap.spacebar{width:min(230px,26vw);height:38px;margin-top:0}
 
 .controls{min-height:64px;padding:8px 0 0;display:grid;grid-template-columns:350px 1fr;align-items:center;gap:24px}
@@ -405,7 +409,7 @@ kbd{font:inherit}
             <div class="prompt" id="prompt"></div><div class="next-cue" id="nextCue"></div>
           </div>
           <div class="keycue" id="handInstruction"></div>
-          <div class="learning-tools"><button id="guideToggle" type="button" aria-pressed="true">Hide finger hints</button><button id="exploreKeyboard" type="button">Explore the keyboard</button><button id="skipGuided" type="button" hidden>Skip this guided step</button></div>
+          <div class="learning-tools"><button id="guideToggle" type="button" aria-pressed="true">Hide finger hints</button><button id="exploreKeyboard" type="button">Explore the keyboard</button><button id="skipGuided" type="button" hidden>Skip this guided step</button><button id="replayDemo" type="button" hidden>Watch the pace again</button></div>
           <div class="deck guide-strong" id="handsZone">
             <div class="hand-col hand-left-col">
               <div class="home-letters" aria-hidden="true">
