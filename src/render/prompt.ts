@@ -276,7 +276,7 @@ export class CanvasPrompt {
       ctx.fillText(g.ch, x, cy + 1);
     }
     ctx.globalAlpha = 1;
-    this.effects.draw(ctx, this.padding, top, lh, this.flow.font, flow);
+    this.effects.draw(ctx, this.padding, top, lh, this.flow.font, flow, colors.ink);
     if (!this.loop && (this.settling || this.effects.active(now))) this.ensureLoop();
   }
 }

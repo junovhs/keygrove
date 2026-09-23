@@ -168,7 +168,7 @@ export class Effects {
   }
 
   /** Draw sparks, ragdolls and the orb over the glyphs. `ox/oy` = flow origin on the canvas. */
-  draw(ctx: CanvasRenderingContext2D, ox: number, oy: number, lineHeight: number, font: string, flow: Flow): void {
+  draw(ctx: CanvasRenderingContext2D, ox: number, oy: number, lineHeight: number, font: string, flow: Flow, ink: string): void {
     void flow;
     const o = this.orb;
     if (o) {
@@ -203,7 +203,7 @@ export class Effects {
           ctx.fillStyle = '#fbfaf7'; ctx.strokeStyle = '#c9c5bd'; ctx.lineWidth = 1;
           ctx.beginPath(); ctx.roundRect(-r.w / 2, -r.h / 2, r.w, r.h, 5); ctx.fill(); ctx.stroke();
           ctx.fillStyle = '#6d6a65'; ctx.font = small; ctx.fillText('SPACE', 0, 1); ctx.font = font;
-        } else { ctx.fillStyle = '#11110f'; ctx.fillText(r.ch, 0, 0); }
+        } else { ctx.fillStyle = ink; ctx.fillText(r.ch, 0, 0); }
         ctx.restore();
       }
       ctx.textAlign = 'left';
