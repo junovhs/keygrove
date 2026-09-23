@@ -1,0 +1,4 @@
+{"cycle_id":1790134165195,"seq":0,"step":"fetch","state":"started","at":"2026-09-23T03:29:25.195675161Z","ref_name":"main"}
+{"cycle_id":1790134165195,"seq":1,"step":"fetch","state":"ok","at":"2026-09-23T03:29:26.428765611Z","ref_name":"origin/main","to_sha":"c00ed1ac63153ab5b755ad504a55b8cf6aa11686"}
+{"cycle_id":1790134165195,"seq":2,"step":"reconcile_store","state":"started","at":"2026-09-23T03:29:26.437879186Z","ref_name":"refs/ishoo/store","from_sha":"9abc7150409d60a3e75806074138ece45789c8f7"}
+{"cycle_id":1790134165195,"seq":3,"step":"reconcile_store","state":"ok","at":"2026-09-23T03:29:27.569279438Z","ref_name":"refs/ishoo/store","from_sha":"9abc7150409d60a3e75806074138ece45789c8f7","to_sha":"9abc7150409d60a3e75806074138ece45789c8f7","detail":"already in step"}
