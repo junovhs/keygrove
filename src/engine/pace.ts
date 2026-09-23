@@ -19,6 +19,7 @@ export const ESTABLISHED_RUNS = 3;
 
 /** Saved pace evidence (PACE-02): fast Roots runs so far, and whether they establish an existing fast habit. Never shown. */
 export interface PaceEvidence { fastEarly: number; established: boolean }
+/** No pace evidence yet. */
 export const freshPace = (): PaceEvidence => ({ fastEarly: 0, established: false });
 /** Count a Roots run typed at an established pace; three of them set the flag, which then stays. */
 export function notePace(ev: PaceEvidence, trail: Trail, strokes: readonly Keystroke[]): PaceEvidence {
