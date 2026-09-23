@@ -19,7 +19,8 @@ import { applyRun, blockingStop, currentStage, pendingStop, stopDone, currentTra
 import { Run } from './engine/run';
 import { recordPerformance } from './engine/learning';
 import { attemptPrompts, classifyPreparation, wordBigrams, type TracedRun } from './engine/preparation';
-import { courseComplete, keepsakeFor, ownedKeepsakes } from './engine/keepsakes';
+import { KEEPSAKES, courseComplete, fingerCharmAt, keepsakeFor, ownedKeepsakes, type Keepsake } from './engine/keepsakes';
+import { spawnCharm } from './ui/charm-fx';
 import { objectArt, collectionHtml } from './ui/scene';
 import './ui/journey.css';
 import { generate, generateDrill } from './engine/textgen';
@@ -464,8 +465,8 @@ function showCompletion(): void {
   const k = keepsakeFor('flow');
   $('resultEyebrow').textContent = 'All seven chapters · yours to keep';
   $('resultTitle').textContent = 'Your course, complete.';
-  $('resultCopy').textContent = 'From F and J to full passages. Your keepsakes and every lesson are here to revisit. Take these movements into your own writing, or settle in for a little practice.';
-  $('resultMastery').textContent = `36 lessons complete · ${ownedKeepsakes(state).length} keepsakes`;
+  $('resultCopy').textContent = 'From F and J to full passages. Your charms and every lesson are here to revisit. Take these movements into your own writing, or settle in for a little practice.';
+  $('resultMastery').textContent = `36 lessons complete · ${ownedKeepsakes(state).length} of ${KEEPSAKES.length} charms`;
   $('resultOffer').hidden = true;
   $('result').querySelector<HTMLElement>('.score')!.hidden = true;
   $('resultObject').hidden = false;
@@ -551,6 +552,7 @@ function stepName(lesson: Trail): string {
 /** Lessons whose pace note has shown this session (PACE-01). */
 const paceNoted = new Set<string>();
 function finish(): void {
+  let newCharm: Keepsake | null = null;
   const m = metrics(), t = runTrail, wasReplay = replayReturn !== null;
   let title = 'Practice complete.', copy = 'A little more familiarity to take into your next passage.';
   decisions = []; gate = null; if (!guided()) keys.endRun();
@@ -584,7 +586,11 @@ function finish(): void {
   }
   if (mode.kind === 'remedial' && practice) {
     const replay = pairCompleted(state.fingerCourses, mode.pair) > mode.level;
+    const before = pairCompleted(state.fingerCourses, mode.pair);
     fingerPassed = completeFingerPractice(state.fingerCourses, mode.pair, mode.level, practice, run).passed;
+    // UI-16: rows jumps, twisters and the gauntlet each earn this pair a charm.
+    const after = pairCompleted(state.fingerCourses, mode.pair);
+    if (after > before) newCharm = fingerCharmAt(mode.pair.id, after) ?? null;
     title = replay ? 'Finger stop revisited.' : fingerPassed ? `${mode.pair.name}, steady.` : 'A little more practice here.';
     copy = replay ? 'A passed stop stays passed. Your course is waiting where you left it.'
       : fingerPassed ? 'Both hands passed. Your progress is saved, and your course continues.'
@@ -596,9 +602,11 @@ function finish(): void {
   // Spec F5: a beat run is judged for evenness only — one word and three bars, never a number.
   if (runExercise.beat) { const e = evenness(run.strokes.slice(1).filter(x => x.correct).map(x => x.latencyMs)); $('resultMastery').textContent = `${e.word} ${e.bars}`; }
   $('result').querySelector<HTMLElement>('.score')!.hidden = guided();
-  const earned = outcome?.firstClear && t.checkpoint;
-  const k = keepsakeFor(t.grove);
-  $('resultObject').innerHTML = earned ? `${objectArt(k)}<span class="eyebrow">Yours to keep</span><h3>${escapeHtml(k.name)}</h3><p>${escapeHtml(k.line)}</p>` : '';
+  if (outcome?.firstClear && t.checkpoint) newCharm = keepsakeFor(t.grove);
+  const earned = !!newCharm, k = newCharm;
+  $('resultObject').innerHTML = k ? `${objectArt(k)}<span class="eyebrow">A new charm · yours to keep</span><h3>${escapeHtml(k.name)}</h3><p>${escapeHtml(k.line)}</p>` : '';
+  // The charm arrives on screen a beat after the result, in its own way (UI-16).
+  if (k) setTimeout(() => spawnCharm(k.id), 420);
   $('resultObject').hidden = !earned;
   $('result').classList.toggle('with-object', !!earned);
   // Spec B4: the closing prose is not built around the target; if the target slipped there, say so once and move on (D5 brings it back).
@@ -673,8 +681,8 @@ function openMap(view: BookView = 'course'): void {
   mapKeys = renderMap($('groveMap'), state, { onSelect: selectLesson, onStop: selectStop, onContinue: continueCourse, onClose: closeMap, continueLabel: stepName(trail()) });
   $('keepsakeCollection').innerHTML = collectionHtml(state);
   $('keepsakeCollection').querySelectorAll<HTMLButtonElement>('[data-replay]').forEach(b => b.onclick = () => selectLesson(trailById(b.dataset.replay!)));
-  const owned = ownedKeepsakes(state).length;
-  $('bookProgress').textContent = `${MAIN_TRAILS.filter(t => isCleared(state, t.id)).length} of ${MAIN_TRAILS.length} lessons · ${STOPS.filter(st => stopDone(state, st)).length} of ${STOPS.length} finger stops · ${owned} ${owned === 1 ? 'keepsake' : 'keepsakes'}`;
+  $('keepsakeCollection').querySelectorAll<HTMLButtonElement>('[data-summon]').forEach(b => b.onclick = () => { sound.play('sparkle'); spawnCharm(b.dataset.summon!); });
+  $('bookProgress').textContent = `${MAIN_TRAILS.filter(t => isCleared(state, t.id)).length} of ${MAIN_TRAILS.length} lessons · ${STOPS.filter(st => stopDone(state, st)).length} of ${STOPS.length} finger stops · ${ownedKeepsakes(state).length} of ${KEEPSAKES.length} charms`;
   showBookView(view);
 }
 /** The course and the keepsakes share one screen; the tabs swap what fills it. */
@@ -797,7 +805,7 @@ function applyImport(raw: unknown): void {
   state = sanitize(raw); keys = KeyModel.fromJSON(state.keys, state.confusions); trans = TransitionModel.fromJSON(state.transitions); slotPick = null; mode = { kind: 'trail' }; gate = null; replayReturn = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); if (courseComplete(state) && state.trail === 'flow-checkpoint') showCompletion(); toast('Progress restored.');
 }
 $('resetBtn').onclick = () => {
-  if (!confirm('Reset all your progress? Every lesson, keepsake and practice record will be gone' + (signedIn ? ' from your account too.' : '.'))) return;
+  if (!confirm('Reset all your progress? Every lesson, charm and practice record will be gone' + (signedIn ? ' from your account too.' : '.'))) return;
   if (!confirm('Are you really, really sure? There is no undo.')) return;
   { state = fresh(); keys = new KeyModel(); trans = new TransitionModel(); mode = { kind: 'trail' }; gate = null; replayReturn = null; setMethod(state.settings.method); save(); syncSettingsUi(); resetRun(); settingsModal().classList.remove('open'); toast('Fresh grove.'); } };
 function syncSettingsUi(): void {
@@ -875,6 +883,8 @@ sound.onPlay = (name) => { played.push(name); if (played.length > 200) played.sh
 const consoleApi = Object.freeze({
     snapshot: () => JSON.parse(JSON.stringify({ state, run: { text: run.text, pos: run.pos, status: run.status, hits: run.hits, attempts: run.attempts }, mode, exercise: runExercise, guided: guided(), helpVisible, outcome, decisions, gate, brief: brief ? { title: brief.briefing.title, step: brief.step, tip: brief.briefing.tips[brief.step]!.title } : null, offer: (gate ?? decisions[0]) ? { kind: (gate ?? decisions[0])!.kind } : null })),
     import: (raw: unknown) => applyImport(raw),
+    /** Summon any charm onto the screen (owned or not): for trying the animations. */
+    summon: (id: string) => spawnCharm(id),
     openMap,
     selftest: textflowSelfTest,
     prompt: () => canvasPrompt,

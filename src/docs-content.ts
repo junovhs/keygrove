@@ -112,7 +112,7 @@ export const docs = defineDocs({
         { kind: 'details', summary: 'Finger stops', text: 'Between lessons, Continue sometimes opens a **finger stop**: one level for a pair of fingers (index, middle, ring or pinky), placed just after the lesson that teaches the keys it needs. There are ten per pair. The first three are gentle reaches; the rest are deliberately hard: row jumps, words packed with those keys, same-finger runs, twisters, capitals, numbers and symbols, and a final gauntlet. Each hand needs 95% on its own keys to pass. Stops appear as small chips under their lesson in **Course**, where you can replay any you have passed.' },
       ] },
     ] },
-    { id: 'keepsakes', title: 'Things to keep', question: 'How do keepsakes work in KeyJam?', answer: 'Each chapter checkpoint gives you one permanent illustrated keepsake. It remembers a capability you practised and opens that chapter’s passage for replay. Nothing is bought, lost through absence or awarded by chance.', keywords: ['keepsake', 'reward', 'collection', 'replay'], blocks: [
+    { id: 'keepsakes', title: 'Charms', question: 'How do charms work in KeyJam?', answer: 'KeyJam has twenty pixel-art charms: one per chapter checkpoint, and three per finger pair at its row jumps, twisters and gauntlet stops. A new charm flies onto the screen when you earn it; click it under **Charms** to let it out again. Nothing is bought, lost or left to chance.', keywords: ['keepsake', 'charm', 'reward', 'collection', 'replay'], blocks: [
       { kind: 'cards', items: [
         { title: 'Little fir', text: 'Roots. Your first words on F, J, D, K, E, I, G, H, V and M.', label: 'Chapter 1' },
         { title: 'Blue cup', text: 'Home. The home row and everyday connections.', label: 'Chapter 2' },
@@ -123,7 +123,14 @@ export const docs = defineDocs({
         { title: 'Music box', text: 'Flow. Whole passages in unfamiliar writing.', label: 'Chapter 7' },
         { title: 'Folded fox', text: 'Code. Brackets, arrows and snippets, if you enable the optional chapter.', label: 'Optional' },
       ] },
-      { kind: 'p', text: 'Open **Keepsakes** to revisit a chapter passage. When you finish the replay, Continue returns you to your unfinished course. Keepsakes are derived from your permanent checkpoint clears, so an older save gains its objects automatically and a change of method never removes one.' },
+      { kind: 'cards', items: [
+        { title: 'Sparrow · paper plane · comet', text: 'Index fingers: row jumps, twisters, the gauntlet.', label: 'Index' },
+        { title: 'Snail · balloon · moon', text: 'Middle fingers: row jumps, twisters, the gauntlet.', label: 'Middle' },
+        { title: 'Snake · koi · crystal', text: 'Ring fingers: row jumps, twisters, the gauntlet.', label: 'Ring' },
+        { title: 'Frog · butterflies · rainbow', text: 'Pinkies: row jumps, twisters, the gauntlet.', label: 'Pinky' },
+      ] },
+      { kind: 'p', text: 'Every charm moves its own way. The sparrow flaps across the sky, the snake slithers through a corner, the frog hops along the floor, and the rarest ones shimmer like foil. With reduced motion turned on, a charm appears still for a moment instead.' },
+      { kind: 'p', text: 'Open **Charms** to let one out or to replay a chapter passage. When you finish the replay, Continue returns you to your unfinished course. Charms come from your permanent checkpoint clears and finger-stop passes, so an older save gains its charms automatically and a change of method never removes one.' },
       { kind: 'p', text: 'Finishing Flow completes the course and leaves fresh practice passages and every earlier lesson available. Take the skill into messages, notes and everyday writing; learning does not stop at the last screen.' },
     ] },
     { id: 'your-data', title: 'Your progress', question: 'Where does KeyJam save my progress?', answer: `${PRODUCT} stores progress in ${FACTS.storage.value}. An account is ${FACTS.account.value}. A guest page makes no request to the account service.`, keywords: ['save', 'backup', 'export', 'import', 'account', 'sync', 'reset'], blocks: [

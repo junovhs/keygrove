@@ -6,7 +6,7 @@ import { STOPS, stopsAfter, type Stop } from '../curriculum/stops';
 import { groveOpen, isCleared, stopDone, trailUnlocked } from '../engine/progress';
 import type { SaveV6 } from '../state/save';
 import { escapeHtml as esc } from './dom';
-import { keepsakeFor } from '../engine/keepsakes';
+import { keepsakeFor, owns } from '../engine/keepsakes';
 import { objectArt } from './scene';
 export interface MapHandlers { onSelect(trail: Trail): void; onStop(stop: Stop): void; onContinue(): void; onClose(): void;
   /** What Continue opens: the current lesson, or a finger stop woven before it. */
@@ -31,7 +31,7 @@ export function renderMap(root: HTMLElement, state: SaveV6, h: MapHandlers, grov
 
   const tile = (g: Grove) => {
     const ts = trailsInGrove(g.id), open = groveOpen(state, g.id), cleared = ts.filter(t => isCleared(state, t.id)).length;
-    const earned = isCleared(state, keepsakeFor(g.id).checkpoint);
+    const earned = owns(state, keepsakeFor(g.id));
     return `<button type="button" class="chapter-tile ${g.id === chosen.id ? 'active' : ''} ${open ? '' : 'locked'} ${earned ? 'earned' : ''}" data-grove="${g.id}" aria-pressed="${g.id === chosen.id}">
       <span class="tile-art">${earned ? objectArt(keepsakeFor(g.id), true) : String(g.n).padStart(2, '0')}</span>
       <span class="tile-body"><strong>${esc(g.name)}</strong><small>${earned ? 'Complete' : open ? `${cleared} / ${ts.length}` : 'Up ahead'}</small></span>

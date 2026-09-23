@@ -1,1 +1,40 @@
-.keepsake-art{width:140px;height:128px;overflow:visible;flex-shrink:0}.keepsake-art .object-body{transform-origin:60px 85px}.object-card:hover .object-body{animation:object-hello .65s ease-in-out}.keepsake-art.quiet{filter:saturate(.45);opacity:.7}.object-card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 18px;border:1px solid var(--line,#dedbd4);border-radius:8px;background:#fbf9f4}.object-card h3{font-size:20px;letter-spacing:-.5px;margin:12px 0 6px}.object-card p{font-size:14px;line-height:1.6;max-width:260px;margin:0;color:#716b63}.object-card .eyebrow{font:10px var(--mono,monospace);text-transform:uppercase;letter-spacing:1.4px;color:#8b8173;margin-top:10px}.object-replay{border:0;background:none;font:11px var(--mono,monospace);margin-top:20px;padding:8px;cursor:pointer;color:#514b45}.object-replay:hover{text-decoration:underline}.collection{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}.collection-empty{padding:24px;background:#f1ede5;line-height:1.6}@keyframes object-hello{0%,100%{transform:rotate(0)}35%{transform:rotate(-5deg) translateY(-3px)}70%{transform:rotate(3deg)}}@media(prefers-reduced-motion:reduce){.object-card:hover .object-body{animation:none}}
+/* Charms (UI-16): chunky pixel art, scaled only by whole pixels, on the quiet paper of the app. */
+.charm-img{display:block;image-rendering:pixelated;max-width:100%;height:auto}
+.charm-img.quiet{max-height:38px;width:auto}
+.charm-img.hero{max-height:150px;width:auto;margin:0 auto;filter:drop-shadow(0 6px 0 rgba(60,48,30,.08))}
+
+/* The sky: a full-window layer above everything that never takes a click. */
+.charm-sky{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.charm-actor{position:absolute;left:0;top:0;will-change:transform,opacity}
+.charm-actor canvas{position:absolute;inset:0;image-rendering:pixelated}
+.charm-actor canvas[hidden]{display:none}
+.charm-actor.holo{filter:drop-shadow(0 0 6px rgba(255,255,255,.9)) drop-shadow(0 0 14px rgba(160,120,255,.45))}
+/* Holographic foil: a rainbow sweep plus a bright glint band, cut to the sprite's shape and sliding across it. */
+.charm-holo{position:absolute;inset:0;mask-size:100% 100%;-webkit-mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.95) 45%,transparent 60%) 0 0/260% 100%,linear-gradient(115deg,#ff4fa3,#ffd24a,#4dffb2,#44b8ff,#b06bff,#ff4fa3) 0 0/300% 100%;
+  mix-blend-mode:hard-light;opacity:.62;animation:charm-foil 1.9s linear infinite}
+@keyframes charm-foil{from{background-position:130% 0,0 0}to{background-position:-130% 0,300% 0}}
+.charm-spark{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px}
+.charm-glint{position:absolute;width:4px;height:4px;margin:-2px 0 0 -2px;background:#fff;box-shadow:0 0 6px 2px rgba(255,236,160,.9);animation:charm-twinkle .9s steps(3,end) forwards}
+.charm-glint.trail{width:6px;height:6px;background:#bfe6ff;box-shadow:0 0 8px 3px rgba(120,190,255,.8)}
+@keyframes charm-twinkle{0%{opacity:0;transform:scale(.4)}30%{opacity:1;transform:scale(1.3) rotate(45deg)}100%{opacity:0;transform:scale(.3) rotate(90deg)}}
+
+/* The collection: twenty slots, owned charms summon themselves when clicked. */
+.charm-group{margin:0 0 22px}
+.charm-group>.eyebrow{margin:0 0 10px;font:700 10px var(--mono,monospace);letter-spacing:.12em;text-transform:uppercase;color:#8b8173}
+.collection{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px}
+.object-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 12px 14px;border:1px solid var(--line,#dedbd4);border-radius:10px;background:#fffdf9}
+.object-card.rare:not(.unearned){background:linear-gradient(160deg,#fffdf9 55%,#f6efff)}
+.charm-frame{display:grid;place-items:center;width:100%;height:84px;padding:6px;border:0;border-radius:8px;background:transparent;cursor:pointer}
+.charm-frame .charm-img{max-height:72px;width:auto}
+button.charm-frame:hover{background:#f4efe6}
+button.charm-frame:hover .charm-img{animation:charm-hello .5s steps(4,end)}
+.object-card.rare button.charm-frame:hover .charm-img{filter:drop-shadow(0 0 8px rgba(176,107,255,.55))}
+.unearned .charm-frame{cursor:default}
+.object-card h3{font-size:14.5px;letter-spacing:-.2px;margin:6px 0 4px;line-height:1.25}
+.object-card.unearned h3{color:#b3aa9c}
+.object-card p{font-size:12px;line-height:1.45;max-width:240px;margin:0;color:#716b63}
+.object-replay{border:0;background:none;font:10px var(--mono,monospace);margin-top:8px;padding:4px 6px;cursor:pointer;color:#514b45}
+.object-replay:hover{text-decoration:underline}
+@keyframes charm-hello{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.charm-holo{animation:none}button.charm-frame:hover .charm-img{animation:none}}
