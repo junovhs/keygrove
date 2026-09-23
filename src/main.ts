@@ -4,7 +4,7 @@ import { beatInterval, evenness, onBeat } from './engine/beat';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
-import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
+import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, renderCopy, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
 import { fingers, fingerById, fingerForKey, remedialText, type Finger } from './curriculum/fingers';
 import { METHODS, activeMethod, baseKey, fingerOf, isShifted, reassignedKeys, setMethod } from './curriculum/method';
 import { KeyModel, MASTERED } from './engine/keymodel';
@@ -203,9 +203,9 @@ function header(): void {
 function labels(): void {
   const t = runTrail, g = groveOf(t), f = focusPair();
   $('lessonTitle').textContent = f ? f.name + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : t.name;
-  $('lessonCopy').textContent = f ? fingerLevel()!.instruction + (practice?.helperKeys.length ? ` New helper keys: ${practice.helperKeys.join(' ').toUpperCase()}. Try their short introduction first; the hand guide shows which fingers to use.` : '') : mode.kind === 'coach' ? mode.decision.reason : resolveCopy(runExercise.instruction);
+  $('lessonCopy').innerHTML = renderCopy(f ? fingerLevel()!.instruction + (practice?.helperKeys.length ? ` New helper keys: ${practice.helperKeys.join(' ').toUpperCase()}. Try their short introduction first; the hand guide shows which fingers to use.` : '') : mode.kind === 'coach' ? mode.decision.reason : runExercise.instruction);
   $('summaryLabel').textContent = replayReturn ? 'A familiar place' : 'This passage';
-  $('focusName').textContent = mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : `${runExerciseIndex + 1}/${lessonExercises(t).length} · ${runExercise.name}` : 'Short practice · then your course';
+  $('focusName').innerHTML = renderCopy(mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : `${runExerciseIndex + 1}/${lessonExercises(t).length} · ${runExercise.name}` : 'Short practice · then your course');
   $('gateLabel').textContent = mode.kind !== 'trail' ? 'No test here' : t.checkpoint ? 'Chapter passage' : 'Accuracy before speed';
   $('focusInstruction').textContent = mode.kind === 'trail' ? `${t.checkpoint ? 97 : gateFor(t).passAcc}% accuracy · at your pace` : 'No passing score · just a little familiarity';
   if (f) {
@@ -301,9 +301,9 @@ function nextVisual(): void {
     $('handInstruction').innerHTML = 'Press with either thumb.';
   } else if (f) {
     paintHand('left', f.id); paintHand('right', f.id);
-    const shiftNote = shifted && 'hand' in f ? ` · hold ${f.hand === 'left' ? 'right' : 'left'} shift` : '';
-    const anchor = 'anchor' in f && f.anchor !== c.toLowerCase() ? ` · landmark ${f.anchor.toUpperCase()}` : '';
-    $('handInstruction').innerHTML = '<strong>' + escapeHtml(f.full) + '</strong>' + escapeHtml(anchor + shiftNote);
+    const shiftNote = shifted && 'hand' in f ? ` · hold ${f.hand === 'left' ? 'right' : 'left'} [shift]` : '';
+    const anchor = 'anchor' in f && f.anchor !== c.toLowerCase() ? ` · landmark [${f.anchor}]` : '';
+    $('handInstruction').innerHTML = '<strong>' + escapeHtml(f.full) + '</strong>' + renderCopy(anchor + shiftNote);
   } else {
     paintHand('left', null); paintHand('right', null);
     $('handInstruction').innerHTML = run.status === 'complete' ? 'Run complete.' : 'Let your hands rest comfortably.';
@@ -437,14 +437,14 @@ function renderBrief(): void {
   if (!brief) return;
   const { briefing, step } = brief, t = briefTip()!, exs = lessonExercises(runTrail), last = step + 1 === briefing.tips.length;
   $('lessonTitle').textContent = 'Before you begin';
-  $('lessonCopy').textContent = `${briefing.title} — ${briefing.lead}`;
-  $('summaryLabel').textContent = 'This exercise'; $('focusName').textContent = `${runExerciseIndex + 1}/${exs.length} · ${runExercise.name}`;
+  $('lessonCopy').innerHTML = renderCopy(`${briefing.title} — ${briefing.lead}`);
+  $('summaryLabel').textContent = 'This exercise'; $('focusName').innerHTML = renderCopy(`${runExerciseIndex + 1}/${exs.length} · ${runExercise.name}`);
   const nextEx = exs[runExerciseIndex + 1];
-  $('gateLabel').textContent = 'Next up'; $('focusInstruction').textContent = nextEx ? `${runExerciseIndex + 2}/${exs.length} · ${nextEx.name}` : 'Lesson complete';
+  $('gateLabel').textContent = 'Next up'; $('focusInstruction').innerHTML = renderCopy(nextEx ? `${runExerciseIndex + 2}/${exs.length} · ${nextEx.name}` : 'Lesson complete');
   $('briefCount').textContent = `${step + 1}/${briefing.tips.length}`;
   $('briefDots').innerHTML = briefing.tips.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('');
   $('briefIcon').innerHTML = BRIEF_ICONS[t.icon];
-  $('briefTitle').textContent = t.title; $('briefText').textContent = resolveCopy(t.body);
+  $('briefTitle').innerHTML = renderCopy(t.title); $('briefText').innerHTML = renderCopy(t.body);
   const keysEl = $('briefKeys'), next = $<HTMLButtonElement>('briefNext');
   if (t.press) {
     keysEl.hidden = false; next.hidden = true;
@@ -573,14 +573,14 @@ function finish(): void {
   // Spec B4: the closing prose is not built around the target; if the target slipped there, say so once and move on (D5 brings it back).
   const target = slotPick?.trail === t.id ? slotPick.pick?.target : undefined;
   if (mode.kind === 'trail' && runExercise.format === 'passage' && target && missedTarget(run.text, run.strokes, target)) copy += ` ${target[0]!.toUpperCase()} then ${target[1]!.toUpperCase()} slipped in the sentence — it will come back.`;
-  $('resultTitle').textContent = title; $('resultCopy').textContent = copy;
+  $('resultTitle').textContent = title; $('resultCopy').innerHTML = renderCopy(copy);
   $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%';
   // Spec F4: pace is shown in exactly one place — the Flow chapter's checkpoint card — as information, never a target.
   $('resultWpm').parentElement!.hidden = !(mode.kind === 'trail' && t.id === 'flow-checkpoint');
   $('resultOffer').hidden = !gate;
   $('resultOffer').textContent = gate ? `Up next: ${gate.title}. A short practice, then back here.` : '';
   $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Calm hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
-  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${outcome.exercise.nextName ?? trail().name}` : `Retry: ${t.name}`;
+  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${resolveCopy(outcome.exercise.nextName ?? trail().name)}` : `Retry: ${t.name}`;
   $('skipPractice').hidden = !gate;
   $('skipPractice').textContent = 'Try the passage instead';
   if (mode.kind === 'remedial') {
@@ -595,7 +595,7 @@ function finish(): void {
     exercise: {
       index: runExerciseIndex + 1,
       total: lessonExercises(t, pickFor(t)).length,
-      name: runExercise.name,
+      name: resolveCopy(runExercise.name),
       stage: runExercise.stage,
       format: runExercise.format,
       target: runExercise.target ?? null,

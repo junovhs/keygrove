@@ -42,7 +42,7 @@ export function loop(target: string): LessonExercise {
   const how = fa === fb ? `Same finger, ${rows}. Let the finger travel; do not reset to its home key between.`
     : fa && fb && handOf(fa) === handOf(fb) ? `Two fingers of one hand, ${rows}. Let the second finger prepare while the first presses.`
       : `Alternate hands, ${rows}. Let one hand prepare while the other presses.`;
-  return { name: `Connect ${a.toUpperCase()} and ${b.toUpperCase()}`, stage: 'mix', format: 'movement', instruction: how, length: 24, target, focusKeys: target };
+  return { name: `Connect [${a}] and [${b}]`, stage: 'mix', format: 'movement', instruction: how, length: 24, target, focusKeys: target };
 }
 /** Spec B2: the same phrase to a quiet pulse; guided (DEC-11) — finishing is completing — and judged only for evenness. */
 export function beat(target: string): LessonExercise {
@@ -54,9 +54,9 @@ const guide = (name: string, keys: string, text: string, instruction: string, fo
 /** Small planned visits preview the next keys (R U, V M) or widen early language (H N); never random novelty. Later lessons
  * have none: the lesson 1 tour already shows the whole instrument, and a visit must serve its lesson (CURR-50). */
 const VISITS: Readonly<Record<string, LessonExercise>> = {
-  anchors: guide('Visit the upper row', 'ru', 'rruururu', 'R uses your {r}; U your {u}. Find each slowly. A small hand adjustment is welcome.'),
-  'inner-pair': guide('Visit the lower row', 'vm', 'vvmmvmvm', 'V uses your {v}; M your {m}. Let the next finger prepare while the other presses.'),
-  'middle-up': guide('A little more language', 'hn', 'hi hi in in', 'Meet H with your {h} and N with your {n}. Try hi and in with the guide; this whole step has no score.', 'words'),
+  anchors: guide('Visit the upper row', 'ru', 'rruururu', '[r] uses your {r}; [u] your {u}. Find each slowly. A small hand adjustment is welcome.'),
+  'inner-pair': guide('Visit the lower row', 'vm', 'vvmmvmvm', '[v] uses your {v}; [m] your {m}. Let the next finger prepare while the other presses.'),
+  'middle-up': guide('A little more language', 'hn', 'hi hi in in', 'Meet [h] with your {h} and [n] with your {n}. Try hi and in with the guide; this whole step has no score.', 'words'),
 };
 
 /** Slot 2's target and form, chosen per learner by the D5 rule (engine/next-practice); absent = no evidence, the shipped default. */
@@ -66,21 +66,21 @@ export interface SlotPick { target: string; form: 'loop' | 'beat' }
 export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExercise[] {
   if (t.checkpoint) return [use('Chapter passage', 'passage', 'Read a word ahead. Connect familiar movements at whatever pace stays comfortable.', t.length, t.grove === 'flow')];
   if (t.id === 'anchors') return [
-    guide('Find F and J deliberately', 'fj', 'ffjjfjfj', 'Feel the bumps: F with your {f}, J with your {j}. Press lightly. There is no score here.'),
-    guide('Take a gentle keyboard tour', 'abcdefghijklmnopqrstuvwxyz;', 'asdf gh jkl; qwer ty uiop zxcv bnm', 'A quick map, not a test. Keep F and J as landmarks; touch each key once with the shown finger. You do not need to remember them yet.'),
-    move('Alternate hands', 'mix', 'Let one hand prepare while the other presses. F and J help you find your bearings.', 16),
+    guide('Find [f] and [j] deliberately', 'fj', 'ffjjfjfj', 'Feel the bumps: [f] with your {f}, [j] with your {j}. Press lightly. There is no score here.'),
+    guide('Take a gentle keyboard tour', 'abcdefghijklmnopqrstuvwxyz;', 'asdf gh jkl; qwer ty uiop zxcv bnm', 'A quick map, not a test. Keep [f] and [j] as landmarks; touch each key once with the shown finger. You do not need to remember them yet.'),
+    move('Alternate hands', 'mix', 'Let one hand prepare while the other presses. [f] and [j] help you find your bearings.', 16),
     VISITS.anchors!,
-    move('Meet Space', 'words', 'Either thumb presses Space between these short groups. Take as much time as you need.', 24),
+    move('Meet [space]', 'words', 'Either thumb presses [space] between these short groups. Take as much time as you need.', 24),
   ];
   if (t.id === 'inner-pair') return [
-    guide('Find D and K deliberately', 'dk', 'ddkkdkdk', 'D uses your {d}; K your {k}. Keep the press small and easy.'),
-    { name: 'Connect four fingers', stage: 'mix', format: 'movement', instruction: 'Connect D/K with F/J. Prepare the next finger; do not hold the others rigid.', length: 23, text: 'df jk fd kj dfjk kjfd' },
+    guide('Find [d] and [k] deliberately', 'dk', 'ddkkdkdk', '[d] uses your {d}; [k] your {k}. Keep the press small and easy.'),
+    { name: 'Connect four fingers', stage: 'mix', format: 'movement', instruction: 'Connect [d]/[k] with [f]/[j]. Prepare the next finger; do not hold the others rigid.', length: 23, text: 'df jk fd kj dfjk kjfd' },
     VISITS['inner-pair']!,
     { name: 'Carry the coordination', stage: 'mix', format: 'movement', instruction: 'Read one short group ahead. Slow, accurate movement counts fully.', length: 31, text: 'dfjk kjfd fdjk jkdf dfkj kjdf' },
   ];
   if (t.newKeys && ['rhythm', 'words'].includes(t.kind)) {
-    const names = [...t.newKeys].map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' and ');
-    const ownership = [...t.newKeys].map(k => `${k.toUpperCase()} uses your {${k}}`).join('; ');
+    const names = [...t.newKeys].map(k => k === ' ' ? '[space]' : `[${k}]`).join(' and ');
+    const ownership = [...t.newKeys].map(k => `[${k}] uses your {${k}}`).join('; ');
     const visits = VISITS[t.id] ? [VISITS[t.id]!] : [];
     // CURR-50: one headline movement carries the lesson — the D5 technical pick when it touches a new key, else the most
     // common English movement the new letters make. Slot 2 loops it, slot 3's words carry it, slot 4's phrase reuses it.
@@ -91,10 +91,10 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
       // Spec C3/D5: slot 2 isolates the learner's chosen target; without evidence, lesson 3 still meets `ed` (spec C1) and the
       // first two lessons keep the generic loop.
       pick ? (pick.form === 'beat' ? beat(pick.target) : t.id === 'middle-up' && (pick.target === 'ed' || pick.target === 'de')
-        ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves E↔D while right middle moves I↔K. Keep both movements small and even.', length: 26, target: pick.target, focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
+        ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves [e]↔[d] while right middle moves [i]↔[k]. Keep both movements small and even.', length: 26, target: pick.target, focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
         : loop(pick.target))
         : t.id === 'middle-up'
-          ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves E↔D while right middle moves I↔K. Keep both movements small and even.', length: 26, target: 'ed', focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
+          ? { name: 'Middle fingers up and home', stage: 'mix', format: 'movement', instruction: 'Left middle moves [e]↔[d] while right middle moves [i]↔[k]. Keep both movements small and even.', length: 26, target: 'ed', focusKeys: 'edik', text: 'ed ik de ki ed ik de ki ed' }
           : headline ? loop(headline)
           // The slash lesson has no letter to loop: rehearse the real pairs its words and phrase will use.
           : t.newKeys === '/' ? { name: 'Connect the slash', stage: 'mix', format: 'movement', instruction: 'The slash joins two words. Keep the right hand light as it reaches down; let the left prepare the next letter.', length: 28, text: 'yes/no and/or his/her in/out', focusKeys: '/' }
@@ -110,7 +110,7 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
     const introduction = t.shift ? 'fFjJ fFjJ' : [...keys].map(k => k + k).join(' ');
     return [
       guide('Find the movement deliberately', keys, introduction, t.shift
-        ? 'For F hold right Shift; for J hold left Shift. Release gently. The key and opposite-hand guide show each movement.'
+        ? 'For [f] hold right [shift]; for [j] hold left [shift]. Release gently. The key and opposite-hand guide show each movement.'
         : 'Try each new key slowly. The guide names its finger and any opposite-hand Shift. Adjust the hand comfortably.'),
       use('Use it in context', 'words', 'Connect the movement to a useful word, number or expression. Accuracy has no minimum speed.', Math.min(48, t.length)),
       use('Put it to work', 'passage', 'Read ahead and prepare the next movement. Pause whenever the hands need to soften.', t.length),

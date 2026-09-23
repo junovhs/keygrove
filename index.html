@@ -143,6 +143,8 @@ kbd{font:inherit}
 .keymap{width:max-content;max-width:100%;margin:44px auto 0;position:relative;z-index:4;display:grid;gap:8px}
 .keyrow{display:flex;justify-content:center;gap:6px}
 .keycap.locked{opacity:.32}
+/* A key named in copy (UI-13): a miniature of the on-screen keycap. */
+.keycap-inline{display:inline-block;min-width:1.55em;padding:0 .35em;margin:0 .08em;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;background:var(--paper);font:600 .78em/1.45 var(--mono);letter-spacing:.04em;text-align:center;color:var(--ink);vertical-align:.08em;white-space:nowrap}
 .focus-key[disabled]{opacity:.35;cursor:default}
 .keycap{min-width:min(52px,4.6vw);height:min(46px,4vw);padding:0 4px;display:grid;place-items:center;border:1px solid #d3cfc8;border-bottom-width:2px;border-radius:6px;background:rgba(251,250,247,.92);font-size:11px;color:#3a3833;box-shadow:0 1px 0 rgba(255,255,255,.9) inset;cursor:default;transition:background .1s,color .1s}
 .keycap.peek{background:#ffe3d8;border-color:var(--orange-soft);color:var(--orange)}

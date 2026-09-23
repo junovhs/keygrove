@@ -111,7 +111,7 @@ describe('transition loop (spec B1, CURR-39)', () => {
     expect(() => generate(trailById('anchors')!, 'mix', { exercise: loop('ed') })).toThrow(/not unlocked/);
     expect(() => loop('q')).toThrow(/Not a two-letter movement/);
     expect(() => loop('ll')).toThrow(/Not a two-letter movement/);
-    expect(loop('he')).toMatchObject({ name: 'Connect H and E', target: 'he', format: 'movement' }); // any movement may headline a lesson (CURR-50)
+    expect(loop('he')).toMatchObject({ name: 'Connect [h] and [e]', target: 'he', format: 'movement' }); // any movement may headline a lesson (CURR-50)
   });
 });
 

@@ -25,7 +25,7 @@ it('every planned exercise covers its assessed focus or explicitly guided keys, 
 });
 it('introduces Space deliberately after the short landmark exercises (the guided keyboard tour groups keys by row)', () => {
   const t = trailById('anchors'), exercises = lessonExercises(t);
-  const space = exercises.findIndex(e => e.name === 'Meet Space');
+  const space = exercises.findIndex(e => e.name === 'Meet [space]');
   expect(space).toBe(exercises.length - 1);
   for (const exercise of exercises.slice(0, space).filter(e => e.name !== 'Take a gentle keyboard tour')) {
     const text = generate(t, exercise.stage, { exercise, seed: 3 });

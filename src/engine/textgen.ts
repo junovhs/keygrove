@@ -418,7 +418,7 @@ export function generate(trail: Trail, stage: StageName, opts: GenOptions = {}):
     // Movement blocks are 6 letters, not a Space after every two presses.
     // The first three landmark exercises deliberately have no Space at all.
     const letters = text.replaceAll(' ', '');
-    const noSpace = trail.id === 'anchors' ? opts.exercise.name !== 'Meet Space' : opts.exercise.stage === 'drill';
+    const noSpace = trail.id === 'anchors' ? opts.exercise.name !== 'Meet [space]' : opts.exercise.stage === 'drill';
     text = noSpace ? letters : letters.match(/.{1,6}/g)!.join(' ');
   }
 

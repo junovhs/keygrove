@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { MAIN_TRAILS, allowedChars, resolveCopy, trailById, trailsInGrove } from './index';
+import { MAIN_TRAILS, allowedChars, renderCopy, resolveCopy, trailById, trailsInGrove } from './index';
+import { lessonExercises } from './lesson-flow';
 import { briefedTrails, briefingFor } from './briefings';
 import { DEFAULT_METHOD_ID, METHODS, isShifted, setMethod } from './method';
 afterEach(() => setMethod(DEFAULT_METHOD_ID));
@@ -51,5 +52,24 @@ describe('lesson briefings', () => {
       expect(first.press, id).toBe(t.newKeys);
     }
     expect(resolveCopy(briefingFor(trailById('anchors'))!.tips[0]!.body)).toBe('Press F with your left index, then J with your right index.');
+  });
+});
+
+describe('copy tokens (UI-13)', () => {
+  it('render a key as a keycap chip and a finger as its name, escaping everything else', () => {
+    expect(renderCopy('[s] uses your {s}.')).toBe('<kbd class="keycap-inline">S</kbd> uses your left ring.');
+    expect(renderCopy('Hold [shift]; press [space] & <b>')).toBe('Hold <kbd class="keycap-inline">Shift</kbd>; press <kbd class="keycap-inline">Space</kbd> &#38; &#60;b&#62;');
+    expect(renderCopy('[[] and []]')).toBe('<kbd class="keycap-inline">[</kbd> and <kbd class="keycap-inline">]</kbd>');
+    expect(renderCopy('No tokens here.')).toBe('No tokens here.');
+    expect(resolveCopy('[s] uses your {s}.')).toBe('S uses your left ring.');
+  });
+  it('leave no key named as a bare capital in lessons 1–20 briefings and exercises', () => {
+    // A lone capital letter that is not the article "A" before a lower-case word is a key name outside a token.
+    const bare = (s: string) => [...s.matchAll(/(?<![A-Za-z[{])[A-Z](?![A-Za-z\]}])/g)].filter(m => !(m[0] === 'A' && /^ (?!uses\b)[a-z]/.test(s.slice(m.index! + 1)))).map(m => m[0]);
+    for (const t of MAIN_TRAILS.slice(0, 20)) {
+      const b = briefingFor(t);
+      const copy = [...(b ? b.tips.flatMap(tip => [tip.title, tip.body]) : []), ...lessonExercises(t).flatMap(e => [e.name, e.instruction])];
+      for (const c of copy) expect(bare(c), `${t.id}: ${c}`).toEqual([]);
+    }
   });
 });

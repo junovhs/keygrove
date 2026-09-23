@@ -6,18 +6,34 @@ import type { Gate, Grove, Trail } from './types';
 export { GROVES, groveById, TRAILS, MAIN_TRAILS };
 
 const FINGER_WORD: Record<FingerId, string> = { lp: 'pinky', lr: 'ring', lm: 'middle', li: 'index', ri: 'index', rm: 'middle', rr: 'ring', rp: 'pinky', thumb: 'thumb' };
+/** Copy tokens: `[s]` names a key (`[shift]`, `[space]` for the named keys) and `{s}` names the finger for a key. */
+const COPY_TOKEN = /\[(shift|space|.)\]|\{(.)\}/g;
+const keyLabel = (k: string): string => (k === 'shift' ? 'Shift' : k === 'space' || k === ' ' ? 'Space' : k.toUpperCase());
+function fingerName(ch: string): string {
+  const id = fingerOf(ch.toLowerCase());
+  if (!id) return ch;
+  const name = id === 'thumb' ? 'thumb' : `${handOf(id)} ${FINGER_WORD[id]}`;
+  return ch === ch.toUpperCase() && ch !== ch.toLowerCase() ? name.toUpperCase() : name;
+}
 /**
- * Resolve finger placeholders in lesson copy against the active method: `{c}` → 'left index',
- * `{C}` → 'LEFT INDEX', `{,}` → 'right middle'. Copy never hard-codes a finger (spec §44).
+ * Resolve copy tokens to plain text against the active method: `{c}` → 'left index', `{C}` → 'LEFT INDEX',
+ * `{,}` → 'right middle', `[c]` → 'C'. Copy never hard-codes a finger (spec §44).
  */
 export function resolveCopy(text: string | undefined): string {
   if (!text) return '';
-  return text.replace(/\{(.)\}/g, (_m, ch: string) => {
-    const id = fingerOf(ch.toLowerCase());
-    if (!id) return ch;
-    const name = id === 'thumb' ? 'thumb' : `${handOf(id)} ${FINGER_WORD[id]}`;
-    return ch === ch.toUpperCase() && ch !== ch.toLowerCase() ? name.toUpperCase() : name;
-  });
+  return text.replace(COPY_TOKEN, (_m, key: string | undefined, finger: string) => (key !== undefined ? keyLabel(key) : fingerName(finger)));
+}
+const escapeHtml = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+/** Resolve copy tokens to safe HTML: each `[k]` becomes a small keycap chip, fingers become their names, all else is escaped. */
+export function renderCopy(text: string | undefined): string {
+  if (!text) return '';
+  let html = '', at = 0;
+  for (const m of text.matchAll(COPY_TOKEN)) {
+    html += escapeHtml(text.slice(at, m.index));
+    html += m[1] !== undefined ? `<kbd class="keycap-inline">${escapeHtml(keyLabel(m[1]))}</kbd>` : escapeHtml(fingerName(m[2]!));
+    at = m.index! + m[0].length;
+  }
+  return html + escapeHtml(text.slice(at));
 }
 export type * from './types';
 export { STAGES } from './types';
