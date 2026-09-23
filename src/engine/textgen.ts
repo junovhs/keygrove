@@ -1,15 +1,13 @@
 import { PRACTICE_WORDS, readablePhrases } from '../curriculum/language';
 import { transitionLoop, type LessonExercise } from '../curriculum/lesson-flow';
 import { allowedChars, cumulativeKeys, type StageName, type Trail } from '../curriculum';
-import WORDS from '../data/words.json';
-import TOP from '../data/top200.json';
 import SENTENCES from '../data/sentences.json';
 import QUOTES from '../data/quotes.json';
 import CODE from '../data/code.json';
 import { rng, pickOne, shuffle, type Rng } from './rng';
 import { fingerOf, handOf, homeOf, mirrorOf, type FingerId } from '../curriculum/method';
 import { CHUNKS, PRACTICE_WORDS as CARRIERS } from '../curriculum/movements';
-import { EXCLUDED_WORDS as EXCLUDED_PRACTICE_WORDS, NEUTRAL_WORDS, carriersOf } from '../curriculum/headline';
+import { COMMON_WORDS as TOP, NEUTRAL_WORDS, VOCABULARY, carriersOf } from '../curriculum/headline';
 
 /** Per-key heat (0..1+). Hotter keys pull their words in more often. */
 export type Heat = Readonly<Record<string, number>>;
@@ -27,7 +25,7 @@ export function wordBank(trail: Trail): string[] {
   let b = bankCache.get(trail.id);
   if (!b) {
     const set = cumulativeKeys(trail).keys;
-    b = [...new Set([...PRACTICE_WORDS, ...WORDS])].filter(w => !EXCLUDED_PRACTICE_WORDS.has(w) && [...w].every(c => set.has(c)));
+    b = VOCABULARY.filter(w => [...w].every(c => set.has(c)));
     bankCache.set(trail.id, b);
   }
   return b;

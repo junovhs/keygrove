@@ -1,6 +1,7 @@
 import { activeMethod, baseKey, fingerOf, type FingerId } from './method';
 import type { Finger } from './fingers';
-import words from '../data/words.json';
+import { EVERYDAY_WORDS } from './movements';
+import { EXCLUDED_WORDS } from './headline';
 
 export const FINGER_LEVEL_COUNT = 10;
 export const FINGER_PASS_ACC = 95;
@@ -23,7 +24,7 @@ export function fingerLevels(f: Finger): FingerLevel[] {
     while (text.length < 48) text += ' ' + tokens.join(' ');
     return { name, instruction, text };
   };
-  const vocabulary = (words as string[]).filter(w => [...w].some(k => letters.includes(k)));
+  const vocabulary = EVERYDAY_WORDS.filter(w => !EXCLUDED_WORDS.has(w) && [...w].some(k => letters.includes(k)));
   // Round-robin by target key gives uncommon reaches space alongside frequent ones.
   const contexts = letters.flatMap(k => vocabulary.filter(w => w.includes(k)).slice(0, 3));
   return [

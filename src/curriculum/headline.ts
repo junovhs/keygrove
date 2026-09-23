@@ -21,6 +21,13 @@ export function carriersOf(target: string, allowed: ReadonlySet<string>): string
   const ranked = [...new Set([...(RESEARCH_CARRIERS[target] ?? []), ...PRACTICE_WORDS, ...EVERYDAY_WORDS])].filter(ok);
   return ranked.slice(0, CARRIER_POOL).sort((a, b) => a.length - b.length);
 }
+/** Everyday staples missing from the research list: it keeps mostly lower-case words, and subtitles usually capitalise
+ * these at the start of a line. */
+const SENTENCE_STARTERS: readonly string[] = ['what', 'how', 'where', 'why', 'no', 'yes', 'well', 'okay'];
+/** The one vocabulary for generic words and passages: the authored early words, then the research everyday words. */
+export const VOCABULARY: readonly string[] = [...new Set([...PRACTICE_WORDS, ...SENTENCE_STARTERS, ...EVERYDAY_WORDS])].filter((w) => !EXCLUDED_WORDS.has(w));
+/** The Flow grove's 200 common words: the staples above, then the most frequent everyday words. */
+export const COMMON_WORDS: readonly string[] = [...new Set([...SENTENCE_STARTERS, ...EVERYDAY_WORDS])].filter((w) => !EXCLUDED_WORDS.has(w)).slice(0, 200);
 /** Short, very common everyday words that let a words line read as language between carriers. */
 export const NEUTRAL_WORDS: readonly string[] = EVERYDAY_WORDS.slice(0, 300).filter((w) => w.length <= 5 && !EXCLUDED_WORDS.has(w));
 
