@@ -238,7 +238,7 @@ function labels(): void {
   $('beginCue').textContent = mode.kind === 'trail' ? 'Begin typing when you\'re ready · any key' : 'Begin typing when you\'re ready · a short practice';
 }
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
-const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'light', compact: true, orb: false });
+const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'dark', compact: true, orb: false });
 function prompt(): void {
   if (canvasPrompt) { canvasPrompt.set({ text: run.text, pos: run.pos, wrong: run.wrong, reading: (mode.kind === 'remedial' ? mode.level >= 3 : runStage === 'words') && run.text.length > 50 }); return; }
   const p = $('prompt'); p.innerHTML = '';
