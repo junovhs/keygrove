@@ -56,16 +56,17 @@ it('requires sufficient evidence and an exact 95% ratio', () => {
   }
 });
 
-it('never credits an aborted run, different passage or skipped prerequisite', () => {
+it('never credits an aborted run or a different passage; a clean later level credits the ones before it (FIX-03)', () => {
   const progress: Record<string, number> = {};
   const practice = fingerPractice(index, 0, progress);
   const aborted = new Run(practice.text); aborted.begin(1);
   for (const k of practice.text.slice(0, -1)) aborted.type(k, 100);
   expect(completeFingerPractice(progress, index, 0, practice, aborted).passed).toBe(false);
   expect(completeFingerPractice(progress, index, 0, practice, typePassage('f'.repeat(40))).passed).toBe(false);
-  const skipped = fingerPractice(index, 3, progress);
-  expect(completeFingerPractice(progress, index, 3, skipped, typePassage(skipped.text)).passed).toBe(false);
   expect(progress).toEqual({});
+  const skipped = fingerPractice(index, 3, progress);
+  expect(completeFingerPractice(progress, index, 3, skipped, typePassage(skipped.text)).passed).toBe(true);
+  expect(pairCompleted(progress, index)).toBe(4);
 });
 
 for (const method of METHODS) it(`all paired levels are passable with enough complete coverage under ${method.name}`, () => {

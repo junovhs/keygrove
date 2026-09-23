@@ -86,8 +86,9 @@ export function completeFingerPractice(
     const hits = strokes.filter(s => s.correct).length;
     const key = fingerCourseId(id);
     // Exact ratio: 94.6% must not pass because the display rounds it to 95%.
-    // Contiguous records retain all earned progress and cannot skip prerequisites.
-    if (hits >= MIN_FINGER_HITS && hits * 100 >= strokes.length * FINGER_PASS_ACC && (progress[key] ?? 0) === level) {
+    // Passing a level also credits any earlier ones this side never ran: a required stop reached past skipped levels
+    // (a save that predates the stops, DEC-20) must still be passable (FIX-03). Earned records never go down.
+    if (hits >= MIN_FINGER_HITS && hits * 100 >= strokes.length * FINGER_PASS_ACC && (progress[key] ?? 0) <= level) {
       progress[key] = level + 1;
       newlyPassed.push(id);
     }

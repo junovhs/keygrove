@@ -2,7 +2,8 @@ import { expect, it } from 'vitest';
 import { MAIN_TRAILS, allowedChars, nextTrail, trailById } from './index';
 import { FINGER_PAIRS, fingerCourseId, pairCompleted } from './finger-course';
 import { STOPS, STOPS_PER_LESSON } from './stops';
-import { fingerPractice } from '../engine/finger-practice';
+import { completeFingerPractice, fingerPractice } from '../engine/finger-practice';
+import { Run } from '../engine/run';
 import { blockingStop, pendingStop, trailUnlocked } from '../engine/progress';
 import { fresh, freshProgress } from '../state/save';
 
@@ -52,4 +53,23 @@ it('holds a fresh learner at a stop, never a learner already inside the next les
   expect(pairCompleted(s.fingerCourses, middle)).toBe(1);
   expect(pendingStop(s)).toBeNull();
   expect(trailUnlocked(s, trailById('middle-up'))).toBe(true);
+});
+
+it('never traps a learner: a stop reached with earlier levels skipped still passes with a clean run (FIX-03)', () => {
+  // A save from before the stops existed: lessons through X and Comma cleared, the next lesson not yet started,
+  // and no finger-course record at all. The pending stop sits at level 3 of 10 for the middle fingers.
+  const s = fresh();
+  const upTo = MAIN_TRAILS.findIndex(t => t.id === 'middle-down');
+  for (const t of MAIN_TRAILS.slice(0, upTo + 1)) { s.trails[t.id] = { ...freshProgress(), runs: 1, cleared: true }; if (t.id !== 'middle-down') s.lessonSteps[t.id] = 3; }
+  s.trail = MAIN_TRAILS[upTo + 1]!.id;
+  const stop = pendingStop(s)!;
+  expect(stop.pair.id).toBe('middle');
+  expect(stop.level).toBeGreaterThan(0);
+  const known = new Set(MAIN_TRAILS.slice(0, upTo + 1).flatMap(t => [...t.newKeys]));
+  const practice = fingerPractice(stop.pair, stop.level, s.fingerCourses, { known, seed: 1 });
+  const run = new Run(practice.text); run.begin(0);
+  let now = 0; for (const ch of practice.text) run.type(ch, (now += 300));
+  expect(completeFingerPractice(s.fingerCourses, stop.pair, stop.level, practice, run).passed).toBe(true);
+  expect(pairCompleted(s.fingerCourses, stop.pair)).toBe(stop.level + 1);
+  expect(pendingStop(s)?.id).not.toBe(stop.id);
 });
