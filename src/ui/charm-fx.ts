@@ -47,7 +47,7 @@ const backOut = (t: number) => { const c = 1.7; return 1 + (c + 1) * (t - 1) ** 
 const across = (s: Stage, t: number) => s.dir > 0 ? -s.w / 2 + t * (s.W + s.w) : s.W + s.w / 2 - t * (s.W + s.w);
 
 interface Behaviour { life: number; pose(t: number, s: Stage): Pose; frameMs?: number; turns?: boolean }
-const BEHAVIOURS: Record<Exclude<CharmMotion, 'slither' | 'flock' | 'music' | 'streak' | 'shower'>, Behaviour> = {
+const BEHAVIOURS: Record<Exclude<CharmMotion, 'slither' | 'flock' | 'music' | 'streak' | 'shower' | 'cat'>, Behaviour> = {
   // Sprouts from the floor with a springy overshoot, sways, then settles away.
   grow: { life: 5200, pose: (t, s) => { const g = backOut(clamp01(t * 3.2)); const sy = Math.max(0.02, g); return { x: s.W * (0.2 + 0.6 * s.seed), y: s.H - 16 - s.h * sy / 2, sy, sx: 0.6 + 0.4 * g, rot: t > 0.3 ? Math.sin(t * 16) * 3 * (1 - t) : 0, op: fade(t, 0.02, 0.86) }; } },
   // Floats up from below with a lazy side-to-side drift.
@@ -138,6 +138,7 @@ export function spawnCharm(id: string): void {
   if (k.motion === 'slither') return slither(art, W, H, dir);
   if (k.motion === 'flock') { for (let i = 0; i < 3; i++) setTimeout(() => flyOne(art, frames, W, H, dir, i), i * 380); return; }
   if (k.motion === 'streak') return streak(art, W, H, dir);
+  if (k.motion === 'cat') return catAntics(art, frames, W, H, dir);
   if (k.motion === 'shower') { for (let i = 0; i < 18; i++) setTimeout(() => fallingStar(art, frames, W, H, colors), i * 130 + Math.random() * 160); return; }
   const b = k.motion === 'music' ? BEHAVIOURS.rise : BEHAVIOURS[k.motion];
   // Art faces right; anything that travels left is mirrored so it never goes backwards. Top-down crawlers turn instead.
@@ -168,6 +169,34 @@ function flyOne(art: CharmArt, frames: string[][], W: number, H: number, dir: 1 
     y: H * lane + Math.sin(t * 13 * wob + i) * 34 + Math.sin(t * 31 + i * 2) * 10,
     rot: Math.sin(t * 20 + i) * 12, sx: 0.8, sy: 0.8, op: fade(t, 0.02, 0.96),
   }, Math.floor(ms / (130 + i * 20))), () => a.el.remove());
+}
+
+/**
+ * The house cat: saunters in, rolls onto its back and paddles its legs in the air, rolls back upright, then bolts
+ * off the far side. Rolled over, the walk frames play fast and upside down, which reads as legs waving.
+ */
+function catAntics(art: CharmArt, frames: string[][], W: number, H: number, dir: 1 | -1): void {
+  const a = new Actor(art, frames, dir < 0, false);
+  const floor = H - a.h / 2 - 10, start = dir > 0 ? -a.w / 2 : W + a.w / 2, stop = start + dir * (W * 0.32 + a.w / 2);
+  const ease = (v: number) => v < 0.5 ? 2 * v * v : 1 - (-2 * v + 2) ** 2 / 2;
+  run(8200, (t, ms) => {
+    if (t < 0.3) { // saunter in, a little bob in each step
+      const u = t / 0.3;
+      a.set({ x: start + (stop - start) * u, y: floor - Math.abs(Math.sin(ms / 190)) * 2 }, Math.floor(ms / 260));
+    } else if (t < 0.36) { // hop and roll onto its back
+      const v = (t - 0.3) / 0.06;
+      a.set({ x: stop, y: floor - Math.sin(v * Math.PI) * 34, rot: dir * 180 * ease(v) }, 0);
+    } else if (t < 0.68) { // belly up, legs paddling, a happy wiggle
+      a.set({ x: stop + Math.sin(ms / 170) * 3, y: floor + 3, rot: dir * 180 + Math.sin(ms / 120) * 7 }, Math.floor(ms / 85));
+    } else if (t < 0.74) { // roll back upright
+      const v = (t - 0.68) / 0.06;
+      a.set({ x: stop, y: floor - Math.sin(v * Math.PI) * 28, rot: dir * (180 + 180 * ease(v)) }, 0);
+    } else { // bolt for the far edge
+      const u = (t - 0.74) / 0.26, far = dir > 0 ? W + a.w : -a.w;
+      a.set({ x: stop + (far - stop) * Math.min(1, u * u * 1.6), y: floor - Math.abs(Math.sin(ms / 55)) * 6, sy: 0.92 }, Math.floor(ms / 65));
+    }
+  }, () => a.el.remove());
+  sparks(start + dir * 30, floor, ['#ffd84a', '#ff8fb1', '#7c71a0'], 6);
 }
 
 /** One star of the shower: drops from the top edge, spinning and twinkling, lands with a bounce and a burst, and fades. */
