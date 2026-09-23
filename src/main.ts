@@ -1,6 +1,7 @@
 import { lessonExercises, type LessonExercise, type SlotPick } from './curriculum/lesson-flow';
 import { nextPractice } from './engine/next-practice';
 import { beatInterval, evenness, onBeat } from './engine/beat';
+import { PACE_NOTE, paceNoteApplies, typedFast } from './engine/pace';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
 import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
 import { fingerLevels, fingerCourseId, FINGER_PAIRS, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
@@ -533,6 +534,8 @@ function thirds(): { errors: number; lat: number }[] {
   const st = run.strokes; const n = Math.max(1, Math.floor(st.length / 3));
   return [0, 1, 2].map((i) => { const part = st.slice(i * n, i === 2 ? st.length : (i + 1) * n); const ok = part.filter((x) => x.correct); return { errors: part.length - ok.length, lat: ok.length ? ok.reduce((a, x) => a + x.latencyMs, 0) / ok.length : 0 }; });
 }
+/** Lessons whose pace note has shown this session (PACE-01). */
+const paceNoted = new Set<string>();
 function finish(): void {
   const m = metrics(), t = runTrail, wasReplay = replayReturn !== null;
   let title = 'Practice complete.', copy = 'A little more familiarity to take into your next passage.';
@@ -587,6 +590,10 @@ function finish(): void {
   const target = slotPick?.trail === t.id ? slotPick.pick?.target : undefined;
   if (mode.kind === 'trail' && runExercise.format === 'passage' && target && missedTarget(run.text, run.strokes, target)) copy += ` ${target[0]!.toUpperCase()} then ${target[1]!.toUpperCase()} slipped in the sentence — it will come back.`;
   $('resultTitle').textContent = title; $('resultCopy').innerHTML = renderCopy(copy);
+  // PACE-01: typed far above a relaxed pace → one gentle suggestion per lesson per session; never a gate or a number.
+  const fast = mode.kind === 'trail' && !runExercise.beat && paceNoteApplies(t, runExercise) && !paceNoted.has(t.id) && typedFast(run.strokes, t);
+  if (fast) paceNoted.add(t.id);
+  $('resultPace').textContent = fast ? PACE_NOTE : ''; $('resultPace').hidden = !fast;
   $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%';
   // Spec F4: pace is shown in exactly one place — the Flow chapter's checkpoint card — as information, never a target.
   $('resultWpm').parentElement!.hidden = !(mode.kind === 'trail' && t.id === 'flow-checkpoint');

@@ -1,0 +1,39 @@
+import { groveOf } from '../curriculum';
+import type { LessonExercise } from '../curriculum/lesson-flow';
+import type { Trail } from '../curriculum/types';
+import type { Keystroke } from './run';
+
+/**
+ * Pace note (PACE-01). Fast and accurate can still be old habits, and the app cannot see fingers (DEC-15), so a run typed
+ * far above a relaxed pace earns a suggestion to slow down and check fingering. Never a gate, score or number (DEC-14).
+ */
+
+/** How far above the chapter's relaxed pace counts as "far": twice as fast. */
+export const PACE_FACTOR = 2;
+/** The chapters where technique is being formed; Bark onward (capitals, symbols, Flow) never shows the note. */
+const PACE_GROVES = new Set(['roots', 'home', 'canopy', 'undergrowth']);
+
+/** Median ms between consecutive correct presses inside a word; retries, word boundaries and pauses (≥ 2 s) excluded. */
+export function medianInterval(strokes: readonly Keystroke[]): number | null {
+  const lats = strokes.filter((s, i, all) => {
+    const prev = all[i - 1];
+    return s.correct && prev?.correct && prev.index === s.index - 1 && s.key !== ' ' && prev.key !== ' ' && s.latencyMs < 2000;
+  }).map((s) => s.latencyMs).sort((a, b) => a - b);
+  return lats.length >= 6 ? lats[Math.floor(lats.length / 2)]! : null;
+}
+
+/** Ms per press at the chapter's relaxed pace (its wpmTarget; a word is five characters). */
+export const relaxedIntervalMs = (trail: Trail): number => 12_000 / (trail.wpmTarget ?? groveOf(trail).wpmTarget);
+
+/** The note belongs to technique exercises (drills, loops, words) in chapters 1–4, not to phrases, passages or checkpoints. */
+export const paceNoteApplies = (trail: Trail, exercise: LessonExercise): boolean =>
+  PACE_GROVES.has(trail.grove) && !trail.checkpoint && (exercise.format === 'movement' || exercise.format === 'words');
+
+/** True when the run's typical press came faster than `factor` times the chapter's relaxed pace. */
+export function typedFast(strokes: readonly Keystroke[], trail: Trail, factor = PACE_FACTOR): boolean {
+  const median = medianInterval(strokes);
+  return median !== null && median < relaxedIntervalMs(trail) / factor;
+}
+
+/** The result-card note: a suggestion about technique, with no number and no claim about the finger used. */
+export const PACE_NOTE = "That was quick. Speed isn't the goal here. If these are old habits, try it once slowly and check each key uses the finger shown.";
