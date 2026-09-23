@@ -466,7 +466,7 @@ function showCompletion(): void {
   $('resultEyebrow').textContent = 'All seven chapters · yours to keep';
   $('resultTitle').textContent = 'Your course, complete.';
   $('resultCopy').textContent = 'From F and J to full passages. Your charms and every lesson are here to revisit. Take these movements into your own writing, or settle in for a little practice.';
-  $('resultMastery').textContent = `36 lessons complete · ${ownedKeepsakes(state).length} of ${KEEPSAKES.length} charms`;
+  $('resultMastery').textContent = `36 lessons complete · ${allCharmsUnlocked ? KEEPSAKES.length : ownedKeepsakes(state).length} of ${KEEPSAKES.length} charms`;
   $('resultOffer').hidden = true;
   $('result').querySelector<HTMLElement>('.score')!.hidden = true;
   $('resultObject').hidden = false;
@@ -672,6 +672,19 @@ function finish(): void {
 // ---- grove map ---------------------------------------------------------------------
 let mapKeys: ((e: KeyboardEvent) => void) | null = null;
 type BookView = 'course' | 'keepsakes';
+// Cosmetic console cheat: deliberately separate from saved/synced learning evidence.
+const charmCheatKey = 'keyjam:unlock-all-charms';
+let allCharmsUnlocked = false;
+try { allCharmsUnlocked = localStorage.getItem(charmCheatKey) === '1'; } catch { /* Session-only if storage is unavailable. */ }
+function setCharmCheat(enabled: boolean): string {
+  allCharmsUnlocked = enabled;
+  try {
+    if (enabled) localStorage.setItem(charmCheatKey, '1');
+    else localStorage.removeItem(charmCheatKey);
+  } catch { /* The command still works for this session. */ }
+  openMap('keepsakes');
+  return enabled ? `All ${KEEPSAKES.length} charms unlocked on this browser.` : 'Cheat removed. Your earned charms are preserved.';
+}
 function openMap(view: BookView = 'course'): void {
   stopPulse();
   if (run.status === 'playing') resetRun();
@@ -679,10 +692,10 @@ function openMap(view: BookView = 'course'): void {
   arena().classList.remove('result-mode'); arena().classList.add('map-mode');
   document.body.classList.remove('showing-result'); document.body.classList.add('showing-book');
   mapKeys = renderMap($('groveMap'), state, { onSelect: selectLesson, onStop: selectStop, onContinue: continueCourse, onClose: closeMap, continueLabel: stepName(trail()) });
-  $('keepsakeCollection').innerHTML = collectionHtml(state);
+  $('keepsakeCollection').innerHTML = collectionHtml(state, allCharmsUnlocked);
   $('keepsakeCollection').querySelectorAll<HTMLButtonElement>('[data-replay]').forEach(b => b.onclick = () => selectLesson(trailById(b.dataset.replay!)));
   $('keepsakeCollection').querySelectorAll<HTMLButtonElement>('[data-summon]').forEach(b => b.onclick = () => { sound.play('sparkle'); spawnCharm(b.dataset.summon!); });
-  $('bookProgress').textContent = `${MAIN_TRAILS.filter(t => isCleared(state, t.id)).length} of ${MAIN_TRAILS.length} lessons · ${STOPS.filter(st => stopDone(state, st)).length} of ${STOPS.length} finger stops · ${ownedKeepsakes(state).length} of ${KEEPSAKES.length} charms`;
+  $('bookProgress').textContent = `${MAIN_TRAILS.filter(t => isCleared(state, t.id)).length} of ${MAIN_TRAILS.length} lessons · ${STOPS.filter(st => stopDone(state, st)).length} of ${STOPS.length} finger stops · ${allCharmsUnlocked ? KEEPSAKES.length : ownedKeepsakes(state).length} of ${KEEPSAKES.length} charms`;
   showBookView(view);
 }
 /** The course and the keepsakes share one screen; the tabs swap what fills it. */
@@ -885,6 +898,10 @@ const consoleApi = Object.freeze({
     import: (raw: unknown) => applyImport(raw),
     /** Summon any charm onto the screen (owned or not): for trying the animations. */
     summon: (id: string) => spawnCharm(id),
+    /** Unlock the collection on this browser without changing course progress. */
+    unlockAllCharms: () => setCharmCheat(true),
+    /** Remove the cheat, keeping charms earned through practice. */
+    resetCharms: () => setCharmCheat(false),
     openMap,
     selftest: textflowSelfTest,
     prompt: () => canvasPrompt,
