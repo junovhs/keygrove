@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { MAIN_TRAILS, allowedChars, renderCopy, resolveCopy, trailById, trailsInGrove } from './index';
-import { lessonExercises } from './lesson-flow';
+import { defaultHeadline, lessonExercises } from './lesson-flow';
+import { briefingWords } from './briefings';
+import { generate } from '../engine/textgen';
 import { briefedTrails, briefingFor } from './briefings';
 import { DEFAULT_METHOD_ID, METHODS, isShifted, setMethod } from './method';
 afterEach(() => setMethod(DEFAULT_METHOD_ID));
@@ -71,5 +73,32 @@ describe('copy tokens (UI-13)', () => {
       const copy = [...(b ? b.tips.flatMap(tip => [tip.title, tip.body]) : []), ...lessonExercises(t).flatMap(e => [e.name, e.instruction])];
       for (const c of copy) expect(bare(c), `${t.id}: ${c}`).toEqual([]);
     }
+  });
+});
+
+describe('letter-lesson briefings (CURR-52)', () => {
+  const letterLessons = MAIN_TRAILS.slice(2, 20).filter(t => t.newKeys && /[a-z]/.test(t.newKeys));
+  it('open with a press step for exactly the new keys, then name the headline movement and words from the words line', () => {
+    expect(letterLessons.map(t => t.id)).toContain('pinky-up');
+    for (const t of letterLessons) {
+      const b = briefingFor(t)!, first = b.tips[0]!;
+      expect(b.tips.length, t.id).toBeLessThanOrEqual(3);
+      expect(first.press, t.id).toBe(t.newKeys);
+      const target = defaultHeadline(t)!;
+      const text = b.tips.map(tip => resolveCopy(tip.title) + ' ' + resolveCopy(tip.body)).join(' ');
+      expect(text, t.id).toContain(`${target[0]!.toUpperCase()} to ${target[1]!.toUpperCase()}`);
+      const named = briefingWords(target, t).filter(w => new RegExp(`\\b${w}\\b`).test(text));
+      expect(named.length, t.id).toBeGreaterThanOrEqual(2);
+      // Every named word is one the lesson's words line draws on, and at least one is on every generated line.
+      const words = lessonExercises(t).findIndex(e => e.name === 'Carry it into words');
+      for (let seed = 1; seed <= 5; seed++) {
+        const line = generate(t, 'words', { seed, exercise: lessonExercises(t)[words]! }).split(' ');
+        expect(named.some(w => line.includes(w)), `${t.id} seed ${seed}: ${line.join(' ')}`).toBe(true);
+      }
+    }
+  });
+  it('keep the slash lesson to its real pairs', () => {
+    const text = briefingFor(trailById('last-reaches'))!.tips.map(tip => tip.body).join(' ');
+    expect(text).toContain('yes/no');
   });
 });

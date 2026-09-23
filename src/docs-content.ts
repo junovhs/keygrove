@@ -23,7 +23,7 @@ export const docs = defineDocs({
       { kind: 'p', text: 'You do not need to plan a practice session or understand a scoring system. Each lesson introduces a few keys, mixes them with movements you already know, then uses them in fresh text. **Continue** always takes you to what comes next.' },
       { kind: 'steps', items: [
         { title: 'Open the app on a computer', text: 'Use a physical QWERTY keyboard. A phone keyboard cannot teach finger placement.' },
-        { title: 'Read the short briefing', text: 'Early lessons open with a **Before you begin** card that lights the finger and key the step is about. Press any key to move through it, or **Escape** to skip it.' },
+        { title: 'Read the short briefing', text: 'New-key lessons open with a **Before you begin** card that lights the finger and key the step is about and names the movement the lesson builds. Press any key to move through it, or **Escape** to skip it.' },
         { title: 'Type the highlighted character', text: 'Start with F, J and Space. Begin by typing the highlighted character or pressing **Enter**. A wrong key stays highlighted until you type the right one; nothing advances on a mistake.' },
         { title: 'Press Continue', text: 'Every pass moves you one exercise forward. The last exercise of a lesson opens the next one. That is the whole loop.' },
       ] },

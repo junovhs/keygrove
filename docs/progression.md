@@ -82,7 +82,7 @@ Save version remains 6. Legacy `stars`, `xp`, `days`, `cleanStreak`, WPM referen
 
 ## Briefings: just-in-time coaching
 
-Each Chapter 1 lesson opens with an authored briefing. Its first step is interactive: empty, pulsing key tiles ask for each new key with the named finger, fill as they are pressed, draw a check mark and advance on their own. The text steps coach the physical basics and advance on any key; Escape skips the whole briefing. Later new-key lessons get a short generic briefing without the press step. Extending the interactive step and naming each lesson's headline movement is CURR-52. A briefing shows once per lesson per session. Content lives in `src/curriculum/briefings.ts` and names fingers through the `{f}` placeholders, so it follows the active method.
+Each Chapter 1 lesson opens with an authored briefing. Its first step is interactive: empty, pulsing key tiles ask for each new key with the named finger, fill as they are pressed, draw a check mark and advance on their own. The text steps coach the physical basics and advance on any key; Escape skips the whole briefing. Every letter lesson from 3 to 20 also has a movement step naming its headline movement and words that carry it ("Your movement: I to S … his, fish and dish"). Lessons 7–20 open with the same interactive press step; later non-letter lessons get a short generic briefing without it. A briefing shows once per lesson per session. Content lives in `src/curriculum/briefings.ts` and names fingers through the `{f}` placeholders, so it follows the active method.
 
 ## The lesson shell
 

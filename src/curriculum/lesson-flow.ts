@@ -59,6 +59,9 @@ const VISITS: Readonly<Record<string, LessonExercise>> = {
   'middle-up': guide('A little more language', 'hn', 'hi hi in in', 'Meet [h] with your {h} and [n] with your {n}. Try hi and in with the guide; this whole step has no score.', 'words'),
 };
 
+/** A new-key lesson's headline movement without a per-learner pick: lesson 3 meets `ed` (spec C1), others use headlineOf. */
+export const defaultHeadline = (t: Trail): string | null => (t.id === 'middle-up' ? 'ed' : headlineOf(t));
+
 /** Slot 2's target and form, chosen per learner by the D5 rule (engine/next-practice); absent = no evidence, the shipped default. */
 export interface SlotPick { target: string; form: 'loop' | 'beat' }
 
@@ -85,7 +88,7 @@ export function lessonExercises(t: Trail, pick?: SlotPick): readonly LessonExerc
     // CURR-50: one headline movement carries the lesson — the D5 technical pick when it touches a new key, else the most
     // common English movement the new letters make. Slot 2 loops it, slot 3's words carry it, slot 4's phrase reuses it.
     // (Words no longer switch to a chunk; ing / nce / ion live in the Flow Bigrams lesson and in ordinary prose.)
-    const headline = pick?.target ?? (t.id === 'middle-up' ? 'ed' : headlineOf(t) ?? undefined);
+    const headline = pick?.target ?? defaultHeadline(t) ?? undefined;
     return [
       guide(`Find ${names} deliberately`, t.newKeys, [...t.newKeys].map(k => k.repeat(2)).join('').repeat(2), `${ownership}. Find each without rushing; use only the pressure you need.`),
       // Spec C3/D5: slot 2 isolates the learner's chosen target; without evidence, lesson 3 still meets `ed` (spec C1) and the
