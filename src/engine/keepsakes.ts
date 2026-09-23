@@ -3,7 +3,7 @@ import { FINGER_PAIRS, fingerLevels, pairCompleted, type FingerPair } from '../c
 import { fingerById } from '../curriculum/fingers';
 
 /** How a charm behaves when it is summoned onto the screen (UI-16). Each one is a pose function in ui/charm-fx.ts. */
-export type CharmMotion = 'grow' | 'rise' | 'kite' | 'crawl' | 'run' | 'hop' | 'flutter' | 'swing' | 'music' | 'fly' | 'flock' | 'loop' | 'streak' | 'slither' | 'swim' | 'spin';
+export type CharmMotion = 'shower' | 'grow' | 'rise' | 'kite' | 'crawl' | 'run' | 'hop' | 'flutter' | 'swing' | 'music' | 'fly' | 'flock' | 'loop' | 'streak' | 'slither' | 'swim' | 'spin';
 
 /**
  * A charm: a permanent pixel-art keepsake (DEC-10). Chapter charms come from a checkpoint; finger charms from a pair
@@ -30,8 +30,8 @@ const finger = (id: string, pair: FingerPair['id'], level: number, name: string,
 };
 
 export const KEEPSAKES: readonly Keepsake[] = [
-  chapter('fir', 'roots', 'roots-checkpoint', 'The little fir', 'A few keys became your first words.', 'Your first words are taking root.', 'grow'),
-  chapter('cup', 'home', 'home-checkpoint', 'The blue cup', 'The middle row feels a little more like home.', 'Something warm is waiting at Home.', 'rise'),
+  chapter('star', 'roots', 'roots-checkpoint', 'The falling stars', 'A few keys became your first words.', 'Your first words are taking root.', 'shower'),
+  chapter('cat', 'home', 'home-checkpoint', 'The house cat', 'The home row feels like home now.', 'Someone is waiting at Home.', 'crawl'),
   chapter('kite', 'canopy', 'canopy-checkpoint', 'The paper kite', 'Your hands found the upper row.', 'There is more room above you.', 'kite'),
   chapter('beetle', 'undergrowth', 'undergrowth-checkpoint', 'The emerald beetle', 'Every letter is within reach.', 'A small discovery beneath the leaves.', 'crawl'),
   chapter('letter', 'bark', 'bark-checkpoint', 'The sealed letter', 'You can give a sentence its shape and voice.', 'Soon you will have a whole sentence to send.', 'flutter'),

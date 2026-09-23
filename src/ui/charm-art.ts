@@ -29,34 +29,27 @@ export const flipRows = (rows: string[]): string[] => rows.map(r => [...r].rever
 
 // ---- Chapter charms --------------------------------------------------------------------------------------------------
 
-const FIR = grid([
-  ...sym(['........y', '.......yw', '........y'], {}),
-  ...sym([
-    '........s', '.......sh', '......shg', '.....shgg', '....shggg', '....sssgg',
-    '......shg', '.....shgr', '....shggg', '...shgggg', '...ssssgg',
-    '.....shgg', '....shggg', '...shgrgg', '..shggggg', '.shgggggg', '.ssssssss',
-    '......stt', '......stt', '......sss',
-  ], { h: 'g', g: 'd', r: 'r', t: 'T' }),
-]);
+const STAR = grid(sym([
+  '......s', '.....sw', '.....sy', '....syy', 'ssssswy', 'swwyyyy', '.syyyyy', '..syyyy', '...syyy', '...syyy', '..syyss', '..sys..', '.sys...', '.ss....',
+], { y: 'o', w: 'y' }));
+/** The twinkle frame: the whole star flares a shade lighter. */
+const STAR_FLARE = STAR.map(r => r.replace(/y/g, 'h').replace(/o/g, 'y'));
 
-const CUP_BODY = [
-  '.ssssssssssssss....',
-  'sKkkkkkkkkkkkkKs...',
-  'swKKKKKKKKKKKKws...',
-  'sbwhhbbbbbbbbbbcssss',
-  'sbwhhbbbbbbbbbbcbbbcs',
-  'sbwhbbbbbbbbbbbcs..cs',
-  'sbwhbbbbbbbbbbbcs..cs',
-  'sbbhbbbbbbbbbbccs.cs.',
-  'sbbbbbbbbbbbbbccbccs.',
-  '.sbbbbbbbbbbbccssss..',
-  '.sbbbbbbbbbbbccs.....',
-  '..scbbbbbbbbccs......',
-  '...sscccccccss.......',
-  '.ssssssssssssssss....',
-];
-const CUP = grid(['....m....m.........', '...m....m..........', '....m....m.........', '...................', ...CUP_BODY]);
-const CUP_STEAM = grid(['...m....m..........', '....m....m.........', '...m....m..........', '...................', ...CUP_BODY]);
+const cat = (step: 'a' | 'b') => grid([
+  '................s...s...',
+  '...............sbs.sbs..',
+  '...............sps.sps..',
+  '.ss............sbbbbbbs.',
+  'sbbs...........sbebbebs.',
+  'sbs............sbbwpwbbs',
+  'sbs....sssssssssbbbbbbs.',
+  '.sbs.ssbbhhhhhbbbsbbbs..',
+  '..sbsbbbhhbbbbbbbbsss...',
+  '...sbbbbbbbbbbbbbbbs....',
+  '...scbbbbbbbbbbbbbcs....',
+  '....sccccccccccccccs....',
+  ...(step === 'a' ? ['....sbs.sbs...sbs.sbs...', '....sss.sss...sss.sss...'] : ['.....sbs.sbs.sbs.sbs....', '.....sss.sss.sss.sss....']),
+]);
 
 const KITE = grid([
   ...sym(['.......s', '......st', '.....syt', '....syht', '...syhyt', '..syyyyt', '.syyyyyt', 'stttttt'], { y: 'r', h: 'o', t: 't' }),
@@ -341,8 +334,8 @@ function rainbowWithClouds(): string[] {
 // ---- The collection's art ----------------------------------------------------------------------------------------
 
 export const CHARM_ART: Readonly<Record<string, CharmArt>> = {
-  fir: { pattern: FIR, pixel: 5, palette: { s: '#1b5a45', g: '#2fae6e', d: '#21845a', h: '#8ef0a6', y: '#ffc93a', w: '#fff6c2', r: '#ff5470', t: '#9a5f37', T: '#6d3f22' } },
-  cup: { pattern: CUP, frames: [CUP, CUP_STEAM], pixel: 5, palette: { s: '#23407a', b: '#4a86ec', c: '#2f63c4', h: '#9cc4ff', w: '#eaf3ff', k: '#6b3b23', K: '#b4744a', m: '#c9bfb2' } },
+  star: { pattern: STAR, frames: [STAR, STAR_FLARE], pixel: 4, palette: { s: '#b8620a', y: '#ffd23a', o: '#ffad1f', h: '#ffeb85', w: '#fffbe0' } },
+  cat: { pattern: cat('a'), frames: [cat('a'), cat('b')], pixel: 4, palette: { s: '#1f1a2e', b: '#4a4163', c: '#342d4a', h: '#7c71a0', e: '#ffd84a', p: '#ff8fb1', w: '#f3eefc' } },
   kite: { pattern: KITE, pixel: 5, palette: { s: '#a3372a', y: '#ffd35a', h: '#fff1c2', r: '#f2503a', o: '#ff9a3c', p: '#e6337a', t: '#7d5a44', b: '#39a7ff' } },
   beetle: { pattern: beetle('a'), frames: [beetle('a'), beetle('b')], pixel: 5, palette: { s: '#0f4a44', g: '#1fb893', d: '#128066', h: '#7bf5cf', w: '#eafff8', k: '#2c2a3a' } },
   letter: { pattern: LETTER, pixel: 5, palette: { s: '#8a5a2e', p: '#f8e6c2', c: '#e0bf87', d: '#c9a26a', h: '#fffbf1', r: '#ec3552', R: '#a8173a', w: '#ffc2cc' } },

@@ -114,8 +114,8 @@ export const docs = defineDocs({
     ] },
     { id: 'keepsakes', title: 'Charms', question: 'How do charms work in KeyJam?', answer: 'KeyJam has twenty pixel-art charms: one per chapter checkpoint, and three per finger pair at its row jumps, twisters and gauntlet stops. A new charm flies onto the screen when you earn it; click it under **Charms** to let it out again. Nothing is bought, lost or left to chance.', keywords: ['keepsake', 'charm', 'reward', 'collection', 'replay'], blocks: [
       { kind: 'cards', items: [
-        { title: 'Little fir', text: 'Roots. Your first words on F, J, D, K, E, I, G, H, V and M.', label: 'Chapter 1' },
-        { title: 'Blue cup', text: 'Home. The home row and everyday connections.', label: 'Chapter 2' },
+        { title: 'Falling stars', text: 'Roots. Your first words on F, J, D, K, E, I, G, H, V and M.', label: 'Chapter 1' },
+        { title: 'House cat', text: 'Home. The home row and everyday connections.', label: 'Chapter 2' },
         { title: 'Paper kite', text: 'Canopy. Reaches across the stagger to the top row.', label: 'Chapter 3' },
         { title: 'Emerald beetle', text: 'Undergrowth. The lower row and its punctuation.', label: 'Chapter 4' },
         { title: 'Sealed letter', text: 'Bark. Capitals, sentences and real punctuation.', label: 'Chapter 5' },

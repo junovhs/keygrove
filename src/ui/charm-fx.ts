@@ -47,7 +47,7 @@ const backOut = (t: number) => { const c = 1.7; return 1 + (c + 1) * (t - 1) ** 
 const across = (s: Stage, t: number) => s.dir > 0 ? -s.w / 2 + t * (s.W + s.w) : s.W + s.w / 2 - t * (s.W + s.w);
 
 interface Behaviour { life: number; pose(t: number, s: Stage): Pose; frameMs?: number; turns?: boolean }
-const BEHAVIOURS: Record<Exclude<CharmMotion, 'slither' | 'flock' | 'music' | 'streak'>, Behaviour> = {
+const BEHAVIOURS: Record<Exclude<CharmMotion, 'slither' | 'flock' | 'music' | 'streak' | 'shower'>, Behaviour> = {
   // Sprouts from the floor with a springy overshoot, sways, then settles away.
   grow: { life: 5200, pose: (t, s) => { const g = backOut(clamp01(t * 3.2)); const sy = Math.max(0.02, g); return { x: s.W * (0.2 + 0.6 * s.seed), y: s.H - 16 - s.h * sy / 2, sy, sx: 0.6 + 0.4 * g, rot: t > 0.3 ? Math.sin(t * 16) * 3 * (1 - t) : 0, op: fade(t, 0.02, 0.86) }; } },
   // Floats up from below with a lazy side-to-side drift.
@@ -138,6 +138,7 @@ export function spawnCharm(id: string): void {
   if (k.motion === 'slither') return slither(art, W, H, dir);
   if (k.motion === 'flock') { for (let i = 0; i < 3; i++) setTimeout(() => flyOne(art, frames, W, H, dir, i), i * 380); return; }
   if (k.motion === 'streak') return streak(art, W, H, dir);
+  if (k.motion === 'shower') { for (let i = 0; i < 18; i++) setTimeout(() => fallingStar(art, frames, W, H, colors), i * 130 + Math.random() * 160); return; }
   const b = k.motion === 'music' ? BEHAVIOURS.rise : BEHAVIOURS[k.motion];
   // Art faces right; anything that travels left is mirrored so it never goes backwards. Top-down crawlers turn instead.
   const topDown = id === 'beetle';
@@ -167,6 +168,27 @@ function flyOne(art: CharmArt, frames: string[][], W: number, H: number, dir: 1 
     y: H * lane + Math.sin(t * 13 * wob + i) * 34 + Math.sin(t * 31 + i * 2) * 10,
     rot: Math.sin(t * 20 + i) * 12, sx: 0.8, sy: 0.8, op: fade(t, 0.02, 0.96),
   }, Math.floor(ms / (130 + i * 20))), () => a.el.remove());
+}
+
+/** One star of the shower: drops from the top edge, spinning and twinkling, lands with a bounce and a burst, and fades. */
+function fallingStar(art: CharmArt, frames: string[][], W: number, H: number, colors: string[]): void {
+  const a = new Actor(art, frames, false, false, 'small');
+  const size = 0.55 + Math.random() * 0.9, x0 = a.w + Math.random() * (W - 2 * a.w), drift = (Math.random() - 0.5) * 180;
+  const spin = (Math.random() < 0.5 ? -1 : 1) * (200 + Math.random() * 340), floor = H - (a.h * size) / 2 - 6;
+  const twinkle = 110 + Math.random() * 90;
+  let landed = false, trail = 0;
+  run(2300 + Math.random() * 1500, (t, ms) => {
+    const fall = 0.72;
+    if (t < fall) {
+      const u = t / fall, x = x0 + drift * u, y = -a.h + u * u * (floor + a.h);
+      a.set({ x, y, rot: spin * u, sx: size, sy: size }, Math.floor(ms / twinkle));
+      if (ms > trail) { trail = ms + 70; glint(x - drift * 0.02, y - a.h * size * 0.4); }
+      return;
+    }
+    const v = (t - fall) / (1 - fall), x = x0 + drift;
+    if (!landed) { landed = true; sparks(x, floor, colors, 7); }
+    a.set({ x, y: floor - Math.sin(Math.min(1, v * 1.6) * Math.PI) * 26 * size, rot: spin, sx: size, sy: size, op: 1 - clamp01((v - 0.55) / 0.45) }, Math.floor(ms / twinkle));
+  }, () => a.el.remove());
 }
 
 /** The comet cuts diagonally across the sky, shedding a trail of glints. */
