@@ -35,7 +35,8 @@ import { CanvasPrompt } from './render/prompt';
 import { selfTest as textflowSelfTest } from './render/textflow';
 
 /** What the current run is for: the trail itself, a finger drill, or a coach drill (confusion / reach / review). */
-type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number } | { kind: 'coach'; decision: Decision } | { kind: 'explore'; key: string };
+/** `slow`: the exercise just finished, replayed once as guided practice from the pace note (PACE-03); not a separate screen. */
+type Mode = { kind: 'trail' } | { kind: 'remedial'; pair: FingerPair; level: number } | { kind: 'coach'; decision: Decision } | { kind: 'explore'; key: string } | { kind: 'slow'; text: string };
 
 // Guests have a separate durable save. Account state never leaks into a
 // signed-out session; first signup carries the current guest course forward.
@@ -130,7 +131,7 @@ let beforeMastery: Record<string, number> = {};
 let brief: { briefing: Briefing; step: number; pressed: Set<string> } | null = null;
 const seenBriefs = new Set<string>();
 let helpVisible = true;
-const guided = () => mode.kind === 'explore' || (mode.kind === 'trail' && runExercise.assessment === 'guided');
+const guided = () => mode.kind === 'explore' || mode.kind === 'slow' || (mode.kind === 'trail' && runExercise.assessment === 'guided');
 const actionable = (d: Decision) => !['rushing', 'fatigue', 'steady', 'reach'].includes(d.kind);
 const courseFrontier = () => MAIN_TRAILS.find(t => !isCleared(state, t.id)) ?? MAIN_TRAILS.at(-1)!;
 
@@ -155,6 +156,7 @@ const dueNow = () => new Set(keys.dueKeys([...allowedChars(trail())].filter((k) 
 function makeText(): string {
   const allowed = allowedChars(trail());
   if (mode.kind === 'explore') return mode.key === ' ' ? '   ' : mode.key.repeat(2) + ' ' + mode.key.repeat(2);
+  if (mode.kind === 'slow') return mode.text;
   if (mode.kind === 'remedial') { practice = fingerPractice(mode.pair, mode.level, state.fingerCourses, { known: new Set(MAIN_TRAILS.filter(t => isCleared(state, t.id)).flatMap(t => [...t.newKeys])) }); return practice.text; }
   if (mode.kind === 'coach') {
     const d = mode.decision;
@@ -203,8 +205,8 @@ function header(): void {
 }
 function labels(): void {
   const t = runTrail, g = groveOf(t), f = focusPair();
-  $('lessonTitle').textContent = f ? f.name + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : t.name;
-  $('lessonCopy').innerHTML = renderCopy(f ? fingerLevel()!.instruction + (practice?.helperKeys.length ? ` New helper keys: ${practice.helperKeys.join(' ').toUpperCase()}. Try their short introduction first; the hand guide shows which fingers to use.` : '') : mode.kind === 'coach' ? mode.decision.reason : runExercise.instruction);
+  $('lessonTitle').textContent = f ? f.name + ' · ' + fingerLevel()!.name : mode.kind === 'coach' ? mode.decision.title : mode.kind === 'slow' ? 'Practise slowly' : t.name;
+  $('lessonCopy').innerHTML = renderCopy(f ? fingerLevel()!.instruction + (practice?.helperKeys.length ? ` New helper keys: ${practice.helperKeys.join(' ').toUpperCase()}. Try their short introduction first; the hand guide shows which fingers to use.` : '') : mode.kind === 'coach' ? mode.decision.reason : mode.kind === 'slow' ? SLOW_COPY : runExercise.instruction);
   $('summaryLabel').textContent = replayReturn ? 'A familiar place' : 'This passage';
   $('focusName').innerHTML = renderCopy(mode.kind === 'trail' ? replayReturn ? 'Replay · your course is waiting' : `${runExerciseIndex + 1}/${lessonExercises(t).length} · ${runExercise.name}` : 'Short practice · then your course');
   $('gateLabel').textContent = mode.kind !== 'trail' ? 'No test here' : t.checkpoint ? 'Chapter passage' : 'Accuracy before speed';
@@ -359,6 +361,7 @@ function peekFinger(id: string | null): void {
   $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => { if (keys.includes(el.dataset.key!)) el.classList.add('peek'); });
 }
 onFingerHover(peekFinger);
+$('practiseSlowly').onclick = practiseSlowly;
 /** A finger named in lesson copy (UI-14): pointer hover or keyboard focus shows it on the hands, with its nail pulsing. */
 function peekFingerRef(e: Event, on: boolean): void {
   const ref = (e.target as Element | null)?.closest?.<HTMLElement>('.finger-ref');
@@ -534,6 +537,10 @@ function thirds(): { errors: number; lat: number }[] {
   const st = run.strokes; const n = Math.max(1, Math.floor(st.length / 3));
   return [0, 1, 2].map((i) => { const part = st.slice(i * n, i === 2 ? st.length : (i + 1) * n); const ok = part.filter((x) => x.correct); return { errors: part.length - ok.length, lat: ok.length ? ok.reduce((a, x) => a + x.latencyMs, 0) / ok.length : 0 }; });
 }
+/** The one line a slow replay shows (PACE-03): an invitation, not a tempo. */
+const SLOW_COPY = 'Same text. Take your time and check each key uses the finger shown.';
+/** Replay the exercise just typed, once, as guided practice; Continue afterwards returns to the course (PACE-03). */
+function practiseSlowly(): void { if (run.status !== 'complete' || !run.text) return; mode = { kind: 'slow', text: run.text }; resetRun(); }
 /** Lessons whose pace note has shown this session (PACE-01). */
 const paceNoted = new Set<string>();
 function finish(): void {
@@ -565,6 +572,7 @@ function finish(): void {
   if (guided()) {
     title = 'A little more familiar.';
     copy = mode.kind === 'explore' ? 'Choose another key, repeat this movement, or return to your lesson. There is no score here.'
+      : mode.kind === 'slow' ? 'Same text, taken slowly. Your lesson is waiting where you left it.'
       : `Guided practice complete. Next: ${outcome?.exercise.nextName ?? 'your next lesson'}. Take this movement at whatever pace feels comfortable.`;
   }
   if (mode.kind === 'remedial' && practice) {
@@ -596,14 +604,14 @@ function finish(): void {
   const paceKey = state.pace.established ? `${t.id}#${runExerciseIndex}` : t.id;
   const fast = mode.kind === 'trail' && !runExercise.beat && paceNoteApplies(t, runExercise) && !paceNoted.has(paceKey) && typedFast(run.strokes, t, paceFactor(state.pace));
   if (fast) paceNoted.add(paceKey);
-  $('resultPace').textContent = fast ? PACE_NOTE : ''; $('resultPace').hidden = !fast;
+  $('resultPace').textContent = fast ? PACE_NOTE : ''; $('resultPace').hidden = !fast; $('practiseSlowly').hidden = !fast;
   $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%';
   // Spec F4: pace is shown in exactly one place — the Flow chapter's checkpoint card — as information, never a target.
   $('resultWpm').parentElement!.hidden = !(mode.kind === 'trail' && t.id === 'flow-checkpoint');
   $('resultOffer').hidden = !gate;
   $('resultOffer').textContent = gate ? `Up next: ${gate.title}. A short practice, then back here.` : '';
   $('resultEyebrow').textContent = t.id === 'flow-checkpoint' && outcome?.firstClear ? 'Course complete · Calm hands, capable fingers' : mode.kind === 'trail' ? `Passage complete · ${t.name}` : 'Practice complete';
-  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${resolveCopy(outcome.exercise.nextName ?? trail().name)}` : `Retry: ${t.name}`;
+  $('nextAction').textContent = gate ? 'Settle the tricky part' : wasReplay ? 'Back to my course' : mode.kind === 'slow' ? 'Back to my course' : mode.kind !== 'trail' ? 'Back to the passage' : courseComplete(state) && !outcome?.nextTrail ? 'Keep my hands familiar' : outcome?.passed ? `Next: ${resolveCopy(outcome.exercise.nextName ?? trail().name)}` : `Retry: ${t.name}`;
   $('skipPractice').hidden = !gate;
   $('skipPractice').textContent = 'Try the passage instead';
   if (mode.kind === 'remedial') {
@@ -696,6 +704,7 @@ function handleFocusKey(e: KeyboardEvent): void {
   const f = fingers().find((x) => x.anchor === e.key.toLowerCase()); if (f) { e.preventDefault(); chooseFocus(FINGER_PAIRS.find(p => p.sides.includes(f.id as Exclude<Finger['id'], 'thumb'>))!.id); }
 }
 function handleIdleOrResult(e: KeyboardEvent): void {
+  if (e.key === 'Enter' && document.activeElement?.id === 'practiseSlowly') { e.preventDefault(); practiseSlowly(); return; }
   if (e.key === 'Enter') { e.preventDefault(); if (completionHome || run.status === 'complete') continueAfterResult(); else begin(); return; }
   if (e.key === 'Escape') { e.preventDefault(); if (run.status === 'complete') continueAfterResult(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;

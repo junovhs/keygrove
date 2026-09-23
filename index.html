@@ -233,6 +233,8 @@ kbd{font:inherit}
 .result-offer.required strong{color:var(--orange-soft)}
 .result-offer b{font-family:var(--mono)}
 .result-pace{max-width:900px;margin:10px 0 0;padding:10px 14px;border-left:3px solid var(--orange);background:rgba(255,84,24,.06);color:var(--ink);font-size:14px;line-height:1.5}
+.result-slow{margin:8px 0 0;padding:7px 12px;border:1px solid var(--orange);border-radius:4px;background:transparent;color:var(--orange);font:600 13px/1.2 var(--sans, inherit);cursor:pointer}
+.result-slow:hover,.result-slow:focus-visible{background:rgba(255,84,24,.08)}
 .result-offer{max-width:900px;margin:14px 0 0;padding:12px 14px;border:1px solid var(--orange);border-radius:4px;background:#fff4ee;color:var(--ink);font-size:14px}
 .result-offer strong{color:var(--orange);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:11px;margin-right:8px}
 
@@ -453,6 +455,7 @@ kbd{font:inherit}
           <h2 id="resultTitle" tabindex="-1">A little more familiar.</h2>
           <p id="resultCopy"></p>
           <p class="result-pace" id="resultPace" hidden></p>
+          <button type="button" class="result-slow" id="practiseSlowly" hidden>Practise slowly</button>
           <div class="result-mastery" id="resultMastery"></div>
           <div class="score">
             <div><small>Accuracy</small><b id="resultAcc">0%</b></div>
