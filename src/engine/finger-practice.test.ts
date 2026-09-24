@@ -5,7 +5,7 @@ import { fingerById } from '../curriculum/fingers';
 import { fresh, sanitize } from '../state/save';
 import { mergeProgress } from '../state/progress-sync';
 import { Run } from './run';
-import { completeFingerPractice, fingerPractice, MIN_FINGER_HITS, type FingerPractice } from './finger-practice';
+import { completeFingerPages, completeFingerPractice, fingerPages, fingerPractice, FINGER_PAGES, MIN_FINGER_HITS, type FingerPractice } from './finger-practice';
 
 const index = FINGER_PAIRS[0]!;
 afterEach(() => setMethod(DEFAULT_METHOD_ID));
@@ -110,4 +110,36 @@ it('preserves older unequal side courses and only makes their shared levels avai
   expect(pairCompleted(save.fingerCourses, index)).toBe(3);
   expect(fingerPractice(index, 3, save.fingerCourses).sides).toEqual(['ri']);
   expect(fingerPractice(index, 2, save.fingerCourses).sides).toEqual(['li', 'ri']);
+});
+
+it('gives every stop three pages with the same sides, and different text from level 2 up', () => {
+  for (const pair of FINGER_PAIRS) for (let level = 0; level < FINGER_LEVEL_COUNT; level++) {
+    const pages = fingerPages(pair, level, {}, { seed: 5 });
+    expect(pages).toHaveLength(FINGER_PAGES);
+    for (const p of pages) { expect(p.text.length).toBeGreaterThan(0); expect(p.sides).toEqual(pages[0]!.sides); }
+    // Level 1 is the anchor keys alone, so its pages match by design.
+    if (level > 0) expect(new Set(pages.map(p => p.text)).size, `${pair.id} level ${level + 1}`).toBe(FINGER_PAGES);
+  }
+});
+
+it('judges a stop on all of its pages together, and only once every page is finished', () => {
+  const pages = fingerPages(index, 1, {}, { seed: 1 });
+  const runs = pages.map(p => typePassage(p.text));
+  expect(completeFingerPages({}, index, 1, pages, runs.slice(0, 2)).passed).toBe(false);
+  const unfinished = new Run(pages[2]!.text); unfinished.begin(0);
+  expect(completeFingerPages({}, index, 1, pages, [runs[0]!, runs[1]!, unfinished]).passed).toBe(false);
+  expect(completeFingerPages({}, index, 1, pages, [runs[1]!, runs[0]!, runs[2]!]).passed).toBe(false);
+  const progress: Record<string, number> = {};
+  expect(completeFingerPages(progress, index, 1, pages, runs)).toEqual({ passed: true, newlyPassed: ['li', 'ri'] });
+  expect(pairCompleted(progress, index)).toBe(2);
+});
+
+it('lets a clean page make up for a slip on another, because the pages are scored together', () => {
+  const pages = fingerPages(index, 0, {});
+  // Two misses on the left in 12 presses fail one page alone; across three pages it is 36 of 38.
+  const shaky = typePassage(pages[0]!.text, { li: 2 });
+  expect(completeFingerPractice({}, index, 0, pages[0]!, shaky).newlyPassed).not.toContain('li');
+  const progress: Record<string, number> = {};
+  const result = completeFingerPages(progress, index, 0, pages, [shaky, typePassage(pages[1]!.text), typePassage(pages[2]!.text)]);
+  expect(result.newlyPassed).toContain('li');
 });

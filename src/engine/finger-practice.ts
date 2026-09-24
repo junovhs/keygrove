@@ -8,14 +8,17 @@ import type { Run } from './run';
 
 /** Require enough correct target presses to distinguish familiarity from a few lucky hits. */
 export const MIN_FINGER_HITS = 20;
+/** A finger stop is this many pages typed back to back, judged together. */
+export const FINGER_PAGES = 3;
 /** Snapshot of the sides deliberately exercised by this passage; incidental word letters cannot earn a level. */
 export interface FingerPractice { text: string; sides: readonly FingerId[]; helperKeys: string[] }
 
 /** Alternate both sides' tokens, or concentrate on the unfinished side after a partial pass. */
-export function fingerPractice(pair: FingerPair, level: number, progress: Readonly<Record<string, number>>, opts: { known?: ReadonlySet<string>; seed?: number } = {}): FingerPractice {
+export function fingerPractice(pair: FingerPair, level: number, progress: Readonly<Record<string, number>>, opts: { known?: ReadonlySet<string>; seed?: number; page?: number } = {}): FingerPractice {
   const pending = pair.sides.filter(id => (progress[fingerCourseId(id)] ?? 0) <= level);
   const sides: readonly FingerId[] = pending.length ? pending : pair.sides;
-  const r = rng(opts.seed);
+  const page = opts.page ?? 0;
+  const r = rng(opts.seed === undefined ? undefined : opts.seed + page * 7919);
   // Without a course record (tests, tools) every printable key counts as known.
   const allowed = new Set<string>(opts.known ?? Array.from({ length: 94 }, (_, i) => String.fromCharCode(33 + i).toLowerCase()));
   for (const id of pair.sides) for (const k of fingerById(id)!.keys) if (/[a-z;,./]/.test(k)) allowed.add(k);
@@ -24,8 +27,17 @@ export function fingerPractice(pair: FingerPair, level: number, progress: Readon
   if (level < 4) {
     const passages = sides.map(id => {
       const f = fingerById(id)!;
-      const text = level === 0 ? f.anchor.repeat(24) : fingerLevels(f)[level]!.text;
-      return text.replaceAll(' ', '').slice(0, level === 3 ? 36 : 24).match(/.{1,6}/g)!;
+      const len = level === 3 ? 36 : 24;
+      if (level === 0) return f.anchor.repeat(len).match(/.{1,6}/g)!;
+      let text = fingerLevels(f)[level]!.text.replaceAll(' ', '');
+      // Later pages deal the level's own four-key reaches in a fresh order, every reach once per round, and start
+      // `page` keys into the cycle, so even a level with a single reach groups differently on each page.
+      if (page > 0) {
+        const reaches = [...new Set(fingerLevels(f)[level]!.text.split(' '))];
+        text = '';
+        while (text.length < len + page) text += shuffle(reaches, r).join('');
+      }
+      return text.slice(page, page + len).match(/.{1,6}/g)!;
     });
     const blocks: string[] = [];
     for (let i = 0; i < Math.max(...passages.map(p => p.length)); i++) for (const p of passages) if (p[i]) blocks.push(p[i]!);
@@ -73,16 +85,41 @@ export function fingerPractice(pair: FingerPair, level: number, progress: Readon
   return { text, sides, helperKeys };
 }
 
+/** A stop's pages: the same sides and rules, different text on each (FINGER_PAGES of them). */
+export function fingerPages(pair: FingerPair, level: number, progress: Readonly<Record<string, number>>, opts: { known?: ReadonlySet<string>; seed?: number } = {}): FingerPractice[] {
+  const pages: FingerPractice[] = [];
+  for (let page = 0; page < FINGER_PAGES; page++) {
+    // A reshuffle can repeat an earlier page when a level has only a couple of reaches; deal again (a bounded few times).
+    let p = fingerPractice(pair, level, progress, { ...opts, page });
+    for (let retry = 1; retry < 12 && pages.some(q => q.text === p.text); retry++) {
+      p = fingerPractice(pair, level, progress, { ...opts, seed: opts.seed === undefined ? undefined : opts.seed + retry * 104729, page });
+    }
+    pages.push(p);
+  }
+  return pages;
+}
+
+type PageRun = Pick<Run, 'status' | 'text' | 'strokes'>;
+
 /** Record per-side passes from a completed passage, never from its aggregate accuracy or the mistyped key's owner. */
 export function completeFingerPractice(
   progress: Record<string, number>, pair: FingerPair, level: number,
-  practice: FingerPractice, run: Pick<Run, 'status' | 'text' | 'strokes'>,
+  practice: FingerPractice, run: PageRun,
+): { passed: boolean; newlyPassed: FingerId[] } {
+  return completeFingerPages(progress, pair, level, [practice], [run]);
+}
+
+/** Judge a whole stop: every page must be finished, and each side is scored on its strokes across all of them. */
+export function completeFingerPages(
+  progress: Record<string, number>, pair: FingerPair, level: number,
+  pages: readonly FingerPractice[], runs: readonly PageRun[],
 ): { passed: boolean; newlyPassed: FingerId[] } {
   const newlyPassed: FingerId[] = [];
-  if (run.status !== 'complete' || run.text !== practice.text) return { passed: false, newlyPassed };
-  for (const id of practice.sides) {
+  if (!pages.length || runs.length !== pages.length || runs.some((run, i) => run.status !== 'complete' || run.text !== pages[i]!.text)) return { passed: false, newlyPassed };
+  const all = runs.flatMap(run => run.strokes);
+  for (const id of pages[0]!.sides) {
     if (!pair.sides.includes(id as Exclude<FingerId, 'thumb'>)) continue;
-    const strokes = run.strokes.filter(s => fingerOf(s.key) === id);
+    const strokes = all.filter(s => fingerOf(s.key) === id);
     const hits = strokes.filter(s => s.correct).length;
     const key = fingerCourseId(id);
     // Exact ratio: 94.6% must not pass because the display rounds it to 95%.

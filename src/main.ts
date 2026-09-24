@@ -4,7 +4,7 @@ import { beatInterval, evenness, onBeat } from './engine/beat';
 import { demoSchedule, demoStepMs, type DemoStep } from './engine/demo';
 import { PACE_NOTE, notePace, paceFactor, paceNoteApplies, typedFast } from './engine/pace';
 import { briefingFor, type BriefIcon, type Briefing } from './curriculum/briefings';
-import { fingerPractice, completeFingerPractice, type FingerPractice } from './engine/finger-practice';
+import { fingerPages, completeFingerPages, FINGER_PAGES, type FingerPractice } from './engine/finger-practice';
 import type { Stop } from './curriculum/stops';
 import { fingerLevels, pairCompleted, FINGER_PASS_ACC, type FingerPair } from './curriculum/finger-course';
 import { MAIN_TRAILS, trailById, allowedChars, gateFor, groveOf, renderCopy, resolveCopy, trailsInGrove, type StageName, type Trail } from './curriculum';
@@ -17,6 +17,7 @@ import { missedTarget, classifyRun, rollTally } from './engine/errors';
 import { STOPS } from './curriculum/stops';
 import { applyRun, blockingStop, currentStage, pendingStop, stopDone, currentTrail, exerciseIndex, focusKeys, isCleared, pathIndex, pathLength, progressOf, type Outcome } from './engine/progress';
 import { Run } from './engine/run';
+import { accOf } from './engine/scoring';
 import { recordPerformance } from './engine/learning';
 import { attemptPrompts, classifyPreparation, wordBigrams, type TracedRun } from './engine/preparation';
 import { KEEPSAKES, courseComplete, fingerCharmAt, keepsakeFor, ownedKeepsakes, type Keepsake } from './engine/keepsakes';
@@ -102,6 +103,10 @@ let mode: Mode = { kind: 'trail' };
 let run = new Run('');
 let outcome: Outcome | null = null;
 let practice: FingerPractice | null = null;
+/** A finger stop's pages, and the runs of the pages already finished (the current page is `run`). */
+let stopPages: FingerPractice[] = [];
+let stopRuns: Run[] = [];
+const stopPage = () => stopRuns.length + 1;
 let fingerPassed = false;
 /** Coach decisions for the run just finished: [0] may be required (blocks Continue). */
 let decisions: Decision[] = [];
@@ -161,7 +166,10 @@ function makeText(): string {
   const allowed = allowedChars(trail());
   if (mode.kind === 'explore') return mode.key === ' ' ? '   ' : mode.key.repeat(2) + ' ' + mode.key.repeat(2);
   if (mode.kind === 'slow') return mode.text;
-  if (mode.kind === 'remedial') { practice = fingerPractice(mode.pair, mode.level, state.fingerCourses, { known: new Set(MAIN_TRAILS.filter(t => isCleared(state, t.id)).flatMap(t => [...t.newKeys])) }); return practice.text; }
+  if (mode.kind === 'remedial') {
+    if (!stopPages.length) stopPages = fingerPages(mode.pair, mode.level, state.fingerCourses, { known: new Set(MAIN_TRAILS.filter(t => isCleared(state, t.id)).flatMap(t => [...t.newKeys])) });
+    practice = stopPages[stopRuns.length]!; return practice.text;
+  }
   if (mode.kind === 'coach') {
     const d = mode.decision;
     if (d.kind === 'remedial') { const f = fingerForKey(d.keys[0] ?? 'f'); return f && 'keys' in f ? remedialText(f, allowed, 30) : generate(trail(), 'drill'); }
@@ -179,7 +187,7 @@ function resetRun(): void {
   runExerciseIndex = exerciseIndex(state); runExercise = lessonExercises(runTrail, pickFor(runTrail))[runExerciseIndex]!;
   beforeMastery = Object.fromEntries([...allowedChars(runTrail)].map(k => [k.toLowerCase(), keys.mastery(k)]));
   startPulse();
-  practice = null; fingerPassed = false;
+  practice = null; fingerPassed = false; stopPages = []; stopRuns = [];
   helpVisible = mode.kind !== 'trail' || runExercise.guidance !== 'on-demand';
   run = new Run(makeText()); outcome = null; decisions = [];
   if (devTraceEnabled) devKnownAtStart = new Set(wordBigrams(run.text).filter((g) => (trans.stat(g)?.seen ?? 0) > 0));
@@ -202,7 +210,7 @@ function header(): void {
   }
   $('route').innerHTML = trailsInGrove(g.id).map(x => '<i class="' + (x.id === t.id ? 'current' : isCleared(state, x.id) ? 'done' : '') + '"></i>').join('');
   // A woven finger stop sits on the chapter's route, just before the lesson it opens (DEC-20).
-  if (mode.kind === 'remedial') { $('lessonNo').textContent = `Finger stop · Level ${mode.level + 1} of 10`; $('modeLabel').textContent = `${g.name} · Chapter ${g.n}`; return; }
+  if (mode.kind === 'remedial') { $('lessonNo').textContent = `Finger stop · Level ${mode.level + 1} of 10 · Page ${stopPage()} of ${FINGER_PAGES}`; $('modeLabel').textContent = `${g.name} · Chapter ${g.n}`; return; }
   $('lessonNo').textContent = `Lesson ${pathIndex(t)} of ${pathLength(t)} · Exercise ${runExerciseIndex + 1}/${lessonExercises(t).length}`;
   $('modeLabel').textContent = mode.kind === 'trail' ? `${g.name} · Chapter ${g.n}` : 'A little practice';
 }
@@ -235,7 +243,9 @@ function labels(): void {
   $('guideToggle').setAttribute('aria-pressed', String(helpVisible));
   $('skipGuided').hidden = mode.kind !== 'trail' || !guided() || !!brief;
   $('beginCue').classList.toggle('gone', run.status !== 'idle' || !!brief);
-  $('beginCue').textContent = mode.kind === 'trail' ? 'Begin typing when you\'re ready · any key' : 'Begin typing when you\'re ready · a short practice';
+  $('beginCue').textContent = mode.kind === 'trail' ? 'Begin typing when you\'re ready · any key'
+    : mode.kind === 'remedial' ? (stopRuns.length ? `Page ${stopPage()} of ${FINGER_PAGES} · keep going · any key` : `Page 1 of ${FINGER_PAGES} · begin typing when you're ready`)
+    : 'Begin typing when you\'re ready · a short practice';
 }
 const useDom = new URLSearchParams(location.search).get('dom') === '1';
 const canvasPrompt: CanvasPrompt | null = useDom ? null : new CanvasPrompt($('prompt'), { theme: 'dark', compact: true, orb: false });
@@ -252,6 +262,7 @@ function prompt(): void {
 }
 function metrics(): { wpm: number; acc: number; pct: number } {
   const m = run.metrics(now());
+  if (mode.kind === 'remedial' && run.text) m.pct = Math.round(((stopRuns.length + run.pos / run.text.length) / FINGER_PAGES) * 100);
   $('wpm').textContent = String(m.wpm); $('acc').textContent = guided() ? 'No score' : m.acc + '%'; $('pct').textContent = m.pct + '%';
   const combo = $('combo');
   if (combo.textContent !== String(run.combo)) { combo.textContent = String(run.combo); if (run.combo > 0 && run.combo % 10 === 0) { combo.classList.remove('tick'); void combo.offsetWidth; combo.classList.add('tick'); } }
@@ -506,8 +517,19 @@ function typeKey(k: string): void {
   else if (last.correct && last.key === ' ') sound.play('word', 1, 1 + Math.min(run.combo, 40) * 0.004);
   else if (last.correct) sound.play('key');
   if (pulse && last.correct) $('beatDot').style.setProperty('--fill', onBeat(performance.now(), pulse.t0, pulse.interval).toFixed(2));
-  if (r === 'done') { canvasPrompt?.onComplete(); stopPulse(); return finish(); }
+  if (r === 'done') {
+    canvasPrompt?.onComplete();
+    if (mode.kind === 'remedial' && stopRuns.length < FINGER_PAGES - 1) return nextStopPage();
+    stopPulse(); return finish();
+  }
   prompt(); metrics(); keymap(); nextVisual();
+}
+/** A finished stop page turns straight to the next one; the result waits for the last page. */
+function nextStopPage(): void {
+  stopRuns.push(run);
+  run = new Run(makeText());
+  sound.play('step');
+  render();
 }
 function abort(): void { if (run.status !== 'playing') return; sound.play('error'); toast('Run stopped.'); resetRun(); }
 
@@ -587,7 +609,7 @@ function finish(): void {
   if (mode.kind === 'remedial' && practice) {
     const replay = pairCompleted(state.fingerCourses, mode.pair) > mode.level;
     const before = pairCompleted(state.fingerCourses, mode.pair);
-    fingerPassed = completeFingerPractice(state.fingerCourses, mode.pair, mode.level, practice, run).passed;
+    fingerPassed = completeFingerPages(state.fingerCourses, mode.pair, mode.level, stopPages, [...stopRuns, run]).passed;
     // UI-16: rows jumps, twisters and the gauntlet each earn this pair a charm.
     const after = pairCompleted(state.fingerCourses, mode.pair);
     if (after > before) newCharm = fingerCharmAt(mode.pair.id, after) ?? null;
@@ -599,6 +621,13 @@ function finish(): void {
   const newly = guided() ? [] : [...allowedChars(t)].filter(k => k === k.toLowerCase()).filter(k => keys.mastery(k) >= MASTERED && (beforeMastery[k] ?? 0) < MASTERED);
   $('resultMastery').textContent = newly.length ? `Settled this time: ${newly.map(k => k === ' ' ? 'Space' : k.toUpperCase()).join(' · ')}` : `${run.hits} characters typed · ${run.errors === 0 ? 'no missed keys' : `${run.errors} missed ${run.errors === 1 ? 'key' : 'keys'}`}`;
   if (guided()) $('resultMastery').textContent = 'Slow is welcome. Let your hands stay easy.';
+  // A stop's numbers cover all of its pages, not just the last one.
+  let acc = m.acc;
+  if (mode.kind === 'remedial') {
+    const all = [...stopRuns, run], hits = all.reduce((a, r) => a + r.hits, 0), errors = all.reduce((a, r) => a + r.errors, 0);
+    acc = accOf(hits, all.reduce((a, r) => a + r.attempts, 0));
+    $('resultMastery').textContent = `${all.length} pages · ${hits} characters typed · ${errors === 0 ? 'no missed keys' : `${errors} missed ${errors === 1 ? 'key' : 'keys'}`}`;
+  }
   // Spec F5: a beat run is judged for evenness only — one word and three bars, never a number.
   if (runExercise.beat) { const e = evenness(run.strokes.slice(1).filter(x => x.correct).map(x => x.latencyMs)); $('resultMastery').textContent = `${e.word} ${e.bars}`; }
   $('result').querySelector<HTMLElement>('.score')!.hidden = guided();
@@ -620,7 +649,7 @@ function finish(): void {
   const fast = mode.kind === 'trail' && !runExercise.beat && paceNoteApplies(t, runExercise) && !paceNoted.has(paceKey) && typedFast(run.strokes, t, paceFactor(state.pace));
   if (fast) paceNoted.add(paceKey);
   $('resultPace').textContent = fast ? PACE_NOTE : ''; $('resultPace').hidden = !fast; $('practiseSlowly').hidden = !fast;
-  $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = m.acc + '%';
+  $('resultWpm').textContent = String(m.wpm); $('resultAcc').textContent = acc + '%';
   // Spec F4: pace is shown in exactly one place — the Flow chapter's checkpoint card — as information, never a target.
   $('resultWpm').parentElement!.hidden = !(mode.kind === 'trail' && t.id === 'flow-checkpoint');
   $('resultOffer').hidden = !gate;
