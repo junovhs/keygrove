@@ -20,12 +20,16 @@ scenario:
 | after-typing fade | 4s after the last key, while the prompt's glow and falling letters finish |
 | charms-six | six charms summoned a third of a second apart |
 | charms-all | every charm (20) summoned at once |
+| briefing-press | a fresh guest's first briefing, waiting on its "press F and J" step (the pulsing key tiles) |
+| nail-pulse | the pointer resting on a finger name in that briefing, so the hand's nail pulses |
 
 For each scenario it reports:
 
 - **Main-thread ms per 16.7ms frame slot** (p50/p95/p99). This is the page's own work: script, style, layout, paint
   recording and GC, merged as an interval union. Compositor and raster time aren't counted.
 - **Long tasks** (over 50ms), the worst single task, and the number of style recalcs, layouts and paints.
+- **Main-thread frames per second**: `PrePaint` passes per second. An idle page should be at or near zero; a
+  CSS animation that can't run on the compositor shows up here as a steady 60.
 - **Off-main-thread time** (reported, not gated): top-level task time on the renderer's compositor thread, its raster
   workers and the GPU process. This is where canvas uploads and raster land. In this headless build the GPU is
   software, so treat it as relative, not absolute.
@@ -233,3 +237,40 @@ afterwards.
 0.8s style and 1.15s paint per 8s. That's the pose functions running and a `transform` written on up to ~60 actors
 every frame. Moving the poses to the compositor as precomputed keyframes is a rewrite of how every charm moves, so
 it's tracked separately as PERF-06, not folded in here.
+
+## PERF-05: the pulses run on the compositor
+
+**What was wrong.** Two infinite CSS animations couldn't run on the compositor, so they made the main thread render
+every frame for as long as they were on screen:
+- The briefing's "press these keys" tiles pulsed an animated `box-shadow`: 60 frames a second of style and paint
+  while a press step waits.
+- A hovered finger name pulsed that finger's nail with a CSS transform on an element inside the hand SVG. That
+  re-lays out the SVG every frame: 120 lifecycle passes a second, each with a layout.
+
+**What changed** (`src/ui/hands.ts`, `index.html`, `src/ui/journey.css`, `tools/perf/stress.mjs`):
+- The key tiles' pulse is a `::after` halo, a 3px ring at the tile's edge, that only scales and fades. It follows
+  the old one's rhythm: invisible at the start and halfway through, most visible a quarter and three quarters
+  through, reaching about 8px beyond the edge.
+- The nail pulse plays on a copy. While a finger is named, an overlay `<svg>` with the hand's own `viewBox` and
+  `preserveAspectRatio` is placed over the hand. It holds only that nail, mapped into the hand's user space by
+  `rootScreenCTM⁻¹ × nailScreenCTM`. Its HTML wrapper scales (to 1.28×, about the nail's centre) and fades (to
+  0.55) on the compositor, with the same 0.9s timing as before. The real nail is hidden while the copy pulses, and
+  the copy takes the nail's colours if the hand repaints mid-pulse. Mirroring on the right hand comes from the same
+  `.vector-hand` rule. Reduced motion stops both pulses as before.
+- The harness gained the two scenarios. They run on a fresh page after the first one is closed: same-site pages
+  share a renderer main thread, and a charm still flying on the first page would otherwise be measured.
+- The sound button's hover waves (`wave-pulse` on SVG paths) were left alone. They run only while the pointer is on
+  a 36px button, and an opacity-only version would still be main-thread, because it's inside an SVG.
+
+**Results** (1920×1080 @2x, two runs each):
+
+| scenario | main-thread frames/s | recalcs / layouts / paints in 4s | p95 frame slot |
+| --- | --- | --- | --- |
+| briefing-press, before | 60 | 241 / 0 / 482 | 0.7–0.8 ms (2.4 at throttle 4) |
+| briefing-press, after | **0** | **0 / 0 / 0** | 0 ms |
+| nail-pulse, before | 120 | 243–246 / 243–246 / 480–482 | 1.2 ms (4.1 at throttle 4) |
+| nail-pulse, after | **0** | **0 / 0 / 0** | 0 ms |
+
+Looks the same: every animation in both builds was frozen at matching phases through the Web Animations API (key
+halo at 0, 175, 350, 525 and 700ms; nail at 0, 225 and 450ms) and compared side by side. The nail grows and fades in
+the same colour and shape. The halo is invisible and softest-visible at the same moments.

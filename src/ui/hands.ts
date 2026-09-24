@@ -28,6 +28,7 @@ const FINGER_ID: Record<Side, Record<Kind, string>> = {
   right: { pinky: 'rp', ring: 'rr', middle: 'rm', index: 'ri', thumb: 'thumb' },
 };
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
 function svgNode(name: string, attrs?: Record<string, string>): SVGElement {
   const n = document.createElementNS('http://www.w3.org/2000/svg', name);
   for (const k of Object.keys(attrs ?? {})) n.setAttribute(k, attrs![k]!);
@@ -77,12 +78,42 @@ function activeKind(side: Side, fingerId: string | null): Kind | null {
   const place = fingerId ? fingerPlace(fingerId) : null;
   return place && place.sides.includes(side) ? place.kind : null;
 }
-/** Pulse one finger's nail on its hand (UI-14: a finger named in copy is hovered or focused); null stops any pulse. */
+/**
+ * Pulse one finger's nail on its hand (UI-14: a finger named in copy is hovered or focused); null stops any pulse.
+ * An animation on an element inside an SVG runs on the main thread and re-lays out the SVG every frame, so the pulse
+ * plays on a copy instead (PERF-05): an overlay drawn over the hand with the same viewBox, holding only that nail at
+ * its place, whose HTML wrapper scales and fades on the compositor. The real nail hides until the pulse ends.
+ */
+const pulses: Record<Side, { nail: SVGElement | HTMLElement; copy: Element; overlay: HTMLElement } | null> = { left: null, right: null };
 export function pulseFinger(fingerId: string | null): void {
   const place = fingerId ? fingerPlace(fingerId) : null;
   (['left', 'right'] as Side[]).forEach((side) => {
     const ref = handRefs[side]; if (!ref) return;
-    (Object.keys(ref.nails) as Kind[]).forEach((kind) => ref.nails[kind]?.classList.toggle('nail-pulse', !!place && place.sides.includes(side) && place.kind === kind));
+    const nail = place && place.sides.includes(side) ? ref.nails[place.kind] ?? null : null;
+    const current = pulses[side];
+    if (current && current.nail === nail) return;
+    if (current) { current.overlay.remove(); current.nail.classList.remove('nail-hidden'); pulses[side] = null; }
+    if (!nail) return;
+    const overlay = document.createElement('div'); overlay.className = 'nail-overlay'; overlay.setAttribute('aria-hidden', 'true');
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'vector-hand');
+    for (const a of ['viewBox', 'preserveAspectRatio']) { const v = ref.svg.getAttribute(a); if (v !== null) svg.setAttribute(a, v); }
+    // The nail's own place in the drawing: its transform to the hand's user space, then the nail itself.
+    const g = document.createElementNS(SVG_NS, 'g');
+    // (getCTM would already include the viewBox scaling; going through screen space and back leaves only the nail's own.)
+    const nailToScreen = (nail as SVGGraphicsElement).getScreenCTM?.(), rootToScreen = ref.svg.getScreenCTM();
+    if (nailToScreen && rootToScreen) {
+      const m = rootToScreen.inverse().multiply(nailToScreen);
+      g.setAttribute('transform', `matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`);
+    }
+    const copy = nail.cloneNode(true) as Element; copy.removeAttribute('id');
+    g.appendChild(copy); svg.appendChild(g); overlay.appendChild(svg);
+    ref.svg.after(overlay);
+    // Scale about the nail's centre, as the old fill-box pulse did.
+    const box = nail.getBoundingClientRect(), at = overlay.getBoundingClientRect();
+    overlay.style.transformOrigin = `${box.left + box.width / 2 - at.left}px ${box.top + box.height / 2 - at.top}px`;
+    nail.classList.add('nail-hidden');
+    pulses[side] = { nail, copy, overlay };
   });
 }
 
@@ -104,6 +135,8 @@ export function paintHand(side: Side, fingerId: string | null): void {
     n.style.strokeWidth = hot ? '3' : '2';
   });
   const wrap = maybe(side + 'HandWrap'); if (wrap) wrap.classList.toggle('is-hot', active);
+  const pulse = pulses[side];
+  if (pulse) { const style = pulse.nail.getAttribute('style'); if (style !== null) pulse.copy.setAttribute('style', style); }
 }
 
 export async function loadHands(onReady: () => void): Promise<void> {

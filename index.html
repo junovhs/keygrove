@@ -145,9 +145,12 @@ kbd{font:inherit}
 /* A finger named in copy (UI-14): hover or focus shows it on the hands, its nail pulsing. */
 .finger-ref{text-decoration:underline dotted var(--orange);text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:help;border-radius:3px;outline-offset:2px}
 .finger-ref:hover,.finger-ref:focus-visible{color:var(--orange)}
-.vector-hand .nail-pulse{animation:nail-pulse .9s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+/* A pulsing nail plays on a copy over the hand (hands.ts, PERF-05): the wrapper scales and fades on the compositor. */
+.nail-overlay{position:absolute;inset:0;display:grid;place-items:end center;pointer-events:none;animation:nail-pulse .9s ease-in-out infinite}
+.nail-overlay .vector-hand{filter:none;transition:none}
+.vector-hand .nail-hidden{visibility:hidden}
 @keyframes nail-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.28);opacity:.55}}
-@media (prefers-reduced-motion:reduce){.vector-hand .nail-pulse{animation:none}}
+@media (prefers-reduced-motion:reduce){.nail-overlay{animation:none}}
 /* A key named in copy (UI-13): a miniature of the on-screen keycap. */
 .keycap-inline{display:inline-block;min-width:1.55em;padding:0 .35em;margin:0 .08em;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;background:var(--paper);font:600 .78em/1.45 var(--mono);letter-spacing:.04em;text-align:center;color:var(--ink);vertical-align:.08em;white-space:nowrap}
 .keycap{min-width:min(52px,4.6vw);height:min(46px,4vw);padding:0 4px;display:grid;place-items:center;border:1px solid #d3cfc8;border-bottom-width:2px;border-radius:6px;background:rgba(251,250,247,.92);font-size:11px;color:#3a3833;box-shadow:0 1px 0 rgba(255,255,255,.9) inset;cursor:default;transition:background .1s,color .1s}

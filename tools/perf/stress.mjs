@@ -8,6 +8,8 @@
  *   type-misses     the same with a wrong key every eighth press
  *   after-typing    the seconds after the last key, while the prompt's effects fade
  *   idle            the lesson screen with nobody typing
+ *   briefing-press  a fresh guest's first briefing, waiting on its "press F and J" step (pulsing key tiles)
+ *   nail-pulse      the pointer resting on a finger name in that briefing, so the hand's nail pulses
  *   charms-six      six charms summoned a third of a second apart
  *   charms-all      every charm summoned at once
  *
@@ -112,6 +114,8 @@ function analyse(events, windowMs) {
     const values = [...slots];
     const counts = {};
     for (const e of onMain) if (["Layout", "UpdateLayoutTree", "Paint"].includes(e.name)) counts[e.name] = (counts[e.name] ?? 0) + 1;
+    // Main-thread frames: how often the page makes the main thread render at all (an idle page should be near zero).
+    const mainFrames = onMain.filter((e) => e.name === "PrePaint").length;
     // Off the main thread: the renderer's compositor and raster workers and the GPU process, as their top-level task
     // time. Canvas uploads and raster land here; it is reported, not gated (a software build is not a GPU).
     const names = new Map(events.filter((e) => e.name === "thread_name").map((e) => [`${e.pid}:${e.tid}`, e.args?.name ?? ""]));
@@ -125,7 +129,7 @@ function analyse(events, windowMs) {
     // The page's own keydown handling, one EventDispatch per key.
     const keydowns = onMain.filter((e) => e.name === "EventDispatch" && e.args?.data?.type === "keydown").map((e) => e.dur / 1000);
     return {
-        totals, counts, offMain, slots: values.length,
+        totals, counts, offMain, mainFrames, slots: values.length,
         p50: quantile(values, 0.5), p95: quantile(values, 0.95), p99: quantile(values, 0.99), max: Math.max(...values),
         overFrame: values.filter((v) => v > FRAME_MS).length,
         longTasks: spans.filter((s) => (s.end - s.ts) / 1000 > LONG_TASK_MS).length,
@@ -163,6 +167,7 @@ async function trace(page, client, label, run, seconds) {
         label, pass: failures.length === 0, failures,
         mainThreadPerFrameMs: { p50: round(r.p50), p95: round(r.p95), p99: round(r.p99), max: round(r.max) },
         slotsOverFrame: `${r.overFrame}/${r.slots}`,
+        mainFramesPerSec: round(r.mainFrames / (Math.max(ms, seconds * 1000) / 1000)),
         longTasks: r.longTasks, worstTaskMs: round(r.worstTask),
         totalsMs: Object.fromEntries(Object.entries(r.totals).map(([k, v]) => [k, round(v)])),
         offMainMs: Object.fromEntries(Object.entries(r.offMain).map(([k, v]) => [k, round(v)])),
@@ -251,6 +256,29 @@ try {
     }, 8));
     await wait(10000);
     results.push(await trace(page, client, `charms-all ${ids.length} at once (8s)`, () => page.evaluate((ids) => ids.forEach((id) => window.keyjam.summon(id)), ids), 8));
+
+    // A fresh guest, for the first briefing: its press step pulses the key tiles, and its text names fingers.
+    if (!ONLY || "briefing-press nail-pulse".includes(ONLY) || ONLY.startsWith("brief") || ONLY.startsWith("nail")) {
+        // The first page goes first: same-site pages share a renderer main thread, and a charm still in flight there
+        // would be measured here.
+        await page.close();
+        const fresh = await context.newPage();
+        await fresh.addInitScript(() => { if (!sessionStorage.getItem("perf-fresh")) { sessionStorage.setItem("perf-fresh", "1"); localStorage.clear(); } });
+        await fresh.goto(`http://localhost:${PORT}/`);
+        await fresh.waitForFunction(() => typeof window.keyjam?.snapshot === "function" && !!window.keyjam.snapshot().brief);
+        await fresh.evaluate(() => document.fonts.ready);
+        await wait(800);
+        const freshClient = await context.newCDPSession(fresh);
+        if (THROTTLE > 1) await freshClient.send("Emulation.setCPUThrottlingRate", { rate: THROTTLE });
+        const ref = await fresh.locator("#briefText .finger-ref").first().boundingBox();
+        if (!ref || !(await fresh.locator(".brief-key:not(.filled)").count())) throw new Error("expected the first briefing's press step");
+        await fresh.mouse.move(5, 5);
+        results.push(await trace(fresh, freshClient, "briefing-press idle (4s)", async () => {}, 4));
+        await fresh.mouse.move(ref.x + ref.width / 2, ref.y + ref.height / 2);
+        await wait(300);
+        results.push(await trace(fresh, freshClient, "nail-pulse hover (4s)", async () => {}, 4));
+        await fresh.close();
+    }
 
     console.log(JSON.stringify({ viewport: `${WIDTH}x${HEIGHT}@${DPR}x`, cpuThrottle: THROTTLE, budgetMs: BUDGET_MS, passage: start.text.length, charms: ids.length, results: results.filter(Boolean) }, null, 2));
     const failed = results.filter((r) => r && !r.pass);
