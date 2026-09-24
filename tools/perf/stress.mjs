@@ -112,10 +112,20 @@ function analyse(events, windowMs) {
     const values = [...slots];
     const counts = {};
     for (const e of onMain) if (["Layout", "UpdateLayoutTree", "Paint"].includes(e.name)) counts[e.name] = (counts[e.name] ?? 0) + 1;
+    // Off the main thread: the renderer's compositor and raster workers and the GPU process, as their top-level task
+    // time. Canvas uploads and raster land here; it is reported, not gated (a software build is not a GPU).
+    const names = new Map(events.filter((e) => e.name === "thread_name").map((e) => [`${e.pid}:${e.tid}`, e.args?.name ?? ""]));
+    const offMain = {};
+    for (const e of events) {
+        if (e.ph !== "X" || !e.dur || !["ThreadControllerImpl::RunTask", "RunTask"].includes(e.name)) continue;
+        const thread = names.get(`${e.pid}:${e.tid}`) ?? "";
+        const group = /^Compositor$/.test(thread) ? "compositor" : /CompositorTileWorker/.test(thread) ? "raster" : /CrGpuMain|VizCompositorThread|GpuMemory/.test(thread) ? "gpu" : null;
+        if (group) offMain[group] = (offMain[group] ?? 0) + e.dur / 1000;
+    }
     // The page's own keydown handling, one EventDispatch per key.
     const keydowns = onMain.filter((e) => e.name === "EventDispatch" && e.args?.data?.type === "keydown").map((e) => e.dur / 1000);
     return {
-        totals, counts, slots: values.length,
+        totals, counts, offMain, slots: values.length,
         p50: quantile(values, 0.5), p95: quantile(values, 0.95), p99: quantile(values, 0.99), max: Math.max(...values),
         overFrame: values.filter((v) => v > FRAME_MS).length,
         longTasks: spans.filter((s) => (s.end - s.ts) / 1000 > LONG_TASK_MS).length,
@@ -155,6 +165,7 @@ async function trace(page, client, label, run, seconds) {
         slotsOverFrame: `${r.overFrame}/${r.slots}`,
         longTasks: r.longTasks, worstTaskMs: round(r.worstTask),
         totalsMs: Object.fromEntries(Object.entries(r.totals).map(([k, v]) => [k, round(v)])),
+        offMainMs: Object.fromEntries(Object.entries(r.offMain).map(([k, v]) => [k, round(v)])),
         counts: r.counts,
         ...(latencies.length ? {
             keys: latencies.length,

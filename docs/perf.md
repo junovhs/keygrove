@@ -26,6 +26,9 @@ For each scenario it reports:
 - **Main-thread ms per 16.7ms frame slot** (p50/p95/p99). This is the page's own work: script, style, layout, paint
   recording and GC, merged as an interval union. Compositor and raster time aren't counted.
 - **Long tasks** (over 50ms), the worst single task, and the number of style recalcs, layouts and paints.
+- **Off-main-thread time** (reported, not gated): top-level task time on the renderer's compositor thread, its raster
+  workers and the GPU process. This is where canvas uploads and raster land. In this headless build the GPU is
+  software, so treat it as relative, not absolute.
 - For typing, also:
   - **Keystroke to frame**: from the keydown's timestamp to the end of the frame that shows it. The harness uses a
     one-shot `requestAnimationFrame` per key, then a message posted after that frame's rendering, and never runs a
@@ -135,3 +138,45 @@ The main thread now does almost nothing per keystroke, and the worst key-to-scre
 CPU, key-to-screen is still about three frames even though each frame's main-thread work is small. That remainder is
 the canvas prompt: every frame it clears and hands the compositor a canvas about 3300×2900 device pixels, most of it
 the invisible 1100px drop zone for falling letters. That's PERF-03.
+
+## PERF-03: the canvas prompt draws only what can be seen
+
+**What was wrong.** To let typed letters fall "out of the viewport", the prompt's canvas hung a fixed 1100px drop zone
+below the text. At 1920×1080 @2x that made the canvas 2128×2694 device pixels, cleared and redrawn every frame while
+typing. But the text panel around it is `overflow: hidden`, so letters vanish at the panel's bottom edge, and about
+80% of those pixels were never visible. On a slow CPU the oversized surface held each frame back. With the main thread
+nearly idle after PERF-02, key-to-screen was still about 3½ frames.
+
+**What changed** (`src/render/prompt.ts`, `src/render/effects.ts`):
+- The drop zone now reaches exactly as far as a letter can be seen: the bottom edge of the nearest clipping ancestor
+  (the text panel), or the viewport's bottom if nothing clips. It's measured with the host on resize, never in the
+  frame loop. Same page, same size: the canvas is now 2128×638 device pixels, about a quarter of the pixels.
+- A falling letter is freed once it passes that edge instead of living out its 1.5s off-screen, so the frame loop
+  stops as soon as the last visible letter is gone.
+- Two things were measured and left alone:
+  - Removing the cursor glow's `shadowBlur` changed nothing beyond run-to-run noise (key→frame p50 20.7–21.3ms vs
+    23.5–24.6ms, p95 30–35ms vs 31ms), so the glow keeps its exact look.
+  - The heat glow's fade costs nothing measurable on the main thread (after-typing p95 0ms).
+
+  A separate overlay canvas for the falling letters wasn't needed once the canvas matched what can be seen.
+
+**Results** (1920×1080 @2x):
+
+| `--throttle 4` | after PERF-02 | after PERF-03 |
+| --- | --- | --- |
+| type-steady key→frame p50 / p95 | 55–59 / 66–68 ms | **23.5–25 / 31–47 ms** |
+| type-misses key→frame p50 / p95 | 49–50 / 62–66 ms | **17–19 / 25–29 ms** (passes) |
+| type-steady p95 frame slot | 4.4–4.7 ms | 3.9–4.2 ms |
+| after-typing fade, off-main-thread | (not measured) | compositor 2 ms, GPU 1 ms in 4s |
+
+| unthrottled | after PERF-02 | after PERF-03 |
+| --- | --- | --- |
+| type-steady key→frame p50 / p95 | 19 / 25.6 ms | **14.6 / 20.4 ms** |
+| type-misses key→frame p50 / p95 | 19.7 / 24 ms | **10.2 / 21.6 ms** |
+
+Against the original baseline on the slow CPU, key-to-screen went from about 70ms typical and 180ms worst to about
+24ms typical and under 50ms worst. The GPU process's total time while typing rose (about 1.6s → 2s over 6.5s)
+because frames now flow at the rate keys arrive instead of stalling behind the oversized surface. That's more
+frames, each far smaller.
+
+What still fails at `--throttle 4`: the charm scenarios (p95 11.5–13ms). That's PERF-04.

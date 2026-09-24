@@ -32,6 +32,8 @@ export class Effects {
   /** Orb in flow px, or null when the pointer is away. */
   orb: { x: number; y: number; r: number } | null = null;
   enabled = !reducedMotion();
+  /** Flow-px y below which a falling letter can no longer be seen (the prompt's canvas edge); it is freed there. */
+  floor = Infinity;
   private seed = 1;
   private rnd(): number { this.seed = (this.seed * 1664525 + 1013904223) >>> 0; return this.seed / 4294967296; }
 
@@ -148,6 +150,7 @@ export class Effects {
       r.life -= dt;
       if (r.life <= 0) { this.liveRagdolls--; continue; }
       r.vy += 2000 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.rot += r.vr * dt;
+      if (r.y > this.floor) { r.life = 0; this.liveRagdolls--; }
     }
     if (this.liveSparks > 0) for (const s of this.sparks) {
       if (s.life <= 0) continue;

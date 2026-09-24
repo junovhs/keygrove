@@ -23,9 +23,14 @@ export class CanvasPrompt {
   private raf = 0;
   private fontPx = 32;
   private padding = 8;
-  /** Extra canvas outside the host's layout box, so effects never clip on the text box. The bottom is deep enough for a letter to fall out of the viewport. */
+  /** Extra canvas outside the host's layout box, so the glow, pop and shake never clip on the text box. */
   private readonly bleed = 72;
-  private readonly bleedBottom = 1100;
+  /**
+   * How far below the host a falling letter can still be seen: down to the nearest ancestor that clips (the text
+   * panel) or else the viewport's bottom edge. The canvas stops there; a fixed 1100px drop zone was ~80% of every
+   * frame's pixels and all of it clipped away (PERF-03). Measured with the host, never in the frame loop.
+   */
+  private bleedBottom = 1100;
   /** Optional per-line width override; null = full width (the orb sets one while present). */
   widthForLine: WidthForLine | null = null;
   private lastFlow: Flow | null = null;
@@ -126,6 +131,7 @@ export class CanvasPrompt {
   /** Reads host size once per resize (outside the frame loop) and re-lays out. */
   private measureHost(): void {
     const rect = this.host.getBoundingClientRect();
+    this.bleedBottom = this.dropDepth(rect);
     const fontPx = this.state.reading ? Math.max(20, Math.min(28, Math.round(rect.width * 0.033))) : this.compact ? Math.max(24, Math.min(33, Math.round(rect.width * 0.03))) : Math.max(22, Math.min(34, Math.round(rect.width * 0.024)));
     const width = Math.max(1, Math.floor(rect.width) - this.padding * 2);
     // Opening a briefing/result can temporarily measure a hidden prompt at width 0.
@@ -136,6 +142,16 @@ export class CanvasPrompt {
     if (fontPx !== this.fontPx) { this.fontPx = fontPx; this.flow.setFont(this.font(), this.lineHeight(), this.letterSpacing()); }
     this.lastFlow = null;
     this.requestDraw();
+  }
+
+  /** Distance from the host's bottom to where falling letters stop being visible (see bleedBottom). */
+  private dropDepth(rect: DOMRect): number {
+    let bottom = innerHeight;
+    for (let el = this.host.parentElement; el && el !== document.body; el = el.parentElement) {
+      const cs = getComputedStyle(el);
+      if (cs.overflowY !== 'visible' || cs.overflowX !== 'visible') { bottom = el.getBoundingClientRect().bottom; break; }
+    }
+    return Math.max(this.bleed, Math.ceil(bottom - rect.bottom) + 8);
   }
 
   set(s: PromptState): void {
@@ -276,6 +292,8 @@ export class CanvasPrompt {
       ctx.fillText(g.ch, x, cy + 1);
     }
     ctx.globalAlpha = 1;
+    // A letter that has fallen past the canvas's bottom edge is gone; freeing it lets the loop stop sooner.
+    fx.floor = cssH + this.bleedBottom - top + lh;
     this.effects.draw(ctx, this.padding, top, lh, this.flow.font, flow, colors.ink);
     if (!this.loop && (this.settling || this.effects.active(now))) this.ensureLoop();
   }
