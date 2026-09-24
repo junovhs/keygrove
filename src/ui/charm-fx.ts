@@ -10,19 +10,38 @@ import { escapeHtml as esc } from './dom';
 
 // ---- Painting -----------------------------------------------------------------------------------------------------
 
+/**
+ * A pattern painted once (PERF-04): cached per pattern, mirroring and silhouette, in runs of same-coloured cells.
+ * Actors copy it with one drawImage; nothing repaints pixel by pixel when a charm is summoned again.
+ */
+const painted = new WeakMap<string[], Map<string, HTMLCanvasElement>>();
 function paint(art: CharmArt, pattern: string[], opts: { flip?: boolean; silhouette?: string } = {}): HTMLCanvasElement {
+  let byOpts = painted.get(pattern);
+  if (!byOpts) painted.set(pattern, byOpts = new Map());
+  const key = `${opts.flip ? 1 : 0}|${opts.silhouette ?? ''}`;
+  const hit = byOpts.get(key);
+  if (hit) return hit;
   const rows = opts.flip ? flipRows(pattern) : pattern;
   const c = document.createElement('canvas');
   c.width = rows[0]!.length * art.pixel; c.height = rows.length * art.pixel;
   const g = c.getContext('2d');
   if (!g) return c;
-  rows.forEach((row, y) => [...row].forEach((ch, x) => {
-    const color = ch === '.' ? undefined : opts.silhouette ?? art.palette[ch];
-    if (!color) return;
-    g.fillStyle = color; g.fillRect(x * art.pixel, y * art.pixel, art.pixel, art.pixel);
-  }));
+  const colorOf = (ch: string | undefined) => ch === undefined || ch === '.' ? undefined : opts.silhouette ?? art.palette[ch];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length;) {
+      const color = colorOf(row[x]);
+      let end = x + 1;
+      while (end < row.length && colorOf(row[end]) === color) end++;
+      if (color) { g.fillStyle = color; g.fillRect(x * art.pixel, y * art.pixel, (end - x) * art.pixel, art.pixel); }
+      x = end;
+    }
+  });
+  byOpts.set(key, c);
   return c;
 }
+/** The holo sheen's mask: the sprite's own shape as a data URL, made once per sprite. */
+const masks = new WeakMap<HTMLCanvasElement, string>();
+const maskOf = (c: HTMLCanvasElement) => { let url = masks.get(c); if (!url) masks.set(c, url = `url(${c.toDataURL()})`); return url; };
 const urls = new Map<string, string>();
 /** A data URL of a charm's first frame (cached), for static art in HTML: the collection, chapter tiles, the result card. */
 export function charmUrl(id: string, silhouette = false): string {
@@ -73,50 +92,93 @@ const BEHAVIOURS: Record<Exclude<CharmMotion, 'slither' | 'flock' | 'music' | 's
 };
 
 let sky: HTMLElement | null = null;
+/** Glints alive right now; past the cap a new one is skipped, so a long flight never piles up elements. */
+let glints = 0;
+const MAX_GLINTS = 48;
 const layer = () => sky ??= Object.assign(document.body.appendChild(document.createElement('div')), { className: 'charm-sky', ariaHidden: 'true' });
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** One sprite on the stage: its frames, an optional holographic overlay, and a transform per tick. */
+/**
+ * One sprite on the stage: a single canvas showing its current frame, an optional holographic overlay, and a transform
+ * per tick. A frame change is one drawImage from the cached sprites, made only when the frame actually changes; the
+ * old way toggled `hidden` on every frame canvas every tick, which cost a style and layout pass per actor per frame.
+ */
 class Actor {
   el = document.createElement('div');
   frames: HTMLCanvasElement[];
   w: number; h: number;
+  private canvas = document.createElement('canvas');
+  private g: CanvasRenderingContext2D | null;
+  private shown = -1;
+  private opacity = '';
   constructor(art: CharmArt, patterns: string[][], flip: boolean, holo: boolean, extra = '') {
     this.el.className = 'charm-actor' + (holo ? ' holo' : '') + (extra ? ' ' + extra : '');
-    this.frames = patterns.map((p, i) => { const c = paint(art, p, { flip }); c.hidden = i > 0; this.el.appendChild(c); return c; });
+    this.frames = patterns.map((p) => paint(art, p, { flip }));
     this.w = this.frames[0]!.width; this.h = this.frames[0]!.height;
     this.el.style.width = `${this.w}px`; this.el.style.height = `${this.h}px`;
+    this.canvas.width = this.w; this.canvas.height = this.h;
+    this.g = this.canvas.getContext('2d');
+    this.el.appendChild(this.canvas);
+    this.show(0);
     if (holo) {
-      // A rainbow sheen cut to the sprite's own shape, sliding across it.
+      // A rainbow sheen cut to the sprite's own shape, sliding across it (two layers moved by transform, PERF-04).
       const sheen = document.createElement('i'); sheen.className = 'charm-holo';
-      const mask = `url(${this.frames[0]!.toDataURL()})`;
+      const mask = maskOf(this.frames[0]!);
       sheen.style.maskImage = mask; sheen.style.setProperty('-webkit-mask-image', mask);
+      sheen.innerHTML = '<i class="charm-holo-rainbow"></i><i class="charm-holo-band"></i>';
       this.el.appendChild(sheen);
     }
     layer().appendChild(this.el);
   }
+  private show(i: number): void {
+    if (i === this.shown || !this.g) return;
+    this.shown = i;
+    this.g.clearRect(0, 0, this.w, this.h); this.g.drawImage(this.frames[i]!, 0, 0);
+  }
   set(p: Pose, frame: number): void {
-    this.frames.forEach((f, i) => { f.hidden = i !== frame % this.frames.length; });
+    const n = this.frames.length;
+    this.show(((frame % n) + n) % n);
     this.el.style.transform = `translate(${Math.round(p.x - this.w / 2)}px, ${Math.round(p.y - this.h / 2)}px) rotate(${(p.rot ?? 0).toFixed(1)}deg) scale(${(p.sx ?? 1).toFixed(3)}, ${(p.sy ?? 1).toFixed(3)})`;
-    this.el.style.opacity = String(p.op ?? 1);
+    const op = String(p.op ?? 1);
+    if (op !== this.opacity) { this.opacity = op; this.el.style.opacity = op; }
   }
 }
 
-/** A burst of square sparks where a charm arrives. */
+/** A burst of square sparks where a charm arrives: built off the page, inserted once, each removed when it finishes. */
 function sparks(x: number, y: number, colors: string[], n = 14): void {
+  const batch = document.createDocumentFragment(), made: HTMLElement[] = [];
   for (let i = 0; i < n; i++) {
     const p = document.createElement('i'); p.className = 'charm-spark';
     p.style.left = `${Math.round(x)}px`; p.style.top = `${Math.round(y)}px`; p.style.background = colors[i % colors.length]!;
-    const a = (i / n) * Math.PI * 2, d = 40 + (i % 3) * 22;
-    p.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${Math.round(Math.cos(a) * d)}px, ${Math.round(Math.sin(a) * d)}px) scale(.4)`, opacity: 0 }], { duration: 700 + (i % 4) * 90, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
-    layer().appendChild(p); setTimeout(() => p.remove(), 1200);
+    batch.appendChild(p); made.push(p);
   }
+  layer().appendChild(batch);
+  made.forEach((p, i) => {
+    const a = (i / n) * Math.PI * 2, d = 40 + (i % 3) * 22;
+    // No fill hold: a spark's resting style is invisible (opacity 0), and it leaves the page as it finishes.
+    p.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${Math.round(Math.cos(a) * d)}px, ${Math.round(Math.sin(a) * d)}px) scale(.4)`, opacity: 0 }], { duration: 700 + (i % 4) * 90, easing: 'cubic-bezier(.2,.7,.3,1)' })
+      .finished.then(() => p.remove(), () => p.remove());
+  });
+}
+/** Every charm on screen ticks from one shared requestAnimationFrame clock, which stops when the sky is empty. */
+interface Ticker { t0: number; life: number; tick(t: number, ms: number): void; done(): void }
+const tickers = new Set<Ticker>();
+let clock = 0;
+function frame(now: number): void {
+  for (const k of tickers) {
+    // The frame's timestamp can precede a charm summoned during it; time never runs backwards for a pose.
+    const ms = Math.max(0, now - k.t0), t = Math.min(1, ms / k.life);
+    let over = t >= 1;
+    // One charm's error ends that charm, never the shared clock the rest of the sky runs on.
+    try { k.tick(t, ms); } catch (e) { over = true; console.error(e); }
+    if (over) { tickers.delete(k); k.done(); }
+  }
+  clock = tickers.size ? requestAnimationFrame(frame) : 0;
 }
 /** Tick an animation until `life` ms, then clean up. */
 function run(life: number, tick: (t: number, ms: number) => void, done: () => void): void {
-  const t0 = performance.now();
-  const step = (now: number) => { const ms = now - t0, t = Math.min(1, ms / life); tick(t, ms); if (t < 1) requestAnimationFrame(step); else done(); };
-  requestAnimationFrame(step);
+  tickers.add({ t0: performance.now(), life, tick, done });
+  if (!clock) clock = requestAnimationFrame(frame);
 }
 
 /**
@@ -266,7 +328,10 @@ function note(art: CharmArt, x: number, y: number): void {
   run(2200, t => a.set({ x: x + drift * t + Math.sin(t * 9) * 8, y: y - t * 140, rot: Math.sin(t * 7) * 15, op: fade(t, 0.1, 0.6) }, 0), () => a.el.remove());
 }
 function glint(x: number, y: number, trail = false): void {
+  if (glints >= MAX_GLINTS) return;
   const p = document.createElement('i'); p.className = 'charm-glint' + (trail ? ' trail' : '');
   p.style.left = `${Math.round(x)}px`; p.style.top = `${Math.round(y)}px`;
-  layer().appendChild(p); setTimeout(() => p.remove(), 900);
+  glints++;
+  p.addEventListener('animationend', () => { p.remove(); glints--; }, { once: true });
+  layer().appendChild(p);
 }

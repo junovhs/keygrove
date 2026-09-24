@@ -180,3 +180,56 @@ because frames now flow at the rate keys arrive instead of stalling behind the o
 frames, each far smaller.
 
 What still fails at `--throttle 4`: the charm scenarios (p95 11.5–13ms). That's PERF-04.
+
+## PERF-04: charms
+
+**What was wrong.**
+- Every summon repainted each sprite pixel by pixel (a `fillRect` per cell) for every actor. A 14-segment snake or an
+  18-star shower painted its art 14 or 18 times.
+- Each actor held one canvas per animation frame and toggled `hidden` on all of them every tick: a style and layout
+  pass per actor per frame, whether or not the frame had changed.
+- Each actor ran its own `requestAnimationFrame` loop.
+- The holographic foil animated `background-position` forever, which can only run on the main thread.
+- Glints (one every 28ms on the comet, randomly on holo charms) had no cap.
+- Sparks held their finished state with `fill: forwards` until a timer removed them.
+
+**What changed** (`src/ui/charm-fx.ts`, `src/ui/scene.css`):
+- Sprites are painted once per pattern, mirroring and silhouette, in runs of same-coloured cells, and cached. The
+  holo mask's data URL is cached too.
+- An actor has one canvas. A frame change is one `drawImage` from the cache, made only when the frame index changes.
+  Opacity is written only when it changes.
+- All charms share one animation clock, which stops when the sky is empty. It clamps time at zero and isolates each
+  charm, so one charm's error ends that charm rather than the clock. (A negative first tick is possible when a charm is
+  summoned mid-frame; the old per-actor loops hit it too and simply showed no sprite for that frame.)
+- The foil is two layers inside the masked, `hard-light` sheen, each sliding with `transform`: a rainbow tile three
+  sprites wide over two tiles, and a glint band 2.6 wide over 4.16 sprite widths. That's the same geometry and 1.9s
+  timing as the old `background-position` sweep, now on the compositor.
+- At most 48 glints live at once, each removed on `animationend`.
+- Sparks are built off the page, inserted in one batch, rest at `opacity: 0`, and are removed when their animation
+  finishes.
+- `.charm-sky` is `contain: strict`, so charm elements coming and going never re-lay out the page.
+
+**Results** (1920×1080 @2x, two runs each):
+
+| scenario | p95 / p99 frame slot | recalcs | layouts | paints |
+| --- | --- | --- | --- | --- |
+| charms-six, unthrottled, before | 5.5–5.8 / 6.2–7.3 ms | 659–673 | 504–518 | 1428–1500 |
+| charms-six, unthrottled, after | **3.1–3.3 / 3.8–4.2 ms** | 485–491 | 231–271 | 624–672 |
+| charms-all, unthrottled, before | 7–8 / 8.5–10.5 ms (8.0 failed) | 660–671 | 618–620 | 4186–4242 |
+| charms-all, unthrottled, after | **4.0–4.5 / 5.2–7.1 ms** | 485–488 | 326–334 | 1003–1018 |
+| charms-six, throttle 4, before | 11.3–11.6 / 12.7–13 ms | 488–509 | 353–371 | 1322–1410 |
+| charms-six, throttle 4, after | 8.5–8.6 / 9.4–9.8 ms | 477–493 | 225–256 | 615–655 |
+| charms-all, throttle 4, before | 13.1–13.6 / 14.6–14.8 ms | 388–456 | 363–415 | 3029–3313 |
+| charms-all, throttle 4, after | 10.7–10.9 / 13.6–14 ms | 403–418 | 290–308 | 957–983 |
+
+Looks the same: every one of the 20 charms was flown one at a time in the old and new builds, with `Math.random`
+seeded identically, and captured 1.4s and 1.7s in. The contact sheets match sprite for sprite and position for
+position. 15 of the 20 captures are pixel-identical, and the rest differ only by a few milliseconds of frame timing.
+Zoomed crops of the holo foil (crystal, moon, rainbow) show the same colours in the same places at both moments.
+Every flight clears on the same schedule as before, with no element left in the sky and no running animation
+afterwards.
+
+**Still open.** On the throttled CPU a full sky is still over the 8ms p95 line: 10.7–10.9ms, about 1.1s script,
+0.8s style and 1.15s paint per 8s. That's the pose functions running and a `transform` written on up to ~60 actors
+every frame. Moving the poses to the compositor as precomputed keyframes is a rewrite of how every charm moves, so
+it's tracked separately as PERF-06, not folded in here.
