@@ -263,72 +263,108 @@ function prompt(): void {
 function metrics(): { wpm: number; acc: number; pct: number } {
   const m = run.metrics(now());
   if (mode.kind === 'remedial' && run.text) m.pct = Math.round(((stopRuns.length + run.pos / run.text.length) / FINGER_PAGES) * 100);
-  $('wpm').textContent = String(m.wpm); $('acc').textContent = guided() ? 'No score' : m.acc + '%'; $('pct').textContent = m.pct + '%';
+  setText($('wpm'), String(m.wpm)); setText($('acc'), guided() ? 'No score' : m.acc + '%'); setText($('pct'), m.pct + '%');
   const combo = $('combo');
   if (combo.textContent !== String(run.combo)) { combo.textContent = String(run.combo); if (run.combo > 0 && run.combo % 10 === 0) { combo.classList.remove('tick'); void combo.offsetWidth; combo.classList.add('tick'); } }
-  const fill = document.getElementById('progressFill'); if (fill) fill.style.width = m.pct + '%';
+  const fill = document.getElementById('progressFill'), scale = `scaleX(${m.pct / 100})`; if (fill && fill.style.transform !== scale) fill.style.transform = scale;
   return m;
 }
+/**
+ * Keystrokes write only what changed (PERF-02): a same-value write still invalidates style and layout. Text goes
+ * through setText; hint HTML through setHtml, which remembers what it last wrote to each element.
+ */
+function setText(el: HTMLElement, text: string): void { if (el.textContent !== text) el.textContent = text; }
+const shownHtml = new WeakMap<Element, string>();
+function setHtml(el: HTMLElement, html: string): void { if (shownHtml.get(el) === html) return; el.innerHTML = html; shownHtml.set(el, html); }
+let fingerLabelEls: HTMLElement[] | null = null;
+const fingerLabels = () => fingerLabelEls ??= [...document.querySelectorAll<HTMLElement>('[data-finger-label]')];
 /** Badges above the hands: the active finger shows the key it is being asked for; the rest show their home keys. */
 function badges(active: Partial<Record<string, string>>): void {
-  document.querySelectorAll<HTMLElement>('[data-finger-label]').forEach((x) => {
+  for (const x of fingerLabels()) {
     const id = x.dataset.fingerLabel!, key = active[id];
-    x.classList.toggle('active', key !== undefined);
-    x.textContent = (key ?? fingerById(id)?.anchor ?? x.textContent ?? '').toUpperCase();
-  });
+    if (x.classList.contains('active') !== (key !== undefined)) x.classList.toggle('active', key !== undefined);
+    setText(x, (key ?? fingerById(id)?.anchor ?? x.textContent ?? '').toUpperCase());
+  }
 }
 function nextVisual(): void {
   if (brief) { paintBrief(); return; }
   if (!helpVisible && !guided() && run.status !== 'complete') {
     badges({}); paintHand('left', null); paintHand('right', null);
-    $('handInstruction').textContent = 'Prepare the next movement. Finger hints are here whenever you want them.'; $('nextCue').textContent = ''; return;
+    setHtml($('handInstruction'), 'Prepare the next movement. Finger hints are here whenever you want them.'); setText($('nextCue'), ''); return;
   }
   const c = run.current, f = fingerForKey(c);
   badges(f && 'anchor' in f && c !== ' ' ? { [f.id]: baseKey(c) } : {});
   const shifted = isShifted(c);
   if (c === ' ') {
     paintHand('left', 'thumb'); paintHand('right', 'thumb');
-    $('handInstruction').innerHTML = 'Press with either thumb.';
+    setHtml($('handInstruction'), 'Press with either thumb.');
   } else if (f) {
     paintHand('left', f.id); paintHand('right', f.id);
     const shiftNote = shifted && 'hand' in f ? ` · hold ${f.hand === 'left' ? 'right' : 'left'} [shift]` : '';
     const anchor = 'anchor' in f && f.anchor !== c.toLowerCase() ? ` · landmark [${f.anchor}]` : '';
-    $('handInstruction').innerHTML = '<strong>' + escapeHtml(f.full) + '</strong>' + renderCopy(anchor + shiftNote);
+    setHtml($('handInstruction'), '<strong>' + escapeHtml(f.full) + '</strong>' + renderCopy(anchor + shiftNote));
   } else {
     paintHand('left', null); paintHand('right', null);
-    $('handInstruction').innerHTML = run.status === 'complete' ? 'Run complete.' : 'Let your hands rest comfortably.';
+    setHtml($('handInstruction'), run.status === 'complete' ? 'Run complete.' : 'Let your hands rest comfortably.');
   }
-  $('nextCue').textContent = '';
+  setText($('nextCue'), '');
 }
-/** Key pitch (cap + gap) measured from the number row, so the stagger tracks every responsive cap size. */
+/** Key pitch (cap + gap) measured from the number row, so the stagger tracks every responsive cap size. Build and resize only. */
 function measurePitch(): void {
   const [a, b] = $('keymap').querySelectorAll<HTMLElement>('.keyrow:first-child .keycap');
   const u = a && b ? b.getBoundingClientRect().left - a.getBoundingClientRect().left : 0;
   if (u > 0) $('keymap').style.setProperty('--u', `${u}px`);
 }
 window.addEventListener('resize', measurePitch);
+/** The layout the keymap was last built for (explore mode and the familiar keys); a keystroke never changes it. */
+let keymapBuilt = '';
+/** The cap currently showing a shifted label (e.g. "A" → the passage's "A" or "!"), to restore when the key moves on. */
+let keymapLabelled: HTMLElement | null = null;
+const capLabel = (k: string) => k === ' ' ? 'SPACE' : k.toUpperCase();
+/**
+ * The on-screen keyboard. It is built once per layout (PERF-02); after that a keystroke only moves the `hot` class,
+ * the shifted label and the shift caps, touching the two or three caps that change instead of rebuilding fifty.
+ */
 function keymap(): void {
-  const c = baseKey(run.current), shifted = isShifted(run.current);
+  const map = $('keymap');
   const focused = new Set([...practiceAllowed()].map(baseKey));
-  const homes = new Set('fj');
-  const rows = ['`1234567890-=', 'qwertyuiop[]\\', "asdfghjkl;'", 'zxcvbnm,./'];
-  const cap = (k: string): string => {
-    const hot = (helpVisible || guided()) && c === k;
-    const classes = `keycap ${homes.has(k) ? 'home ' : ''}${focused.has(k) ? 'familiar ' : ''}${hot ? 'hot' : ''}${k === ' ' ? ' spacebar' : ''}`;
-    const label = k === ' ' ? 'SPACE' : hot && shifted ? run.current : k.toUpperCase();
-    return mode.kind === 'explore'
-      ? `<button type="button" class="${classes}" data-key="${escapeHtml(k)}" aria-label="Explore ${escapeHtml(k === ' ' ? 'Space' : k.toUpperCase())}">${escapeHtml(label)}</button>`
-      : `<span class="${classes}" data-key="${escapeHtml(k)}">${escapeHtml(label)}</span>`;
-  };
-  // Real ANSI stagger, in key pitch from the backtick's left edge: Tab 1.5u, Caps 1.75u, Shift 2.25u.
-  const stagger = [0, 1.5, 1.75, 2.25];
-  $('keymap').innerHTML = rows.map((r, i) => `<div class="keyrow" style="--row-offset:calc(var(--u, 0px) * ${stagger[i]})">${[...r].map(cap).join('')}</div>`).join('')
-    + `<div class="keyrow"><span class="keycap shiftcap ${(helpVisible || guided()) && shifted && fingerForKey(run.current)?.id.startsWith('r') ? 'hot' : ''}">⇧</span>${cap(' ')}<span class="keycap shiftcap ${(helpVisible || guided()) && shifted && fingerForKey(run.current)?.id.startsWith('l') ? 'hot' : ''}">⇧</span></div>`;
-  measurePitch();
-  $('keymap').querySelectorAll<HTMLElement>('[data-key]').forEach(el => {
-    el.onpointerenter = () => peekKey(el.dataset.key!); el.onpointerleave = () => peekKey(null);
-    if (mode.kind === 'explore') el.onclick = () => { mode = { kind: 'explore', key: el.dataset.key! }; resetRun(); };
-  });
+  const layout = `${mode.kind === 'explore'}|${[...focused].sort().join('')}`;
+  if (layout !== keymapBuilt || !map.firstElementChild) {
+    const homes = new Set('fj');
+    const rows = ['`1234567890-=', 'qwertyuiop[]\\', "asdfghjkl;'", 'zxcvbnm,./'];
+    const cap = (k: string): string => {
+      const classes = `keycap ${homes.has(k) ? 'home ' : ''}${focused.has(k) ? 'familiar ' : ''}${k === ' ' ? ' spacebar' : ''}`;
+      return mode.kind === 'explore'
+        ? `<button type="button" class="${classes}" data-key="${escapeHtml(k)}" aria-label="Explore ${escapeHtml(k === ' ' ? 'Space' : k.toUpperCase())}">${escapeHtml(capLabel(k))}</button>`
+        : `<span class="${classes}" data-key="${escapeHtml(k)}">${escapeHtml(capLabel(k))}</span>`;
+    };
+    // Real ANSI stagger, in key pitch from the backtick's left edge: Tab 1.5u, Caps 1.75u, Shift 2.25u.
+    const stagger = [0, 1.5, 1.75, 2.25];
+    map.innerHTML = rows.map((r, i) => `<div class="keyrow" style="--row-offset:calc(var(--u, 0px) * ${stagger[i]})">${[...r].map(cap).join('')}</div>`).join('')
+      + `<div class="keyrow"><span class="keycap shiftcap" data-shift="r">⇧</span>${cap(' ')}<span class="keycap shiftcap" data-shift="l">⇧</span></div>`;
+    keymapBuilt = layout; keymapLabelled = null;
+    measurePitch();
+  }
+  const c = baseKey(run.current), shifted = isShifted(run.current), show = helpVisible || guided();
+  const hot = new Set<Element>();
+  const target = show ? map.querySelector<HTMLElement>(`[data-key="${CSS.escape(c)}"]`) : null;
+  if (target) hot.add(target);
+  const side = show && shifted ? fingerForKey(run.current)?.id[0] : undefined;
+  // The opposite hand holds Shift: a right-hand key lights the left Shift, drawn first in the row.
+  const shiftCap = side ? map.querySelector(`[data-shift="${side}"]`) : null;
+  if (shiftCap) hot.add(shiftCap);
+  for (const el of map.querySelectorAll('.keycap.hot')) if (!hot.has(el)) el.classList.remove('hot');
+  for (const el of hot) if (!el.classList.contains('hot')) el.classList.add('hot');
+  const label = target && shifted ? run.current : null;
+  if (keymapLabelled && (keymapLabelled !== target || !label)) { setText(keymapLabelled, capLabel(keymapLabelled.dataset.key!)); keymapLabelled = null; }
+  if (target && label) { setText(target, label); keymapLabelled = target; }
+}
+// Hover and explore clicks are delegated once, not rebound to every cap on every build.
+{
+  const capOf = (e: Event) => (e.target as Element | null)?.closest?.<HTMLElement>('#keymap [data-key]') ?? null;
+  $('keymap').addEventListener('pointerover', (e) => { const el = capOf(e); if (el && !el.contains(e.relatedTarget as Node | null)) peekKey(el.dataset.key!); });
+  $('keymap').addEventListener('pointerout', (e) => { const el = capOf(e); if (el && !el.contains(e.relatedTarget as Node | null)) peekKey(null); });
+  $('keymap').addEventListener('click', (e) => { const el = capOf(e); if (el && mode.kind === 'explore') { mode = { kind: 'explore', key: el.dataset.key! }; resetRun(); } });
 }
 /** Hovering a keycap paints its finger; hovering a finger lights its keys. Null restores the live state. */
 function peekKey(k: string | null): void {
@@ -381,7 +417,7 @@ function openBrief(): void {
   const briefing = briefingFor(runTrail);
   if (!briefing || seenBriefs.has(runTrail.id) || run.status !== 'idle') return;
   brief = { briefing, step: 0, pressed: new Set() };
-  arena().classList.add('brief-mode');
+  arena().classList.add('brief-mode'); document.body.classList.add('brief-open');
   render();
   $('lessonTitle').focus();
 }
@@ -391,7 +427,7 @@ function endBrief(read = false): void {
   if (read) seenBriefs.add(runTrail.id);
   if (briefTimer) { clearTimeout(briefTimer); briefTimer = null; }
   brief = null;
-  arena().classList.remove('brief-mode');
+  arena().classList.remove('brief-mode'); document.body.classList.remove('brief-open');
   $('briefCard').hidden = true;
   $('keymap').querySelectorAll('.keycap.hot').forEach((x) => x.classList.remove('hot'));
 }
@@ -436,7 +472,7 @@ function paintBrief(): void {
   const active: Partial<Record<string, string>> = {};
   for (const k of lit) { const f = fingerOf(k); if (f && f !== 'thumb' && !active[f]) active[f] = k; }
   badges(active);
-  $('handInstruction').textContent = '';
+  setHtml($('handInstruction'), '');
 }
 function renderBrief(): void {
   if (!brief) return;
@@ -557,7 +593,7 @@ function startDemo(): void {
   if (mode.kind !== 'slow' || run.status !== 'idle') return;
   const steps = demoSchedule(run.text);
   $('replayDemo').hidden = true;
-  $('handInstruction').innerHTML = '<strong>Press like this</strong> · watch the pace, then type';
+  setHtml($('handInstruction'), '<strong>Press like this</strong> · watch the pace, then type');
   demo = steps.map((s) => window.setTimeout(() => lightDemo(s), s.at));
   demo.push(window.setTimeout(stopDemo, (steps.at(-1)?.at ?? 0) + demoStepMs()));
 }

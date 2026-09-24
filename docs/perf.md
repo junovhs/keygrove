@@ -91,3 +91,47 @@ What the baseline says:
 - **Idle and the after-typing fade are already cheap.** The canvas prompt stops its loop once its effects settle, and
   its drawing barely shows on the main thread. PERF-03 is about the size of what the canvas clears and uploads each
   frame, which is raster and GPU work that this trace doesn't count.
+
+## PERF-02: keystrokes update only what changed
+
+**What was wrong.** Every keystroke:
+- rebuilt the whole on-screen keyboard (about 50 caps) with `innerHTML`, measured it straight away for the row
+  stagger, which forced a layout mid-handler, and rebound hover handlers on every cap;
+- repainted both hand illustrations (a filtered SVG) even when the finger hadn't changed;
+- rewrote the eight finger badges, the finger hint and the metrics text whether or not they had changed.
+
+**What changed** (`src/main.ts`, `src/ui/hands.ts`, `index.html`, `src/ui/journey.css`):
+- The keyboard is built once per layout (explore mode and the familiar keys). After that a keystroke only moves the
+  `hot` class, the shifted label and the Shift cap highlight, touching the two or three caps that change.
+- Hover and explore clicks are delegated once on `#keymap`. The row stagger is measured on build and on resize only.
+- `paintHand` remembers the finger it last painted and returns early. Badges, the hint, the next cue and the metrics
+  are written only when their value changes (`setText`/`setHtml`), because a same-value write still invalidates style
+  and layout.
+- The progress bar grows with `transform: scaleX` instead of animating `width`.
+- `body:has(.arena.brief-mode) .metrics` is now `body.brief-open .metrics`, set alongside `brief-mode`.
+- The `.keymap:has(...)` sizing rules stay as they are. With the keyboard no longer rebuilt, nothing a keystroke
+  changes can invalidate them (only the `hot` class moves), and turning them into classes would change their
+  specificity for no measurable gain.
+
+**Results** (1920×1080 @2x, two runs each):
+
+| `--throttle 4` | before | after |
+| --- | --- | --- |
+| type-steady p95 / p99 frame slot | 13.9–14.6 / 16 ms | **4.4–4.7 / 6.9–7.8 ms** (passes) |
+| type-steady layouts per key | 3.4 | **0.2** |
+| type-steady recalcs per key | 3.4 | 1.6 |
+| type-steady keydown handler p50 / p95 | 11 / 26–27 ms | **2.4–2.5 / 4–4.6 ms** |
+| type-steady key→frame p50 / p95 / max | 66–73 / 89–95 / 175–181 ms | 55–59 / 66–68 / 68–73 ms |
+| type-misses p95 frame slot | 11–12.7 ms | 3.9–4.1 ms |
+| type-misses key→frame p50 / p95 | 63 / 75–89 ms | 49–50 / 62–66 ms |
+
+| unthrottled | before | after |
+| --- | --- | --- |
+| type-steady p95 frame slot | 5.6–6.4 ms | 1.6 ms |
+| type-steady handler p50 | 4.2–4.4 ms | 0.9 ms |
+| type-steady key→frame p50 / p95 | 21–24 / 28.5–30 ms | 19 / 25.6 ms |
+
+The main thread now does almost nothing per keystroke, and the worst key-to-screen time more than halved. On the slow
+CPU, key-to-screen is still about three frames even though each frame's main-thread work is small. That remainder is
+the canvas prompt: every frame it clears and hands the compositor a canvas about 3300×2900 device pixels, most of it
+the invisible 1100px drop zone for falling letters. That's PERF-03.

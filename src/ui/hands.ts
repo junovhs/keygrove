@@ -16,6 +16,8 @@ interface HandRef {
   gradient: SVGElement;
   stops: SVGElement[];
   nails: Partial<Record<Kind, HTMLElement | SVGElement>>;
+  /** The finger last painted (null = none); undefined until the first paint. */
+  painted?: Kind | null;
 }
 const handRefs: Record<Side, HandRef | null> = { left: null, right: null };
 /** Finger id (lp…rp / thumb) → hover callback, wired by the app. null = pointer left. */
@@ -87,6 +89,9 @@ export function pulseFinger(fingerId: string | null): void {
 export function paintHand(side: Side, fingerId: string | null): void {
   const ref = handRefs[side]; if (!ref) return;
   const kind = activeKind(side, fingerId), active = !!kind;
+  // Most keystrokes keep the same finger: repainting the gradient and nails would re-raster the filtered SVG for nothing.
+  if (ref.painted === kind) return;
+  ref.painted = kind;
   const point = kind ? HAND_POINTS[kind] : { x: 724, y: 543, r: 560 };
   ref.gradient.setAttribute('cx', String(point.x)); ref.gradient.setAttribute('cy', String(point.y)); ref.gradient.setAttribute('r', String(point.r));
   const colors = active ? ['#ff5418', '#ff8a61', '#f1d2c5', '#e7e6e7'] : ['#efebe7', '#ece8e3', '#e9e5df', '#e7e6e7'];
